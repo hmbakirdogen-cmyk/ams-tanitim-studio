@@ -119,6 +119,30 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
   }, [curve, tubeRadius])
   useEffect(() => () => geo.dispose(), [geo])
 
+  // BOYLU BOYUNCA metal aksan cizgileri (gercek metal his): ust (parlak gumus) + yan (hafif). Kuyrukta boru ile uyumlu sonumlenir.
+  const { accentTopGeo, accentSideGeo, accentTopLine, accentSideLine } = useMemo(() => {
+    const build = (rgb: [number, number, number], opacityScale: number) => {
+      const g = new THREE.BufferGeometry()
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(L * 3), 3))
+      const col = new Float32Array(L * 4)
+      for (let i = 0; i < L; i++) {
+        const a = (0.06 + 0.94 * Math.pow(i / (L - 1), 1.0)) * opacityScale // tube kuyruk izine uyumlu
+        col[i * 4] = rgb[0]; col[i * 4 + 1] = rgb[1]; col[i * 4 + 2] = rgb[2]; col[i * 4 + 3] = a
+      }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 4))
+      const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, toneMapped: false })
+      return { g, line: new THREE.Line(g, mat) }
+    }
+    const top = build([0.93, 0.96, 1.0], 1.0) // parlak gumus tepe cizgisi
+    const side = build([0.6, 0.7, 0.82], 0.6) // hafif yan metal cizgi
+    return { accentTopGeo: top.g, accentSideGeo: side.g, accentTopLine: top.line, accentSideLine: side.line }
+  }, [])
+  useEffect(() => () => {
+    accentTopGeo.dispose(); accentSideGeo.dispose()
+    ;(accentTopLine.material as THREE.Material).dispose()
+    ;(accentSideLine.material as THREE.Material).dispose()
+  }, [accentTopGeo, accentSideGeo, accentTopLine, accentSideLine])
+
   useFrame(() => {
     const t = targetRef.current
     const y = yRef.current
@@ -139,6 +163,17 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
       posAttr.needsUpdate = true
       norAttr.needsUpdate = true
     }
+    // 3b) Boylu boyunca metal aksan cizgileri (boru tepesinde + on-yaninda)
+    const atp = accentTopGeo.attributes.position.array as Float32Array
+    const asp = accentSideGeo.attributes.position.array as Float32Array
+    for (let i = 0; i < L; i++) {
+      const px = curvePts[i].x
+      const py = curvePts[i].y
+      atp[i * 3] = px; atp[i * 3 + 1] = py + tubeRadius * 0.85; atp[i * 3 + 2] = m.z
+      asp[i * 3] = px; asp[i * 3 + 1] = py - tubeRadius * 0.35; asp[i * 3 + 2] = m.z + tubeRadius * 0.78
+    }
+    accentTopGeo.attributes.position.needsUpdate = true
+    accentSideGeo.attributes.position.needsUpdate = true
     // 4) Kuyruklu-yildiz basi (ucta, yeni veri) + hero'da yumusak zemin isigi
     const hx = xAt(L - 1)
     const hy = y[L - 1]
@@ -148,16 +183,17 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
 
   return (
     <group>
-      {/* TEK boru - kendi renginde emissive (siyahlama yok) + DoubleSide (garanti gorunur) + kuyruk izi (vertex-alpha).
-          frustumCulled=false: vertex'ler her kare yukseliyor ama boundingSphere yeniden hesaplanmiyor -> acidan kaybolma riskini onler. */}
+      {/* RENKLI CAM boru - kendi renginde emissive ZEMIN (siyahlama yok) + dusuk roughness -> keskin cam parlamasi (ISIK),
+          studyo yansimasi (envMap) + kesit golgelemesi (GOLGE). DoubleSide (garanti gorunur) + kuyruk izi (vertex-alpha).
+          frustumCulled=false: vertex'ler her kare yukseliyor ama boundingSphere sabit -> acidan kaybolmayi onler. */}
       <mesh ref={meshRef} geometry={geo} frustumCulled={false}>
         <meshStandardMaterial
           color={m.color}
           emissive={m.color}
-          emissiveIntensity={0.6}
+          emissiveIntensity={0.5}
           metalness={0}
-          roughness={0.38}
-          envMapIntensity={0.6}
+          roughness={0.18}
+          envMapIntensity={0.85}
           vertexColors
           transparent
           depthWrite={false}
@@ -165,6 +201,10 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
           toneMapped={false}
         />
       </mesh>
+
+      {/* Boylu boyunca METAL aksan cizgileri (THREE.Line; <line> JSX SVG ile cakistigi icin primitive) */}
+      <primitive object={accentSideLine} />
+      <primitive object={accentTopLine} />
 
       {/* Kuyruklu-yildiz BASI: ucta kucuk, hafif additive glow (her boru kendi renginde) */}
       <mesh ref={headRef} frustumCulled={false}>
