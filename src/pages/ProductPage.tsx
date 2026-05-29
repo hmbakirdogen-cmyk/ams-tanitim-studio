@@ -11,9 +11,19 @@ import { SmcLogo } from '@/components/SmcLogo'
 import { useModel } from '@/data/model'
 import { useModules, MODULES } from '@/data/modules'
 import {
-  Leaf, PowerOff, Timer, Cpu, Gauge, Wind, Network, Wifi, Server, Ruler, Zap, ShieldCheck, Plus,
+  Leaf, PowerOff, Timer, Cpu, Gauge, Wind, Network, Wifi, Server, Ruler, Zap, ShieldCheck, Plus, Activity,
   type LucideIcon,
 } from 'lucide-react'
+
+// Katalogtan ONE CIKAN YETENEKLER (Sustainability - Condition Based Maintenance - Digitalisation)
+const CAPABILITIES: { icon: LucideIcon; color: string; title: string; desc: string }[] = [
+  { icon: Activity, color: '#2E9BFF', title: 'Kestirimci & Durum Bazlı Bakım', desc: 'Debi, basınç ve sıcaklık eğilimleri sürekli izlenir; sapmalar arıza oluşmadan fark edilir, plansız duruş azalır.' },
+  { icon: Network, color: '#36E0C8', title: 'Dijitalleşme · Endüstri 4.0', desc: 'OPC UA, IO-Link, Endüstriyel Ethernet ve dahili web sunucu ile veri doğrudan üst sisteme taşınır.' },
+  { icon: Leaf, color: '#41E08A', title: 'Sürdürülebilirlik', desc: 'Beklemede havayı kısar/keser; %62’ye varan hava tasarrufu — daha az enerji ve CO₂ salımı.' },
+  { icon: ShieldCheck, color: '#7CE0FF', title: 'Güvenli Kablosuz (EXW1)', desc: '100 metre menzilli şifreli kablosuz; kablo çekmeden güvenli uzaktan izleme.' },
+  { icon: Server, color: '#FFB04D', title: 'Dahili Web Sunucu', desc: 'Tarayıcıdan doğrudan erişim; ek yazılım veya kurulum gerektirmez.' },
+  { icon: Cpu, color: '#2E9BFF', title: 'Akıllı İzleme & HMI', desc: 'Anlık değerler ve eğilim grafikleri; sağlanan tasarruf miktarı görünür kılınır.' },
+]
 
 const MODES: { icon: LucideIcon; color: string; title: string; desc: string }[] = [
   { icon: Leaf, color: '#41E08A', title: 'Tasarruf Modu', desc: 'Ekipman beklemedeyken oransal regülatör basıncı düşürür; hava tüketimi %50+ azalır.' },
@@ -115,6 +125,28 @@ export function ProductPage() {
                   </span>
                   <div className="text-base font-semibold text-white">{m.title}</div>
                   <div className="text-sm leading-relaxed text-[var(--ink-soft)]">{m.desc}</div>
+                </Tilt3D>
+              </Reveal>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* One cikan yetenekler - tum katalog temalari (sürdürülebilirlik, kestirimci bakim, dijitallesme) */}
+      <div>
+        <h3 className="mb-3 text-lg font-bold text-white">Öne Çıkan Yetenekler</h3>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {CAPABILITIES.map((c, i) => {
+            const Icon = c.icon
+            return (
+              <Reveal key={c.title} delay={i * 0.06}>
+                <Tilt3D className="glass relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl p-5" max={6}>
+                  <span className="absolute inset-x-0 top-0 h-1" style={{ background: c.color, boxShadow: `0 0 18px ${c.color}` }} />
+                  <span className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: `${c.color}1f`, color: c.color }}>
+                    <Icon size={22} />
+                  </span>
+                  <div className="text-base font-semibold text-white">{c.title}</div>
+                  <div className="text-sm leading-relaxed text-[var(--ink-soft)]">{c.desc}</div>
                 </Tilt3D>
               </Reveal>
             )

@@ -58,6 +58,10 @@ body {
 /* Tabular rakamlar - sayilar titremeden akar */
 .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 
+/* Gunduz/Gece gecisi - renkler/zemin yumusak gecsin (rötuş) */
+body { transition: background-color 0.45s ease, color 0.45s ease; }
+.glass { transition: color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, background 0.4s ease; }
+
 /* --- Cam (glassmorphism) panel --- */
 .glass {
   background: var(--glass-bg);
@@ -122,16 +126,16 @@ body {
 
 /* === GUNDUZ (light) TEMA === */
 :root[data-theme='light'] {
-  --bg-0: #eef3fb;
-  --ink: #0c1a33;
-  --ink-soft: #51678c;
-  --hair: rgba(10, 60, 120, 0.16);
-  --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.92), rgba(255,255,255,0.72));
-  --glass-shadow: 0 22px 60px -30px rgba(20,60,120,0.35), inset 0 1px 0 rgba(255,255,255,0.9);
-  --scene: radial-gradient(120% 90% at 50% -10%, #ffffff 0%, #e9f1fb 45%, #d8e6f6 100%);
-  --aurora-op: 0.4;
-  --vignette: rgba(20,60,120,0.05);
-  --grid-line: rgba(10,80,160,0.12);
+  --bg-0: #e9f0f9;
+  --ink: #0a1730;            /* ana metin - koyu, yuksek kontrast */
+  --ink-soft: #445980;       /* ikincil metin - daha koyu, okunakli */
+  --hair: rgba(10, 60, 120, 0.24);  /* kenarlar belirgin (kart ayrimi) */
+  --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.96), rgba(235,243,252,0.84));
+  --glass-shadow: 0 24px 58px -26px rgba(18,55,110,0.5), inset 0 1px 0 rgba(255,255,255,0.95);
+  --scene: radial-gradient(120% 90% at 50% -10%, #ffffff 0%, #e6eefa 45%, #cfe0f4 100%);
+  --aurora-op: 0.45;
+  --vignette: rgba(20,60,120,0.06);
+  --grid-line: rgba(10,80,160,0.14);
 }
 /* Isik modunda beyaz metin -> koyu metin (token uzerinden) */
 :root[data-theme='light'] .text-white { color: var(--ink); }
