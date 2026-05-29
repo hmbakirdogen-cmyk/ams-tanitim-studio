@@ -92,6 +92,8 @@ function writeTube(pos: Float32Array, nor: Float32Array, pts: THREE.Vector3[], r
 function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
   const meshRef = useRef<THREE.Mesh>(null)
   const headRef = useRef<THREE.Mesh>(null) // ucta kuyruklu-yildiz basi (hafif glow)
+  const headCapRef = useRef<THREE.Mesh>(null) // bas ucu yuvarlak kapak (kesik degil)
+  const tailCapRef = useRef<THREE.Mesh>(null) // kuyruk ucu yuvarlak kapak (soluk)
   const lightRef = useRef<THREE.PointLight>(null)
 
   const tubeRadius = Math.max(0.04, m.width * 0.62) // daha ince boru (gercek tel/boru hissi)
@@ -178,6 +180,8 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
     const hx = xAt(L - 1)
     const hy = y[L - 1]
     if (headRef.current) headRef.current.position.set(hx, hy, m.z)
+    if (headCapRef.current) headCapRef.current.position.set(hx, hy, m.z) // bas ucu yuvarlak kapak
+    if (tailCapRef.current) tailCapRef.current.position.set(xAt(0), y[0], m.z) // kuyruk ucu yuvarlak kapak
     if (m.hero && lightRef.current) lightRef.current.position.set(hx, hy + 0.5, m.z + 1.2)
   })
 
@@ -200,6 +204,16 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
           side={THREE.DoubleSide}
           toneMapped={false}
         />
+      </mesh>
+
+      {/* Yuvarlak UC KAPAKLARI - boru uclari kesik/acik gorunmesin (yuvarlansin + kapansin) */}
+      <mesh ref={headCapRef} frustumCulled={false}>
+        <sphereGeometry args={[tubeRadius, 16, 16]} />
+        <meshStandardMaterial color={m.color} emissive={m.color} emissiveIntensity={0.5} metalness={0} roughness={0.18} envMapIntensity={0.85} transparent opacity={0.92} toneMapped={false} />
+      </mesh>
+      <mesh ref={tailCapRef} frustumCulled={false}>
+        <sphereGeometry args={[tubeRadius, 12, 12]} />
+        <meshBasicMaterial color={m.color} transparent opacity={0.12} depthWrite={false} toneMapped={false} />
       </mesh>
 
       {/* Boylu boyunca METAL aksan cizgileri (THREE.Line; <line> JSX SVG ile cakistigi icin primitive) */}
