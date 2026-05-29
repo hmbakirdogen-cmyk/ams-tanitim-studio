@@ -10,6 +10,7 @@ import { Tilt3D } from '@/components/Tilt3D'
 import { Sparkline } from '@/components/Sparkline'
 import { useSmoothNumber } from '@/hooks/useSmoothNumber'
 import { METRICS, type MetricDef } from '@/data/metrics'
+import { useSensorVisibility } from '@/data/sensorVisibility'
 import type { Reading } from '@/data/types'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
@@ -68,11 +69,13 @@ function SensorDetail({ def, history }: { def: MetricDef; history: Reading[] }) 
 }
 
 export function SensorsPage({ data }: { data: LiveState }) {
+  const { visible } = useSensorVisibility()
+  const shown = METRICS.filter((m) => visible[m.key])
   return (
     <div className="flex h-full flex-col gap-4">
       <PageHeader title="Sensör Detayları" subtitle="Her sensörün anlık değeri, eğilimi ve istatistikleri" />
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto pr-1 md:grid-cols-2">
-        {METRICS.map((def, i) => (
+        {shown.map((def, i) => (
           <motion.div
             key={def.key}
             initial={{ opacity: 0, y: 18 }}

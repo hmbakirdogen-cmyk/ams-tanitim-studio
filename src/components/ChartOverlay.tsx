@@ -20,7 +20,7 @@ function fmtElapsed(ms: number): string {
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(ss)}` : `${pad(m)}:${pad(ss)}`
 }
 
-export function ChartOverlay({ reading }: { reading: Reading | null }) {
+export function ChartOverlay({ reading, metrics = METRICS }: { reading: Reading | null; metrics?: MetricDef[] }) {
   const elapsed = fmtElapsed(reading?.t ?? 0)
   return (
     <div className="pointer-events-none absolute inset-0">
@@ -58,7 +58,7 @@ export function ChartOverlay({ reading }: { reading: Reading | null }) {
       <div className="absolute right-5 top-1/2 -translate-y-1/2 rounded-2xl border border-white/10 bg-[#050b18]/80 p-2.5 backdrop-blur-md" style={{ boxShadow: '0 10px 40px -12px rgba(0,0,0,0.8)' }}>
         <div className="mb-1.5 px-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--ink-soft)]">Anlık Değerler</div>
         <div className="flex flex-col gap-1.5">
-          {METRICS.map((m) => {
+          {metrics.map((m) => {
             const v = reading ? m.get(reading) : m.min
             const txt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(v)
             return (

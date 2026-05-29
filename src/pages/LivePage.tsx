@@ -12,12 +12,15 @@ import { ModeStrip } from '@/components/ModeStrip'
 import { PageHeader } from '@/components/PageHeader'
 import { METRICS, type MetricDef, type MetricKey } from '@/data/metrics'
 import { savingPercent } from '@/lib/savings'
+import { useSensorVisibility } from '@/data/sensorVisibility'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
 const byKey = Object.fromEntries(METRICS.map((m) => [m.key, m])) as Record<MetricKey, MetricDef>
 
 export function LivePage({ data, greetName }: { data: LiveState; greetName?: string }) {
   const { reading, history, setMode } = data
+  const { visible } = useSensorVisibility()
+  const visibleMetrics = METRICS.filter((m) => visible[m.key])
   const mode = reading?.mode ?? 'normal'
   const percent = reading ? savingPercent(reading.flow) : 0
 
@@ -35,9 +38,9 @@ export function LivePage({ data, greetName }: { data: LiveState; greetName?: str
       {/* UST: grafik tek satir, tam genislik */}
       <section className="glass relative min-h-0 flex-1 overflow-hidden rounded-3xl">
         <div className="absolute inset-0">
-          <Hero3DChart history={history} />
+          <Hero3DChart history={history} metrics={visibleMetrics} />
         </div>
-        <ChartOverlay reading={reading} />
+        <ChartOverlay reading={reading} metrics={visibleMetrics} />
       </section>
 
       {/* ALT: mozaik - hicbiri ayni boyutta degil, onem hiyerarsisine gore */}
@@ -45,18 +48,26 @@ export function LivePage({ data, greetName }: { data: LiveState; greetName?: str
         <div className="col-span-2 lg:col-span-4 lg:row-span-2">
           <HeroKPI percent={percent} mode={mode} />
         </div>
-        <div className="col-span-2 lg:col-span-5">
-          <MetricCard def={byKey.flow} history={history} size="lg" />
-        </div>
-        <div className="col-span-1 lg:col-span-3">
-          <MetricCard def={byKey.pressure} history={history} size="sm" />
-        </div>
-        <div className="col-span-1 lg:col-span-6">
-          <MetricCard def={byKey.temperature} history={history} size="md" />
-        </div>
-        <div className="col-span-2 lg:col-span-2">
-          <MetricCard def={byKey.humidity} history={history} size="sm" />
-        </div>
+        {visible.flow && (
+          <div className="col-span-2 lg:col-span-5">
+            <MetricCard def={byKey.flow} history={history} size="lg" />
+          </div>
+        )}
+        {visible.pressure && (
+          <div className="col-span-1 lg:col-span-3">
+            <MetricCard def={byKey.pressure} history={history} size="sm" />
+          </div>
+        )}
+        {visible.temperature && (
+          <div className="col-span-1 lg:col-span-6">
+            <MetricCard def={byKey.temperature} history={history} size="md" />
+          </div>
+        )}
+        {visible.humidity && (
+          <div className="col-span-2 lg:col-span-2">
+            <MetricCard def={byKey.humidity} history={history} size="sm" />
+          </div>
+        )}
       </div>
     </div>
   )

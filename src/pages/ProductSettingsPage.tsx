@@ -7,8 +7,10 @@
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { useDeviceSettings, type ValveMode } from '@/data/deviceSettings'
+import { useSensorVisibility } from '@/data/sensorVisibility'
+import { METRICS } from '@/data/metrics'
 import { fmt2, fmtInt } from '@/lib/format'
-import { Gauge, Timer, Wind, ToggleRight, Info, RotateCcw, type LucideIcon } from 'lucide-react'
+import { Gauge, Timer, Wind, ToggleRight, Info, RotateCcw, Eye, EyeOff, type LucideIcon } from 'lucide-react'
 
 function SettingCard({ icon: Icon, color, title, desc, children }: { icon: LucideIcon; color: string; title: string; desc: string; children: React.ReactNode }) {
   return (
@@ -30,6 +32,7 @@ function SettingCard({ icon: Icon, color, title, desc, children }: { icon: Lucid
 
 export function ProductSettingsPage() {
   const { settings, update, reset } = useDeviceSettings()
+  const { visible, toggle } = useSensorVisibility()
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
@@ -103,6 +106,41 @@ export function ProductSettingsPage() {
             })}
           </div>
         </SettingCard>
+      </div>
+
+      {/* Sensor gorunurlugu - hangi sensorler grafik/kartlarda gorunsun (yeni sensore hazir) */}
+      <div className="glass rounded-2xl p-6">
+        <div className="mb-1 flex items-center gap-2 text-base font-semibold text-white">
+          <Eye size={18} className="text-[var(--smc-bright)]" /> Sensörler
+        </div>
+        <div className="mb-4 text-xs text-[var(--ink-soft)]">
+          Hangi sensörlerin grafik ve kartlarda görüneceğini seçin. Yeni sensör eklendiğinde burada otomatik görünür. (Şu an hepsi etkin.)
+        </div>
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+          {METRICS.map((m) => {
+            const on = visible[m.key]
+            const Icon = m.icon
+            return (
+              <button
+                key={m.key}
+                onClick={() => toggle(m.key)}
+                className="flex items-center gap-3 rounded-xl border px-4 py-3 transition"
+                style={{ borderColor: on ? `${m.color}66` : 'var(--hair)', background: on ? `${m.color}14` : 'transparent' }}
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-lg" style={{ background: `${m.color}1f`, color: m.color }}>
+                  <Icon size={18} />
+                </span>
+                <div className="text-left">
+                  <div className="text-sm font-semibold text-white">{m.name}</div>
+                  <div className="text-[11px] text-[var(--ink-soft)]">{m.unit}</div>
+                </div>
+                <span className="ml-auto">
+                  {on ? <Eye size={18} className="text-[var(--c-saving)]" /> : <EyeOff size={18} className="text-[var(--ink-soft)]" />}
+                </span>
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
