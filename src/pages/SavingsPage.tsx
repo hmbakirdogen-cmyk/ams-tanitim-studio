@@ -9,7 +9,7 @@ import { Tilt3D } from '@/components/Tilt3D'
 import { useSmoothNumber } from '@/hooks/useSmoothNumber'
 import { annualProjection, savingPercent } from '@/lib/savings'
 import { useEconomy } from '@/data/economy'
-import { fmtInt, fmt1, fmtTL } from '@/lib/format'
+import { fmtInt, fmt1, fmtTLCompact, fmtCompact } from '@/lib/format'
 import { Percent, Wind, Zap, Cloud, RotateCcw, SlidersHorizontal, type LucideIcon } from 'lucide-react'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
@@ -71,7 +71,7 @@ export function SavingsPage({ data }: { data: LiveState }) {
           className="num mt-1 text-7xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
           style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)', transform: 'translateZ(28px)' }}
         >
-          {fmtTL(tl)}
+          {fmtTLCompact(tl)}
         </div>
         <div className="mt-2 text-sm text-[var(--ink-soft)]">
           {fmt1(economy.priceTL)} ₺/kWh elektrik fiyatı ve {fmtInt(economy.opHoursPerYear)} saat/yıl çalışma varsayımıyla
@@ -81,8 +81,8 @@ export function SavingsPage({ data }: { data: LiveState }) {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={Percent} color="#41E08A" label="Anlık Tasarruf" value={`%${fmt1(p)}`} sub="normal çalışmaya göre" />
         <StatCard icon={Wind} color="#2E9BFF" label="Kısılan Hava" value={fmtInt(air)} sub="litre / dakika" />
-        <StatCard icon={Zap} color="#FFB04D" label="Yıllık Enerji" value={fmtInt(kwh)} sub="kilovat-saat (kWh)" />
-        <StatCard icon={Cloud} color="#7CE0FF" label="Yıllık Karbon" value={fmtInt(co2)} sub="kilogram CO₂" />
+        <StatCard icon={Zap} color="#FFB04D" label="Yıllık Enerji" value={fmtCompact(kwh)} sub="kilovat-saat (kWh)" />
+        <StatCard icon={Cloud} color="#7CE0FF" label="Yıllık Karbon" value={fmtCompact(co2)} sub="kilogram CO₂" />
       </div>
 
       {/* Duzenlenebilir hesap ayarlari - kullanici elektrik fiyatini vb. girer */}
