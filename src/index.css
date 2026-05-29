@@ -28,6 +28,14 @@
   --ink: #EAF2FF;            /* ana metin */
   --ink-soft: #9DB4D6;       /* ikincil metin */
   --hair: rgba(126, 170, 230, 0.16); /* ince cizgi/sinir */
+
+  /* Tema yuzeyleri (Gunduz/Gece) - tek noktadan */
+  --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+  --glass-shadow: 0 24px 60px -28px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08);
+  --scene: radial-gradient(120% 90% at 50% -10%, #0a2148 0%, #071427 45%, #04060f 100%);
+  --aurora-op: 1;
+  --vignette: rgba(2,4,10,0.7);
+  --grid-line: rgba(46,155,255,0.16);
 }
 
 * { box-sizing: border-box; }
@@ -52,13 +60,11 @@ body {
 
 /* --- Cam (glassmorphism) panel --- */
 .glass {
-  background: linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+  background: var(--glass-bg);
   border: 1px solid var(--hair);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
-  box-shadow:
-    0 24px 60px -28px rgba(0,0,0,0.8),
-    inset 0 1px 0 rgba(255,255,255,0.08);
+  box-shadow: var(--glass-shadow);
 }
 
 /* --- Isiltili metin / kenar --- */
@@ -107,3 +113,24 @@ body {
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: rgba(126,170,230,0.25); border-radius: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* === GUNDUZ (light) TEMA === */
+:root[data-theme='light'] {
+  --bg-0: #eef3fb;
+  --ink: #0c1a33;
+  --ink-soft: #51678c;
+  --hair: rgba(10, 60, 120, 0.16);
+  --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.92), rgba(255,255,255,0.72));
+  --glass-shadow: 0 22px 60px -30px rgba(20,60,120,0.35), inset 0 1px 0 rgba(255,255,255,0.9);
+  --scene: radial-gradient(120% 90% at 50% -10%, #ffffff 0%, #e9f1fb 45%, #d8e6f6 100%);
+  --aurora-op: 0.4;
+  --vignette: rgba(20,60,120,0.05);
+  --grid-line: rgba(10,80,160,0.12);
+}
+/* Isik modunda beyaz metin -> koyu metin (token uzerinden) */
+:root[data-theme='light'] .text-white { color: var(--ink); }
+/* Daima KOYU yuzeyler (3D grafik ustu, intro): tokenlari lokal acik tut -> ic metin acik kalir */
+:root[data-theme='light'] .force-dark-surface { --ink: #EAF2FF; --ink-soft: #9DB4D6; --hair: rgba(126,170,230,0.16); }
+/* Renkli (accent) butonlarda metin daima beyaz */
+:root[data-theme='light'] .keep-white,
+:root[data-theme='light'] .keep-white .text-white { color: #fff !important; }

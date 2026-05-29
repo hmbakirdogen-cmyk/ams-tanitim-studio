@@ -128,7 +128,7 @@ export function LoginScreen({ auth }: { auth: Auth }) {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="grid h-8 w-8 place-items-center rounded-lg text-white transition disabled:opacity-50"
+                  className="keep-white grid h-8 w-8 place-items-center rounded-lg text-white transition disabled:opacity-50"
                   style={{ background: 'var(--smc)' }}
                 >
                   <ArrowRight size={16} />

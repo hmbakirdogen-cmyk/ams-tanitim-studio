@@ -23,7 +23,7 @@ function fmtElapsed(ms: number): string {
 export function ChartOverlay({ reading, metrics = METRICS }: { reading: Reading | null; metrics?: MetricDef[] }) {
   const elapsed = fmtElapsed(reading?.t ?? 0)
   return (
-    <div className="pointer-events-none absolute inset-0">
+    <div className="force-dark-surface pointer-events-none absolute inset-0">
       {/* Canli zaman sayaci - akisin basindan beri gecen sure (sol ust) */}
       <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-white/10 bg-[#050b18]/80 px-3 py-1.5 backdrop-blur-md">
         <span className="relative grid h-2.5 w-2.5 place-items-center">

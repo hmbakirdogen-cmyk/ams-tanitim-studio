@@ -116,7 +116,7 @@ export function ProfileEditor({ auth, onClose }: { auth: Auth; onClose: () => vo
           </div>
         </div>
 
-        <button onClick={save} disabled={busy} className="mt-5 w-full rounded-lg py-2.5 text-sm font-semibold text-white transition disabled:opacity-50" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
+        <button onClick={save} disabled={busy} className="keep-white mt-5 w-full rounded-lg py-2.5 text-sm font-semibold text-white transition disabled:opacity-50" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
           Kaydet
         </button>
 

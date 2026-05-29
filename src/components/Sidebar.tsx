@@ -7,12 +7,13 @@
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Activity, LineChart, PiggyBank, Package, SlidersHorizontal, Database,
-  Radio, Volume2, VolumeX, LogOut, Users,
+  Radio, Volume2, VolumeX, LogOut, Users, Sun, Moon,
   type LucideIcon,
 } from 'lucide-react'
 import { SmcLogo } from './SmcLogo'
 import { Avatar } from './Avatar'
 import type { User } from '@/auth/users'
+import type { Theme } from '@/hooks/useTheme'
 
 export type Page = 'live' | 'sensors' | 'analysis' | 'savings' | 'product' | 'settings' | 'records'
 
@@ -35,9 +36,11 @@ interface SidebarProps {
   onLogout: () => void
   onManageUsers: () => void
   onProfile: () => void
+  theme: Theme
+  onToggleTheme: () => void
 }
 
-export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, onManageUsers, onProfile }: SidebarProps) {
+export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, onManageUsers, onProfile, theme, onToggleTheme }: SidebarProps) {
   const [now, setNow] = useState<Date>(() => new Date())
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 1000)
@@ -115,13 +118,22 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
           <span className="num ml-auto text-xs font-medium text-[var(--ink-soft)]">{time}</span>
         </div>
 
-        <button
-          onClick={onToggleSound}
-          className="flex w-full items-center gap-2.5 rounded-xl border border-[var(--hair)] px-3 py-2.5 text-sm font-medium text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
-        >
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          {muted ? 'Sesi Aç' : 'Sesi Kapat'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onToggleSound}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--hair)] px-2 py-2.5 text-xs font-medium text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
+          >
+            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            {muted ? 'Sesi Aç' : 'Ses Açık'}
+          </button>
+          <button
+            onClick={onToggleTheme}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--hair)] px-2 py-2.5 text-xs font-medium text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            {theme === 'dark' ? 'Gündüz' : 'Gece'}
+          </button>
+        </div>
       </div>
     </aside>
   )

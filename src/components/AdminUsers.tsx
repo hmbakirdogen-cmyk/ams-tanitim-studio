@@ -98,14 +98,14 @@ export function AdminUsers({ auth, onClose }: { auth: Auth; onClose: () => void 
                   <input value={eTitle} onChange={(e) => setETitle(e.target.value)} placeholder="Ünvan" className={field} />
                   <input value={ePhone} onChange={(e) => setEPhone(e.target.value)} placeholder="Telefon" className={field} />
                   <input value={eEmail} onChange={(e) => setEEmail(e.target.value)} placeholder="E‑posta" className={field} />
-                  <button onClick={saveEdit} className="flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold text-white md:col-span-3" style={{ background: 'var(--smc)' }}><Check size={15} /> Detayları Kaydet</button>
+                  <button onClick={saveEdit} className="keep-white flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold text-white md:col-span-3" style={{ background: 'var(--smc)' }}><Check size={15} /> Detayları Kaydet</button>
                 </div>
               )}
 
               {resetId === u.id && (
                 <div className="mt-3 flex items-center gap-2 border-t border-[var(--hair)] pt-3">
                   <input type="text" value={resetPw} onChange={(e) => setResetPw(e.target.value)} placeholder="Yeni şifre" className={field} />
-                  <button onClick={() => doReset(u.id)} className="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white" style={{ background: 'var(--smc)' }}>Kaydet</button>
+                  <button onClick={() => doReset(u.id)} className="keep-white shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-white" style={{ background: 'var(--smc)' }}>Kaydet</button>
                   <button onClick={() => { setResetId(null); setResetPw('') }} className="shrink-0 text-xs text-[var(--ink-soft)]">vazgeç</button>
                 </div>
               )}
@@ -127,7 +127,7 @@ export function AdminUsers({ auth, onClose }: { auth: Auth; onClose: () => void 
               <option value="admin" className="bg-[#071427]">Yönetici</option>
             </select>
           </div>
-          <button type="submit" className="mt-3 w-full rounded-lg py-2.5 text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>Ekle</button>
+          <button type="submit" className="keep-white mt-3 w-full rounded-lg py-2.5 text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>Ekle</button>
         </form>
       </motion.div>
     </motion.div>

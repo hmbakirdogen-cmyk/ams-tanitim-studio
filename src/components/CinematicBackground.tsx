@@ -1,21 +1,14 @@
 /*
- * NE      : Sinematik arka plan - koyu SMC lacivert sahne + yumusak aurora isiklar + perspektif izgara zemin + vinyet.
- * NEDEN   : Veriler (WebGL grafik) bu derin sahnenin uzerinde isildasin; "ekrana derinlik/3D" hissi, ucuz duz zemin degil.
- * NASIL   : Katmanli sabit div'ler; CSS radial-gradient bloblari (yumusak, pikselsiz) animate-aurora ile suzulur; alt izgara perspektifli.
- * YAN ETKI: Tamamen dekoratif (pointer-events yok); WebGL canvas ve UI bunun uzerine biner. Performans: sadece transform animasyonu.
+ * NE      : Sinematik arka plan - sahne gradyani + yumusak aurora isiklar + perspektif izgara zemin + vinyet. Tema duyarli (Gunduz/Gece).
+ * NEDEN   : Veriler bu derin sahnenin uzerinde isildasin; gunduz/gece temasinda zemin/aurora otomatik degissin.
+ * NASIL   : Tum renkler CSS degiskenlerinden (--scene, --aurora-op, --grid-line, --vignette) -> tema tek noktadan yonetir.
+ * YAN ETKI: Dekoratif (pointer-events yok). Isik modunda aurora soner, sahne acilir; koyu modda sinematik kalir.
  */
-
 export function CinematicBackground() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      {/* Temel derinlik gradyani */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(120% 90% at 50% -10%, #0a2148 0%, #071427 45%, #04060f 100%)',
-        }}
-      />
+      {/* Temel sahne gradyani (tema duyarli) */}
+      <div className="absolute inset-0" style={{ background: 'var(--scene)' }} />
 
       {/* Aurora isik 1 - SMC mavisi */}
       <div
@@ -24,6 +17,7 @@ export function CinematicBackground() {
           background: 'radial-gradient(circle, rgba(0,114,206,0.40), transparent 62%)',
           filter: 'blur(40px)',
           mixBlendMode: 'screen',
+          opacity: 'var(--aurora-op)',
         }}
       />
       {/* Aurora isik 2 - teal vurgu */}
@@ -34,6 +28,7 @@ export function CinematicBackground() {
           filter: 'blur(50px)',
           mixBlendMode: 'screen',
           animationDelay: '-8s',
+          opacity: 'var(--aurora-op)',
         }}
       />
 
@@ -43,7 +38,7 @@ export function CinematicBackground() {
           className="absolute inset-x-[-20%] bottom-0 top-0 origin-bottom [transform:rotateX(72deg)]"
           style={{
             backgroundImage:
-              'linear-gradient(to right, rgba(46,155,255,0.16) 1px, transparent 1px), linear-gradient(to bottom, rgba(46,155,255,0.16) 1px, transparent 1px)',
+              'linear-gradient(to right, var(--grid-line) 1px, transparent 1px), linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px)',
             backgroundSize: '64px 64px',
             maskImage: 'linear-gradient(to top, black, transparent 80%)',
             WebkitMaskImage: 'linear-gradient(to top, black, transparent 80%)',
@@ -51,12 +46,10 @@ export function CinematicBackground() {
         />
       </div>
 
-      {/* Vinyet - kenarlari yumusakca karartir, odak ortada */}
+      {/* Vinyet - kenarlari yumusakca karartir (tema duyarli) */}
       <div
         className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(120% 80% at 50% 40%, transparent 55%, rgba(2,4,10,0.7) 100%)',
-        }}
+        style={{ background: 'radial-gradient(120% 80% at 50% 40%, transparent 55%, var(--vignette) 100%)' }}
       />
     </div>
   )

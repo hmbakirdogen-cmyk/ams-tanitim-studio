@@ -10,7 +10,7 @@ import { SmcLogo } from './SmcLogo'
 export function IntroSplash({ onDone }: { onDone: () => void }) {
   return (
     <motion.div
-      className="fixed inset-0 z-50 grid place-items-center"
+      className="force-dark-surface fixed inset-0 z-50 grid place-items-center"
       style={{ background: 'radial-gradient(circle at 50% 38%, #0a2148, #04060f 70%)' }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.6 } }}

@@ -21,11 +21,13 @@ import { ProductSettingsPage } from './pages/ProductSettingsPage'
 import { RecordsPage } from './pages/RecordsPage'
 import { useLiveReadings } from './hooks/useLiveReadings'
 import { useAuth } from './auth/useAuth'
+import { useTheme } from './hooks/useTheme'
 import { sound } from './lib/sound'
 
 export default function App() {
   const data = useLiveReadings()
   const auth = useAuth()
+  const { theme, toggle: toggleTheme } = useTheme()
   const [page, setPage] = useState<Page>('live')
   const [muted, setMuted] = useState(true)
   const [intro, setIntro] = useState(true)
@@ -62,6 +64,8 @@ export default function App() {
             onLogout={() => { sound.click(); auth.logout() }}
             onManageUsers={() => setShowUsers(true)}
             onProfile={() => setShowProfile(true)}
+            theme={theme}
+            onToggleTheme={toggleTheme}
           />
 
           <main className="relative min-w-0 flex-1 overflow-hidden p-5">
