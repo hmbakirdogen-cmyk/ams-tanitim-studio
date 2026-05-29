@@ -107,17 +107,17 @@ function ReflectiveFloor({ color }: { color: string }) {
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
       <planeGeometry args={[70, 44]} />
       <MeshReflectorMaterial
-        mirror={0.5}
-        blur={[200, 70]}
-        resolution={256}
-        mixBlur={1.1}
-        mixStrength={5}
-        roughness={0.92}
-        depthScale={1}
-        minDepthThreshold={0.4}
-        maxDepthThreshold={1.3}
+        mirror={0.55}
+        blur={[480, 120]}
+        resolution={1024}
+        mixBlur={1}
+        mixStrength={4}
+        roughness={0.85}
+        depthScale={1.1}
+        minDepthThreshold={0.3}
+        maxDepthThreshold={1.4}
         color={color}
-        metalness={0.55}
+        metalness={0.6}
       />
     </mesh>
   )
