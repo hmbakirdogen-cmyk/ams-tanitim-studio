@@ -2,7 +2,14 @@
 
 **Son güncelleme:** 2026-05-29 (otonom gece oturumu — Mehmet Bey tam yetki verdi)
 **Durum:** Çalışıyor. `npm run dev` → http://localhost:5180 · `npm run build` ✅ (offline, fontlar gömülü).
-**Giriş:** Halil İbrahim Karakelle · şifre **`smc`** (yönetici).
+**Giriş:** Halil İbrahim Karakelle · şifre **`smc`** (yönetici). Uygulama içi hitabet **AD ile** ("Halil İbrahim Bey", soyad değil).
+
+## 🔧 DEVAM NOTLARI (yarım kalan iş — buradan sürdür, 2026-05-29 gece-2)
+- **Gerçek görseller indirildi → `public/products/`:** `ams-system.jpg` (2800×1867, ANA AMS render), `exa1-hub.jpg`, `regulator-itv.jpg`, `regulator-ar.jpg`, `valve-vp.jpg`. → Ürün & Teknoloji (hero vitrin + bileşen kartları) ve Login'e tasteful gömülecek. (smc.eu/smcetech doğrulanmış URL'ler.)
+- **Model seçimi (YARIM):** `src/data/model.ts` oluşturuldu (AMS20/30/40/60 × A/B; debi 5–4000 + basınç A:0.8/B:0.7). YAPILACAK: (1) demoSource hedefleri `getActiveModel()`'den (normal=baselineFlow, bekleme/kesinti ölçekli, basınç modelden); (2) flow metrik `max` modele göre ölçek (metricsForModel → LivePage/AnalysisPage/SensorsPage); (3) Ürün Ayarları'na **model seçici (tam kod dropdown)** + seçince `economy.baselineFlow` güncelle; (4) PageHeader aktif model kodunu göstersin (şu an PRODUCT.code statik).
+- **Mehmet Bey yeni istek:** model seçilirken **ek modüler bağlı ürünler** de seçilebilsin (kablosuz adaptör EXW1, ek sensörler, regülatör A/B, valf, soft-start) → özellik/görünürlük/spec'i etkilesin.
+- **Ürün & Teknoloji:** TÜM özellikler eklenecek (WiFi/kablosuz EXW1 100m şifreli + OPC UA + IO-Link + Endüstriyel Ethernet + web sunucu + kestirimci bakım + güvenlik + sürdürülebilirlik) — katalogdan.
+- **Yapıldı ✅:** başlıklara ürün kimliği (`data/product.ts` + PageHeader).
 
 ## ✅ Tamamlananlar
 - **Canlı Panel:** gerçek WebGL 3D çok‑çizgili **akan** grafik (Debi/Basınç/Sıcaklık/Nem); bloom, yansıyan zemin, prosedürel stüdyo ışıkları + Sparkles, fareyle parallax; 60fps emniyetli; yuvarlak/kırılmasız çizgiler. Kendini açıklayan: X/Y eksen başlıkları, %0–100 seviye çizgileri, sağda koyu‑net **canlı okuma paneli**, sol üstte **canlı akış süresi sayacı**. Altta **eşit‑olmayan mozaik** kartlar (her biri kendi mini grafiği + sayaçlı rakam + birim). Mod kontrolü (Normal/Tasarruf/Kesinti) + Web Audio ses (mute).
