@@ -24,7 +24,7 @@ export function TopBar({ kind, muted, onToggleSound }: TopBarProps) {
 
   return (
     <header className="glass flex items-center justify-between rounded-2xl px-5 py-3">
-      <SmcLogo size={42} />
+      <SmcLogo size={52} />
 
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2 rounded-full border border-[var(--hair)] px-3 py-1.5">

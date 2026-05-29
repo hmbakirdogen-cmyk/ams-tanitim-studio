@@ -65,7 +65,7 @@ export function LoginScreen({ auth }: { auth: Auth }) {
           {/* SAG: personel girisi */}
           <div>
             <div className="flex flex-col items-center text-center">
-              <SmcLogo size={56} withText={false} slogan />
+              <SmcLogo size={76} withText={false} slogan />
               <h1 className="mt-4 text-2xl font-bold text-white">Hava Yönetim Sistemi</h1>
               <p className="text-sm text-[var(--ink-soft)]">Personel Girişi</p>
             </div>

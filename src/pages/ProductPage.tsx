@@ -67,7 +67,7 @@ export function ProductPage() {
         <Tilt3D className="glass relative grid grid-cols-1 gap-6 overflow-hidden rounded-3xl p-8 lg:grid-cols-[1.3fr_1fr]" max={4}>
           <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--smc)' }} />
           <div style={{ transform: 'translateZ(20px)' }}>
-            <SmcLogo size={48} withText={false} />
+            <SmcLogo size={60} withText={false} />
             <h2 className="mt-5 text-4xl font-extrabold leading-tight text-white">
               Boşa giden havayı <span className="text-[var(--c-saving)] glow-text" style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)' }}>%62'ye kadar</span> azaltın
             </h2>

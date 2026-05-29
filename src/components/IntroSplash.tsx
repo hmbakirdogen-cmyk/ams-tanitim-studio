@@ -21,7 +21,7 @@ export function IntroSplash({ onDone }: { onDone: () => void }) {
           animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
           transition={{ duration: 1, ease: 'easeOut' }}
         >
-          <SmcLogo size={92} withText={false} />
+          <SmcLogo size={128} withText={false} />
         </motion.div>
 
         <motion.div

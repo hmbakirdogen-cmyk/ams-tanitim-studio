@@ -94,6 +94,12 @@ body {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-10px); }
 }
+/* SMC logosu (yazi+simge) ISIK SACSIN - beyaz cekirdek + mavi hale, nazik yavas nabiz (elit, abartisiz) */
+@keyframes smc-logo-glow {
+  0%, 100% { filter: drop-shadow(0 1px 2px rgba(0,10,30,0.45)) drop-shadow(0 0 7px rgba(255,255,255,0.85)) drop-shadow(0 0 15px rgba(125,205,255,0.6)); }
+  50%      { filter: drop-shadow(0 1px 2px rgba(0,10,30,0.45)) drop-shadow(0 0 11px rgba(255,255,255,1)) drop-shadow(0 0 27px rgba(130,205,255,0.95)); }
+}
+.smc-logo-glow { animation: smc-logo-glow 2.8s ease-in-out infinite; will-change: filter; }
 
 .animate-aurora { animation: aurora-drift 22s ease-in-out infinite; }
 .animate-live   { animation: live-pulse 1.6s ease-in-out infinite; }

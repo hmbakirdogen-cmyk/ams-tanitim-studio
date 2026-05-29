@@ -25,28 +25,41 @@ function Smc3D({ height }: { height: number }) {
   )
 }
 
-// Gercek beyaz SMC logosu - bombeli (convex) cam kapli, parlak SMC-mavisi 3D rozet uzerinde
+// Gercek beyaz SMC logosu - ELIT bombeli (convex) cam/metal rozet; logo ISIK SACAR (glow). Olculer height'e oranli.
 function LogoImage({ height }: { height: number }) {
-  const logoH = height * 0.64
+  const logoH = height * 0.66
   return (
     <div
-      className="relative inline-flex items-center overflow-hidden"
+      className="relative inline-flex items-center justify-center overflow-hidden"
       style={{
-        padding: `${height * 0.16}px ${height * 0.22}px`,
-        borderRadius: height * 0.24,
-        background: 'linear-gradient(160deg, #2491f0 0%, #0072CE 46%, #024a96 100%)',
-        boxShadow: `0 ${height * 0.12}px ${height * 0.34}px -${height * 0.1}px rgba(2,16,40,0.7), 0 0 ${height * 0.46}px -${height * 0.2}px rgba(46,155,255,0.75), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -${height * 0.08}px ${height * 0.16}px rgba(2,16,40,0.45)`,
+        padding: `${height * 0.17}px ${height * 0.24}px`,
+        borderRadius: height * 0.26,
+        background: 'linear-gradient(157deg, #3aa0f7 0%, #0f7bd6 38%, #0067bd 64%, #013f86 100%)',
+        boxShadow: [
+          `0 ${height * 0.16}px ${height * 0.4}px -${height * 0.08}px rgba(2,14,36,0.78)`, // derin zemin golgesi (oturmus)
+          `0 0 ${height * 0.6}px -${height * 0.18}px rgba(46,155,255,0.9)`, // mavi ambians halesi (isik sacar)
+          `inset 0 ${height * 0.02}px 0 rgba(255,255,255,0.65)`, // ust parlak kenar (cam)
+          `inset 0 -${height * 0.09}px ${height * 0.18}px rgba(2,14,36,0.5)`, // alt ic golge (bombe)
+          `inset 0 0 0 1px rgba(255,255,255,0.22)`, // ince parlak cerceve (elit)
+        ].join(', '),
       }}
     >
+      {/* Logo (yazi+simge) - beyaz, ISIK SACAN nabizli glow */}
       <img
         src={LOGO_SRC}
         alt="SMC"
-        style={{ height: logoH, width: 'auto', display: 'block', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.4))' }}
+        className="smc-logo-glow"
+        style={{ height: logoH, width: 'auto', display: 'block', position: 'relative', zIndex: 1 }}
       />
-      {/* Cam ust sheen - bombeli yuzey parlamasi (convex) */}
+      {/* Cam ust sheen - bombeli yuzey parlamasi (convex), keskin diagonal */}
       <div
         className="pointer-events-none absolute inset-0"
-        style={{ borderRadius: 'inherit', background: 'radial-gradient(130% 80% at 28% -5%, rgba(255,255,255,0.5), rgba(255,255,255,0.1) 38%, transparent 60%)' }}
+        style={{ borderRadius: 'inherit', background: 'radial-gradient(135% 85% at 26% -8%, rgba(255,255,255,0.6), rgba(255,255,255,0.12) 40%, transparent 62%)' }}
+      />
+      {/* Alt hafif ic isik - cam derinligi */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ borderRadius: 'inherit', background: 'radial-gradient(120% 70% at 72% 115%, rgba(120,200,255,0.28), transparent 55%)' }}
       />
     </div>
   )
