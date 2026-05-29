@@ -33,6 +33,8 @@
   --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
   --glass-shadow: 0 24px 60px -28px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08);
   --scene: radial-gradient(120% 90% at 50% -10%, #0a2148 0%, #071427 45%, #04060f 100%);
+  --scene-dark-op: 1;   /* gece: koyu sahne gorunur */
+  --scene-light-op: 0;  /* gece: acik sahne gizli (cross-fade icin) */
   --aurora-op: 1;
   --vignette: rgba(2,4,10,0.7);
   --grid-line: rgba(46,155,255,0.16);
@@ -133,6 +135,8 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
   --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.96), rgba(235,243,252,0.84));
   --glass-shadow: 0 24px 58px -26px rgba(18,55,110,0.5), inset 0 1px 0 rgba(255,255,255,0.95);
   --scene: radial-gradient(120% 90% at 50% -10%, #ffffff 0%, #e6eefa 45%, #cfe0f4 100%);
+  --scene-dark-op: 0;   /* gunduz: koyu sahne gizli */
+  --scene-light-op: 1;  /* gunduz: acik sahne gorunur */
   --aurora-op: 0.45;
   --vignette: rgba(20,60,120,0.06);
   --grid-line: rgba(10,80,160,0.14);

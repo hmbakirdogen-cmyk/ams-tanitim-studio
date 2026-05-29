@@ -7,6 +7,7 @@
  *           guncellenir, slider araliklari modele uyarlanir. useModules ile moduller. Demo'da senaryoyu canli surer, canlida OPC UA.
  * YAN ETKI: Model degisimi tum uygulamaya yansir (grafik olcegi/PageHeader/demoSource). Degerlerin yaninda BIRIMI (KATI kural).
  */
+import { useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { useDeviceSettings, type ValveMode } from '@/data/deviceSettings'
@@ -65,6 +66,9 @@ export function ProductSettingsPage() {
   const { modules, toggle: toggleModule } = useModules()
   const { update: updateEconomy } = useEconomy()
   const { settings: conn, status: connStatus, setMode: setConnMode, setEndpoint } = useConnection()
+  // Cihaz adresi taslagi - her tusta degil, SADECE blur/Enter'da store'a yazilir (yoksa her karakter baglantiyi yeniden kurardi)
+  const [epDraft, setEpDraft] = useState(conn.endpoint)
+  const commitEndpoint = () => { const v = epDraft.trim(); if (v && v !== conn.endpoint) setEndpoint(v) }
 
   // Model degisince: o modele EN MANTIKLI calisma degerleri kullanicinin karsisina cikar
   const onSelectModel = (code: string) => {
@@ -186,8 +190,10 @@ export function ProductSettingsPage() {
           <div className="mt-4">
             <label className="mb-1 block text-xs text-[var(--ink-soft)]">Cihaz adresi (OPC UA)</label>
             <input
-              value={conn.endpoint}
-              onChange={(e) => setEndpoint(e.target.value)}
+              value={epDraft}
+              onChange={(e) => setEpDraft(e.target.value)}
+              onBlur={commitEndpoint}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur() }}
               placeholder="opc.tcp://192.168.1.50:4840"
               className="num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
             />

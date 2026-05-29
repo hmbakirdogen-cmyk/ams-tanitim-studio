@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { DataSource, Mode, Reading } from '@/data/types'
 import { DemoDataSource } from '@/data/demoSource'
 import { LiveDataSource } from '@/data/liveSource'
-import { useConnection } from '@/data/connection'
+import { useConnection, setConnStatus } from '@/data/connection'
 
 const MAX_POINTS = 160 // grafikte tutulan son okuma sayisi (akan grafik)
 const LOG_MAX = 4500 // analiz/kayit icin daha uzun gunluk (~6 dk @80ms tik)
@@ -41,6 +41,7 @@ export function useLiveReadings(): LiveState {
 
     const src: DataSource = settings.mode === 'live' ? new LiveDataSource(settings.endpoint) : new DemoDataSource()
     srcRef.current = src
+    if (settings.mode === 'demo') setConnStatus('demo') // demo seciliyken durum daima 'demo' (geç live callback ezse bile normalize)
     src.start((r) => {
       if (!pinnedRef.current) {
         startedAtRef.current = Date.now() - r.t // t=0 duvar saatini ilk okumadan tam kur
