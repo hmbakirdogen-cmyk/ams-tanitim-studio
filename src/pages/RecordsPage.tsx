@@ -81,7 +81,7 @@ export function RecordsPage({ data }: { data: LiveState }) {
                 <div className="flex items-center gap-3 text-[11px] text-[var(--ink-soft)]">
                   <span className="flex items-center gap-1"><Clock size={11} /> {fmtDate(rec.createdAt)}</span>
                   <span className="num">{rec.points.length} ölçüm</span>
-                  <span className="num">{new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(durationSec(rec.points))} saniye</span>
+                  <span className="num">{new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(durationSec(rec.points))} sn</span>
                 </div>
               </div>
               <div className="ml-auto flex shrink-0 items-center gap-2">

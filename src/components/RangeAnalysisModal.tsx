@@ -77,7 +77,7 @@ export function RangeAnalysisModal({ points, title, onClose }: { points: Reading
               </button>
             ))}
             <span className="ml-auto flex items-center gap-1.5 text-xs text-[var(--ink-soft)]">
-              <Clock size={13} /> Seçili aralık: <b className="num text-white">{fmt(spanSec, 1)} saniye</b> · {win.length} ölçüm
+              <Clock size={13} /> Seçili aralık: <b className="num text-white">{fmt(spanSec, 1)} sn</b> · {win.length} ölçüm
             </span>
           </div>
           <div className="space-y-2">
@@ -102,7 +102,7 @@ export function RangeAnalysisModal({ points, title, onClose }: { points: Reading
                 <div className="mb-2 flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: m.color, boxShadow: `0 0 10px ${m.color}` }} />
                   <span className="text-sm font-semibold text-white">{m.name}</span>
-                  <span className="ml-auto text-[11px] text-[var(--ink-soft)]">{m.unit}</span>
+                  <span className="ml-auto text-[11px] text-[var(--ink-soft)]">{m.unitShort}</span>
                 </div>
                 <Sparkline values={series} color={m.color} min={m.min} max={m.max} height={48} />
                 <div className="mt-2 grid grid-cols-3 gap-2">

@@ -76,7 +76,7 @@ export function LoginScreen({ auth }: { auth: Auth }) {
                 >
                   <Avatar user={u} size={66} />
                   <div>
-                    <div className="text-sm font-semibold text-white">{u.lastName} Bey</div>
+                    <div className="text-sm font-semibold text-white">{u.firstName} Bey</div>
                     {u.title && <div className="mt-0.5 text-[10px] text-[var(--ink-soft)]">{u.title}</div>}
                     <div className="mt-0.5 flex items-center justify-center gap-1 text-[11px] text-[var(--ink-soft)]">
                       {u.role === 'admin' ? <ShieldCheck size={12} /> : <UserIcon size={12} />}
@@ -104,7 +104,7 @@ export function LoginScreen({ auth }: { auth: Auth }) {
               </button>
               <div className="mb-4 flex flex-col items-center gap-2">
                 <Avatar user={sel} size={72} />
-                <div className="text-lg font-semibold text-white">Hoş geldiniz, {sel.lastName} Bey</div>
+                <div className="text-lg font-semibold text-white">Hoş geldiniz, {sel.firstName} Bey</div>
                 <div className="text-xs text-[var(--ink-soft)]">Şifrenizi girin</div>
               </div>
               <motion.div

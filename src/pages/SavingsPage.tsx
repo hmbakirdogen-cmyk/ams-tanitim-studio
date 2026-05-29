@@ -80,9 +80,9 @@ export function SavingsPage({ data }: { data: LiveState }) {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard icon={Percent} color="#41E08A" label="Anlık Tasarruf" value={`%${fmt1(p)}`} sub="normal çalışmaya göre" />
-        <StatCard icon={Wind} color="#2E9BFF" label="Kısılan Hava" value={fmtInt(air)} sub="litre / dakika" />
-        <StatCard icon={Zap} color="#FFB04D" label="Yıllık Enerji" value={fmtCompact(kwh)} sub="kilovat-saat (kWh)" />
-        <StatCard icon={Cloud} color="#7CE0FF" label="Yıllık Karbon" value={fmtCompact(co2)} sub="kilogram CO₂" />
+        <StatCard icon={Wind} color="#2E9BFF" label="Kısılan Hava" value={fmtInt(air)} sub="l/dak" />
+        <StatCard icon={Zap} color="#FFB04D" label="Yıllık Enerji" value={fmtCompact(kwh)} sub="kWh" />
+        <StatCard icon={Cloud} color="#7CE0FF" label="Yıllık Karbon" value={fmtCompact(co2)} sub="kg CO₂" />
       </div>
 
       {/* Duzenlenebilir hesap ayarlari - kullanici elektrik fiyatini vb. girer */}
@@ -99,7 +99,7 @@ export function SavingsPage({ data }: { data: LiveState }) {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <EcoField label="Elektrik Fiyatı" unit="₺ / kWh" value={economy.priceTL} step={0.1} onChange={(v) => update({ priceTL: v })} />
           <EcoField label="Çalışma Süresi" unit="saat / yıl" value={economy.opHoursPerYear} step={100} onChange={(v) => update({ opHoursPerYear: v })} />
-          <EcoField label="Normal Hava Tüketimi" unit="litre / dakika" value={economy.baselineFlow} step={50} onChange={(v) => update({ baselineFlow: v })} />
+          <EcoField label="Normal Hava Tüketimi" unit="l/dak" value={economy.baselineFlow} step={50} onChange={(v) => update({ baselineFlow: v })} />
           <EcoField label="Enerji Katsayısı" unit="kWh / m³" value={economy.energyKwhPerM3} step={0.01} onChange={(v) => update({ energyKwhPerM3: v })} />
           <EcoField label="Karbon Katsayısı" unit="kg CO₂ / kWh" value={economy.co2PerKwh} step={0.01} onChange={(v) => update({ co2PerKwh: v })} />
         </div>

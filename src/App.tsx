@@ -73,7 +73,7 @@ export default function App() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
               >
-                {page === 'live' && <LivePage data={data} greetName={auth.user.lastName} />}
+                {page === 'live' && <LivePage data={data} greetName={auth.user.firstName} />}
                 {page === 'sensors' && <SensorsPage data={data} />}
                 {page === 'savings' && <SavingsPage data={data} />}
                 {page === 'product' && <ProductPage />}

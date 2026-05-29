@@ -89,7 +89,7 @@ export function ProfileEditor({ auth, onClose }: { auth: Auth; onClose: () => vo
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
           </div>
-          <div className="text-lg font-semibold text-white">{current.lastName} Bey</div>
+          <div className="text-lg font-semibold text-white">{current.firstName} Bey</div>
           <div className="text-xs text-[var(--ink-soft)]">
             {busy ? 'Fotoğraf işleniyor…' : 'Fotoğrafı en karizmatik biçimde otomatik yerleştiririm'}
           </div>

@@ -47,7 +47,7 @@ export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; hist
         >
           {text}
         </span>
-        <span className="ml-1.5 text-xs font-medium text-[var(--ink-soft)]">{def.unit}</span>
+        <span className="ml-1.5 text-xs font-medium text-[var(--ink-soft)]">{def.unitShort}</span>
       </div>
 
       {/* Kendi mini canli grafigi - her veri kendi karakterini gosterir */}

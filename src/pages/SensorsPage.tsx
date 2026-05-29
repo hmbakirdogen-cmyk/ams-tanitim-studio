@@ -44,7 +44,7 @@ function SensorDetail({ def, history }: { def: MetricDef; history: Reading[] }) 
         </span>
         <div>
           <div className="text-base font-semibold text-white">{def.name}</div>
-          <div className="text-xs text-[var(--ink-soft)]">{def.unit}</div>
+          <div className="text-xs text-[var(--ink-soft)]">{def.unitShort}</div>
         </div>
         <div className="ml-auto text-right">
           <div className="num text-4xl font-bold text-white" style={{ textShadow: `0 0 22px ${def.color}66` }}>

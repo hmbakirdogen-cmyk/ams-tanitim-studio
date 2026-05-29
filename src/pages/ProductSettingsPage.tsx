@@ -71,7 +71,7 @@ export function ProductSettingsPage() {
           <div className="mb-1 flex items-baseline justify-between">
             <span className="text-xs text-[var(--ink-soft)]">Süre</span>
             <span className="num text-2xl font-bold text-white">
-              {fmtInt(settings.autoIsolationSec)} <span className="text-sm font-medium text-[var(--ink-soft)]">saniye</span>
+              {fmtInt(settings.autoIsolationSec)} <span className="text-sm font-medium text-[var(--ink-soft)]">sn</span>
             </span>
           </div>
           <input type="range" min={2} max={30} step={1} value={settings.autoIsolationSec} onChange={(e) => update({ autoIsolationSec: parseInt(e.target.value, 10) })} className="w-full" style={{ accentColor: '#FFB04D' }} />
@@ -82,7 +82,7 @@ export function ProductSettingsPage() {
           <div className="mb-1 flex items-baseline justify-between">
             <span className="text-xs text-[var(--ink-soft)]">Eşik</span>
             <span className="num text-2xl font-bold text-white">
-              {fmtInt(settings.standbyThreshold)} <span className="text-sm font-medium text-[var(--ink-soft)]">litre / dakika</span>
+              {fmtInt(settings.standbyThreshold)} <span className="text-sm font-medium text-[var(--ink-soft)]">l/dak</span>
             </span>
           </div>
           <input type="range" min={50} max={800} step={10} value={settings.standbyThreshold} onChange={(e) => update({ standbyThreshold: parseInt(e.target.value, 10) })} className="w-full" style={{ accentColor: '#2E9BFF' }} />
