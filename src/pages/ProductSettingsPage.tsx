@@ -78,9 +78,10 @@ export function ProductSettingsPage() {
         }
       />
 
-      {/* URUN MODELI SECIMI - tam kod. Native <select> sorun cikardigi icin SECILEBILIR BUTON IZGARASI
-          (valf modu/modul butonlariyla ayni kanitli patern) -> garanti calisir, koyu temayla tutarli. */}
-      <div className="glass relative overflow-hidden rounded-2xl p-6">
+      {/* URUN MODELI SECIMI - tam kod, tiklanabilir buton izgarasi.
+          shrink-0 SART: bu kart `flex h-full flex-col` icinde direkt cocuk; overflow-hidden -> min-height:0 -> flex onu
+          buzup butonlari KIRPIYORDU ("yarim"/"secemiyorum" kok nedeni). shrink-0 ile buzulmez, sayfa overflow-y-auto ile kayar. */}
+      <div className="glass relative shrink-0 overflow-hidden rounded-2xl p-6">
         <span className="absolute inset-x-0 top-0 h-1" style={{ background: '#0072CE', boxShadow: '0 0 18px #0072CE' }} />
         <div className="flex items-center gap-3">
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl" style={{ background: '#0072CE1f', color: '#2E9BFF' }}>
