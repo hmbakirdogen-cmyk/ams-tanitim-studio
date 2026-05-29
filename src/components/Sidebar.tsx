@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from 'react'
 import {
-  LayoutDashboard, Activity, PiggyBank, Package, SlidersHorizontal, Database,
+  LayoutDashboard, Activity, LineChart, PiggyBank, Package, SlidersHorizontal, Database,
   Radio, Volume2, VolumeX, LogOut, Users,
   type LucideIcon,
 } from 'lucide-react'
@@ -14,11 +14,12 @@ import { SmcLogo } from './SmcLogo'
 import { Avatar } from './Avatar'
 import type { User } from '@/auth/users'
 
-export type Page = 'live' | 'sensors' | 'savings' | 'product' | 'settings' | 'records'
+export type Page = 'live' | 'sensors' | 'analysis' | 'savings' | 'product' | 'settings' | 'records'
 
 const NAV: { id: Page; label: string; icon: LucideIcon }[] = [
   { id: 'live', label: 'Canlı Panel', icon: LayoutDashboard },
   { id: 'sensors', label: 'Sensör Detayları', icon: Activity },
+  { id: 'analysis', label: 'Geçmiş Analizi', icon: LineChart },
   { id: 'savings', label: 'Tasarruf Analizi', icon: PiggyBank },
   { id: 'product', label: 'Ürün & Teknoloji', icon: Package },
   { id: 'settings', label: 'Ürün Ayarları', icon: SlidersHorizontal },
