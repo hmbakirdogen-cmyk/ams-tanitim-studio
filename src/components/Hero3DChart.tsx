@@ -1,24 +1,43 @@
 /*
- * NE      : Yildiz bilesen - GERCEK WebGL 3D cok-cizgili akis grafigi. MERKEZI sensor kaydindaki (metrics.ts) tum olcumler,
- *           her biri KENDI rengi/olcegi/derinlik katmaniyla; isildayan (bloom) cizgiler, yansiyan zemin, parallax.
- * NEDEN   : "kesik kesik AKMASIN" + "tum degerleri kendi karakterinde" + "yeni sensor eklenince otomatik" + "basit ASLA".
- * NASIL   : Her cizgi sabit tampon; useFrame'de hedefe lerp (60fps buttery) + Line2 geometrisini YERINDE gunceller (alloc yok).
- *           Cizgiler arkadan-one (z) siralanir; renkler kartlarla AYNI (metrics.ts) -> efsane/kimlik bagi nettir.
- * YAN ETKI: METRICS dizisine sensor eklemek = grafige otomatik yeni kimlikli cizgi. 120ms veri tick'i sadece hedefi besler.
+ * NE      : Canli Panel'in yildiz bileseni - GERCEK WebGL 3D. Her sensor (metrics.ts) KENDI renginde TEK boru:
+ *           "kuyruklu yildiz" gibi akar -> ON UC (yeni veri) parlak + hafif glow BAS; KUYRUK (eski uc) arkaya dogru SONUMLENIR.
+ *           Renk EMISSIVE ile kendi renginde isir (koyu sahnede bile asla SIYAH degil). Yansiyan zemin + bloom + akan isik + parallax.
+ *
+ * NEDEN   : Mehmet Bey'in iterasyonlarinda netlesen ONAYLI vizyon (sade ve mantikli):
+ *             - akan ince cizgi DEGIL; hacimli, puruzsuz, "dibine kadar 3D" boru
+ *             - TEK boru (arkada coklu katman/echo YOK)
+ *             - her boru KENDI karakteristik renginde (PBR/metalik DENENMEZ -> koyu sahnede karariyordu); emissive garanti
+ *             - uclar hafiften kuyruklu-yildiz basi gibi parlasin; kuyruklar arkaya iz birakarak sonumlensin
+ *             - akici, ufak duraksama yok; X ekseni canli/anlasilir zaman (simdi <-> -10 sn)
+ *
+ * NASIL   : 60fps KATI -> SIFIR kare-basi tahsisi. Boru geometrisi BIR KEZ kurulur (TubeGeometry); her karede yalnizca
+ *           position+normal attribute'lari YERINDE yazilir. Egri DUZLEMSEL (z sabit) oldugu icin halka analitik hesaplanir
+ *           (Frenet/realloc yok). Kuyruk izi = STATIK vertex-alpha (uc opak -> kuyruk saydam). DoubleSide -> her acidan garanti gorunur.
+ *           Veriler hedefe lerp + komsu yumusatma (kirilmasiz). L = ekran penceresi nokta sayisi (~10 sn @80ms) + boru cozunurlugu.
+ *
+ * YAN ETKI: metrics dizisine sensor eklemek = otomatik yeni renkli boru. WINDOW_POINTS, ChartOverlay X-zaman etiketleriyle hizali.
  */
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Line, MeshReflectorMaterial, Environment, Lightformer, Sparkles } from '@react-three/drei'
+import { MeshReflectorMaterial, Environment, Lightformer, Sparkles } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import type { Reading } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 
-const SPAN_X = 13
-const MAX_H = 4.0
-const L = 110 // her cizgideki nokta sayisi (yuksek = puruzsuz)
+// --- Sahne sabitleri ---
+const SPAN_X = 13 // borularin X (zaman) genisligi - dunya birimi (onaylanan oran)
+const MAX_H = 4.0 // normalize deger -> yukseklik
+const L = 125 // ekran penceresi nokta sayisi (~10 sn @80ms tik) + boru boyu cozunurlugu (puruzsuz)
+const RADIAL = 12 // boru kesit cozunurlugu (yuvarlak)
+const TWO_PI = Math.PI * 2
 
-// Gecmisi sabit L uzunlugunda, metrigin kendi olceginde y-dizisine cevirir (yeni veri sagda)
+// ChartOverlay'deki X-zaman etiketleri ekranda cizilen son N nokta ile hizali olsun (-> "simdi <-> -10 sn")
+export const WINDOW_POINTS = L
+
+const xAt = (i: number) => -SPAN_X / 2 + (i / (L - 1)) * SPAN_X
+
+// Gecmisi sabit L uzunlugunda, metrigin kendi olceginde yukseklik dizisine cevirir (yeni veri sagda = uc)
 function sampleY(history: Reading[], m: MetricDef): number[] {
   const out = new Array<number>(L)
   const n = history.length
@@ -27,8 +46,7 @@ function sampleY(history: Reading[], m: MetricDef): number[] {
     if (n === 0) v = m.min
     else {
       const idx = n - L + i
-      const r = idx < 0 ? history[0] : history[idx]
-      v = m.get(r)
+      v = m.get(idx < 0 ? history[0] : history[idx])
     }
     const norm = THREE.MathUtils.clamp((v - m.min) / (m.max - m.min), 0, 1)
     out[i] = 0.2 + norm * MAX_H
@@ -36,68 +54,124 @@ function sampleY(history: Reading[], m: MetricDef): number[] {
   return out
 }
 
-const xAt = (i: number) => -SPAN_X / 2 + (i / (L - 1)) * SPAN_X
+/*
+ * Duzlemsel egri (z sabit) icin TubeGeometry halka kesitini YERINDE yazar - kare basi TAHSIS YOK.
+ * Egri XY duzleminde: tegtet T=(tx,ty,0); binormal B=(0,0,1); normal N=(ty,-tx,0). dir = c*N + s*B -> disa dogru.
+ * Halka/dilim sirasi TubeGeometry ile AYNI (idx = ring*(RADIAL+1)+j) -> mevcut index/uv buffer'i gecerli kalir.
+ */
+function writeTube(pos: Float32Array, nor: Float32Array, pts: THREE.Vector3[], radius: number) {
+  const n = pts.length
+  for (let i = 0; i < n; i++) {
+    const p = pts[i]
+    const pa = pts[i - 1] ?? pts[i]
+    const pb = pts[i + 1] ?? pts[i]
+    let tx = pb.x - pa.x
+    let ty = pb.y - pa.y
+    const tl = Math.hypot(tx, ty) || 1
+    tx /= tl; ty /= tl
+    const nx = ty
+    const ny = -tx
+    for (let j = 0; j <= RADIAL; j++) {
+      const v = (j / RADIAL) * TWO_PI
+      const c = -Math.cos(v)
+      const s = Math.sin(v)
+      const dx = c * nx
+      const dy = c * ny
+      const dz = s
+      const idx = (i * (RADIAL + 1) + j) * 3
+      pos[idx] = p.x + radius * dx
+      pos[idx + 1] = p.y + radius * dy
+      pos[idx + 2] = p.z + radius * dz
+      nor[idx] = dx
+      nor[idx + 1] = dy
+      nor[idx + 2] = dz
+    }
+  }
+}
 
-function SmoothLine({ history, m }: { history: Reading[]; m: MetricDef }) {
-  // drei Line ref'i Line2'dir; geometrisi (LineGeometry) setPositions destekler. Gevsek tip - kare basi yerinde guncelleme.
-  const lineRef = useRef<any>(null)
-  const cometRef = useRef<THREE.Mesh>(null)
+function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
+  const meshRef = useRef<THREE.Mesh>(null)
+  const headRef = useRef<THREE.Mesh>(null) // ucta kuyruklu-yildiz basi (hafif glow)
   const lightRef = useRef<THREE.PointLight>(null)
 
+  const tubeRadius = Math.max(0.05, m.width * 0.95)
+
   const yRef = useRef<number[]>(new Array(L).fill(0.2))
-  const posRef = useRef<number[]>(new Array(L * 3).fill(0))
   const targetRef = useRef<number[]>(sampleY(history, m))
   targetRef.current = useMemo(() => sampleY(history, m), [history, m])
 
-  const initPoints = useMemo<[number, number, number][]>(
-    () => Array.from({ length: L }, (_, i) => [xAt(i), 0.2, m.z]),
-    [m.z],
-  )
+  // Yeniden kullanilan egri noktalari (kare basi tahsis yok)
+  const curvePts = useMemo(() => Array.from({ length: L }, (_, i) => new THREE.Vector3(xAt(i), 0.2, m.z)), [m.z])
+  const curve = useMemo(() => new THREE.CatmullRomCurve3(curvePts), [curvePts])
 
-  useFrame(({ clock }) => {
+  // Boru geometrisi BIR KEZ + kuyruk izi icin STATIK vertex-alpha (uc opak -> kuyruk saydam)
+  const geo = useMemo(() => {
+    const g = new THREE.TubeGeometry(curve, L - 1, tubeRadius, RADIAL, false)
+    const count = g.attributes.position.count
+    const colors = new Float32Array(count * 4)
+    for (let p = 0; p < count; p++) {
+      const ring = Math.floor(p / (RADIAL + 1)) // 0 = kuyruk(eski/sol) ... L-1 = bas(yeni/sag)
+      const a = 0.08 + 0.92 * Math.pow(ring / (L - 1), 1.25) // arkaya dogru sonumlenen iz
+      colors[p * 4] = 1; colors[p * 4 + 1] = 1; colors[p * 4 + 2] = 1; colors[p * 4 + 3] = a
+    }
+    g.setAttribute('color', new THREE.BufferAttribute(colors, 4)) // RGBA -> three alpha'yi kullanir
+    return g
+  }, [curve, tubeRadius])
+  useEffect(() => () => geo.dispose(), [geo])
+
+  useFrame(() => {
     const t = targetRef.current
     const y = yRef.current
-    const pos = posRef.current
-    // 1) Hedefe yumusak yaklasim (akan his)
+    // 1) Degerler hedefe yumusak yaklasir (akan his)
     for (let i = 0; i < L; i++) y[i] += (t[i] - y[i]) * 0.13
-    // 2) Komsu ortalamasi ile yuvarla - cizgide ANI KIRILMA olmasin (yuvarlak/akici)
+    // 2) Egri noktalari (komsu yumusatma -> kirilmasiz)
     for (let i = 0; i < L; i++) {
       const a = y[i - 1] ?? y[i]
       const c = y[i + 1] ?? y[i]
-      pos[i * 3] = xAt(i)
-      pos[i * 3 + 1] = (a + 2 * y[i] + c) / 4
-      pos[i * 3 + 2] = m.z
+      curvePts[i].set(xAt(i), (a + 2 * y[i] + c) / 4, m.z)
     }
-    const ln = lineRef.current
-    if (ln && ln.geometry && ln.geometry.setPositions) ln.geometry.setPositions(pos)
-
-    if (m.hero) {
-      const hx = xAt(L - 1)
-      const hy = y[L - 1]
-      const pulse = 1 + Math.sin(clock.elapsedTime * 4) * 0.22
-      if (cometRef.current) {
-        cometRef.current.position.set(hx, hy, m.z)
-        cometRef.current.scale.setScalar(pulse)
-      }
-      if (lightRef.current) {
-        lightRef.current.position.set(hx, hy + 0.5, m.z + 1.2)
-        lightRef.current.intensity = 5 + Math.sin(clock.elapsedTime * 4) * 1.5
-      }
+    // 3) Boru kesitini YERINDE yaz (tahsis yok)
+    const mesh = meshRef.current
+    if (mesh) {
+      const posAttr = mesh.geometry.attributes.position as THREE.BufferAttribute
+      const norAttr = mesh.geometry.attributes.normal as THREE.BufferAttribute
+      writeTube(posAttr.array as Float32Array, norAttr.array as Float32Array, curvePts, tubeRadius)
+      posAttr.needsUpdate = true
+      norAttr.needsUpdate = true
     }
+    // 4) Kuyruklu-yildiz basi (ucta, yeni veri) + hero'da yumusak zemin isigi
+    const hx = xAt(L - 1)
+    const hy = y[L - 1]
+    if (headRef.current) headRef.current.position.set(hx, hy, m.z)
+    if (m.hero && lightRef.current) lightRef.current.position.set(hx, hy + 0.5, m.z + 1.2)
   })
 
   return (
     <group>
-      <Line ref={lineRef} points={initPoints} color={m.color} lineWidth={m.width} worldUnits transparent opacity={0.96} toneMapped={false} />
-      {m.hero && (
-        <>
-          <mesh ref={cometRef}>
-            <sphereGeometry args={[0.2, 28, 28]} />
-            <meshBasicMaterial color="#eaf6ff" toneMapped={false} />
-          </mesh>
-          <pointLight ref={lightRef} color={m.color} intensity={6} distance={10} />
-        </>
-      )}
+      {/* TEK boru - kendi renginde emissive (siyahlama yok) + DoubleSide (garanti gorunur) + kuyruk izi (vertex-alpha).
+          frustumCulled=false: vertex'ler her kare yukseliyor ama boundingSphere yeniden hesaplanmiyor -> acidan kaybolma riskini onler. */}
+      <mesh ref={meshRef} geometry={geo} frustumCulled={false}>
+        <meshStandardMaterial
+          color={m.color}
+          emissive={m.color}
+          emissiveIntensity={0.85}
+          metalness={0}
+          roughness={0.5}
+          vertexColors
+          transparent
+          depthWrite={false}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+        />
+      </mesh>
+
+      {/* Kuyruklu-yildiz BASI: ucta kucuk, hafif additive glow (her boru kendi renginde) */}
+      <mesh ref={headRef} frustumCulled={false}>
+        <sphereGeometry args={[tubeRadius * 1.6, 16, 16]} />
+        <meshBasicMaterial color={m.color} transparent opacity={0.5} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+      </mesh>
+
+      {m.hero && <pointLight ref={lightRef} color={m.color} intensity={3} distance={9} />}
     </group>
   )
 }
@@ -106,12 +180,13 @@ function ReflectiveFloor({ color }: { color: string }) {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
       <planeGeometry args={[70, 44]} />
+      {/* 60fps: resolution + blur olculu (sis+opacity altinda gorsel fark minimal, kazanc buyuk) */}
       <MeshReflectorMaterial
-        mirror={0.55}
-        blur={[480, 120]}
-        resolution={1024}
+        mirror={0.5}
+        blur={[256, 64]}
+        resolution={512}
         mixBlur={1}
-        mixStrength={4}
+        mixStrength={3.5}
         roughness={0.85}
         depthScale={1.1}
         minDepthThreshold={0.3}
@@ -123,13 +198,22 @@ function ReflectiveFloor({ color }: { color: string }) {
   )
 }
 
+// Borular uzerinde soldan-saga suzulen yumusak isik -> yuzeyde gezen parilti (akan his)
+function SweepLight() {
+  const ref = useRef<THREE.PointLight>(null)
+  useFrame(({ clock }) => {
+    if (ref.current) ref.current.position.x = Math.sin(clock.elapsedTime * 0.45) * (SPAN_X / 2)
+  })
+  return <pointLight ref={ref} position={[0, 3.2, 3]} color="#eaf3ff" intensity={3} distance={18} />
+}
+
 // Fareye gore yumusak kamera parallax'i - dokunulasi derinlik
 function ParallaxRig() {
   const target = useMemo(() => new THREE.Vector3(), [])
   useFrame((state) => {
-    target.set(state.pointer.x * 1.6, 2.4 + state.pointer.y * 0.6, 9)
+    target.set(state.pointer.x * 1.6, 2.5 + state.pointer.y * 0.6, 9)
     state.camera.position.lerp(target, 0.045)
-    state.camera.lookAt(0, 1.7, 0)
+    state.camera.lookAt(0, 1.6, 0)
   })
   return null
 }
@@ -143,7 +227,7 @@ export function Hero3DChart({
   metrics?: MetricDef[]
   theme?: 'dark' | 'light'
 }) {
-  // Arkadan-one siralama (z artan) -> dogru derinlik/saydamlik
+  // Arkadan-one siralama (z artan) -> dogru derinlik/saydam katmanlanma
   const ordered = useMemo(() => [...metrics].sort((a, b) => a.z - b.z), [metrics])
   // Gunduz modunda sahne zemini/sisi acilir (grafigin alt tarafi koyu kalmasin)
   const light = theme === 'light'
@@ -153,30 +237,31 @@ export function Hero3DChart({
     <Canvas
       dpr={[1, 1.75]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-      camera={{ position: [0, 2.4, 9], fov: 42 }}
+      camera={{ position: [0, 2.5, 9], fov: 42 }}
     >
       <fog attach="fog" args={[fogColor, 12, 28]} />
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.5} />
       <directionalLight position={[6, 8, 4]} intensity={0.5} color="#9ec9ff" />
-      <pointLight position={[-6, 4, 6]} intensity={2.5} color="#0072CE" distance={22} />
+      <pointLight position={[-6, 4, 6]} intensity={2.2} color="#0072CE" distance={22} />
+      <SweepLight />
 
-      {/* Prosedurel studyo ortami (OFFLINE - HDR indirmez) -> zemin/cizgilerde gercek yansimalar */}
-      <Environment resolution={256}>
+      {/* Prosedurel studyo ortami (OFFLINE - HDR indirmez, frames=1 statik) -> zeminde/boruda hafif yansima */}
+      <Environment resolution={256} frames={1}>
         <Lightformer form="rect" intensity={2.2} color="#2E9BFF" position={[0, 6, -8]} scale={[14, 5, 1]} />
         <Lightformer form="rect" intensity={1.3} color="#36E0C8" position={[-9, 3, 2]} scale={[6, 8, 1]} />
-        <Lightformer form="rect" intensity={1.1} color="#ffffff" position={[9, 4, 3]} scale={[6, 8, 1]} />
+        <Lightformer form="rect" intensity={1.2} color="#ffffff" position={[9, 4, 3]} scale={[6, 8, 1]} />
       </Environment>
       {/* Atmosferik isilti parcaciklari - sinematik derinlik */}
       <Sparkles count={70} scale={[26, 10, 14]} position={[0, 4, -2]} size={2.4} speed={0.25} color="#8fd0ff" opacity={0.5} />
 
       {ordered.map((m) => (
-        <SmoothLine key={m.key} history={history} m={m} />
+        <TubeStrand key={m.key} history={history} m={m} />
       ))}
       <ReflectiveFloor color={floorColor} />
       <ParallaxRig />
 
       <EffectComposer multisampling={4}>
-        <Bloom intensity={1.15} luminanceThreshold={0.2} luminanceSmoothing={0.9} mipmapBlur radius={0.8} />
+        <Bloom intensity={0.85} luminanceThreshold={0.22} luminanceSmoothing={0.9} mipmapBlur radius={0.8} />
       </EffectComposer>
     </Canvas>
   )

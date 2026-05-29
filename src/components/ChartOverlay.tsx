@@ -6,9 +6,11 @@
  * YAN ETKI: pointer-events yok. Renkler metrics.ts cizgi renkleriyle birebir (kimlik bagi).
  */
 import { METRICS, type MetricDef } from '@/data/metrics'
+import { WINDOW_POINTS } from './Hero3DChart'
 import type { Reading } from '@/data/types'
 
 const LEVELS = [100, 75, 50, 25, 0]
+const TICKS = [0, 0.25, 0.5, 0.75, 1] // X ekseni zaman etiketleri (sol=eski, sag=simdi)
 const shadow = { textShadow: '0 1px 5px rgba(2,4,10,0.95), 0 0 2px rgba(2,4,10,0.9)' }
 
 function fmtElapsed(ms: number): string {
@@ -20,8 +22,15 @@ function fmtElapsed(ms: number): string {
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(ss)}` : `${pad(m)}:${pad(ss)}`
 }
 
-export function ChartOverlay({ reading, metrics = METRICS }: { reading: Reading | null; metrics?: MetricDef[] }) {
+// Ekranda cizilen pencerenin (son WINDOW_POINTS okuma) zaman uzunlugu (saniye)
+function windowSpanSec(history: Reading[]): number {
+  const win = history.slice(-WINDOW_POINTS)
+  return win.length > 1 ? (win[win.length - 1].t - win[0].t) / 1000 : 0
+}
+
+export function ChartOverlay({ reading, history = [], metrics = METRICS }: { reading: Reading | null; history?: Reading[]; metrics?: MetricDef[] }) {
   const elapsed = fmtElapsed(reading?.t ?? 0)
+  const spanSec = windowSpanSec(history)
   return (
     <div className="force-dark-surface pointer-events-none absolute inset-0">
       {/* UST YATAY SERIT - cizgilerin ustunde, gorunumu etkilemez */}
@@ -73,14 +82,27 @@ export function ChartOverlay({ reading, metrics = METRICS }: { reading: Reading 
         ))}
       </div>
 
-      {/* X ekseni basligi - alt orta */}
-      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[10px] font-semibold uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
-        Zaman →
+      {/* X ekseni CANLI zaman etiketleri - sol=eski, sag=simdi (kullanici kolay anlasin) */}
+      <div className="absolute inset-x-12 bottom-7 h-6">
+        {TICKS.map((f) => {
+          const secsAgo = spanSec * (1 - f)
+          const label = f === 1 ? 'şimdi' : `−${Math.round(secsAgo)} sn`
+          return (
+            <div key={f} className="absolute flex -translate-x-1/2 flex-col items-center gap-0.5" style={{ left: `${f * 100}%` }}>
+              <span className="h-2 w-px" style={{ background: 'var(--hair)' }} />
+              <span className={`num rounded bg-[#04060f]/55 px-1.5 py-0.5 text-[10px] font-semibold ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink)]'}`} style={shadow}>
+                {label}
+              </span>
+            </div>
+          )
+        })}
       </div>
 
-      {/* Alt aciklama */}
-      <div className="absolute bottom-5 left-12 text-[11px] text-[var(--ink-soft)]" style={shadow}>
-        Her sensör kendi ölçeğinde · dikey eksen = seviye (%0–%100)
+      {/* Alt aciklama - zaman ekseni + seviye */}
+      <div className="absolute inset-x-12 bottom-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
+        <span>← geçmiş</span>
+        <span>Zaman ekseni · dikey: seviye (%0–%100)</span>
+        <span>şimdi →</span>
       </div>
     </div>
   )

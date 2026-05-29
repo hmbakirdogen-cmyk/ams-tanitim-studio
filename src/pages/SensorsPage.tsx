@@ -9,7 +9,7 @@ import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { Sparkline } from '@/components/Sparkline'
 import { useSmoothNumber } from '@/hooks/useSmoothNumber'
-import { METRICS, type MetricDef } from '@/data/metrics'
+import { useMetrics, type MetricDef } from '@/data/metrics'
 import { useSensorVisibility } from '@/data/sensorVisibility'
 import type { Reading } from '@/data/types'
 import type { LiveState } from '@/hooks/useLiveReadings'
@@ -70,7 +70,8 @@ function SensorDetail({ def, history }: { def: MetricDef; history: Reading[] }) 
 
 export function SensorsPage({ data }: { data: LiveState }) {
   const { visible } = useSensorVisibility()
-  const shown = METRICS.filter((m) => visible[m.key])
+  const metrics = useMetrics()
+  const shown = metrics.filter((m) => visible[m.key])
   return (
     <div className="flex h-full flex-col gap-4">
       <PageHeader title="Sensör Detayları" subtitle="Her sensörün anlık değeri, eğilimi ve istatistikleri" />

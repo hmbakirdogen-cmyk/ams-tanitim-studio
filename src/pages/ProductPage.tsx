@@ -8,8 +8,10 @@ import { motion } from 'framer-motion'
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { SmcLogo } from '@/components/SmcLogo'
+import { useModel } from '@/data/model'
+import { useModules, MODULES } from '@/data/modules'
 import {
-  Leaf, PowerOff, Timer, Cpu, Gauge, Wind, Network, Wifi, Server, Ruler, Zap, ShieldCheck,
+  Leaf, PowerOff, Timer, Cpu, Gauge, Wind, Network, Wifi, Server, Ruler, Zap, ShieldCheck, Plus,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -53,6 +55,9 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 }
 
 export function ProductPage() {
+  const { model } = useModel()
+  const { modules } = useModules()
+  const activeModules = MODULES.filter((m) => modules[m.id]) // secili bagli moduller -> baglanabilirlik vitrinine eklenir
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto pr-1">
       <PageHeader title="Ürün & Teknoloji" subtitle="SMC Hava Yönetim Sistemi — AMS20/30/40/60 Serisi" />
@@ -72,13 +77,25 @@ export function ProductPage() {
               kestirimci bakım için doğrudan veri iletişimi sunar.
             </p>
           </div>
-          {/* Gercek urun gorseli slot'u (tasteful placeholder) */}
-          <div className="relative flex min-h-[200px] items-center justify-center rounded-2xl border border-[var(--hair)] bg-gradient-to-br from-white/[0.06] to-transparent">
-            <div className="text-center">
-              <SmcLogo size={40} withText={false} />
-              <div className="mt-3 text-sm font-semibold text-[var(--ink)]">AMS20/30/40/60</div>
-              <div className="text-xs text-[var(--ink-soft)]">Ürün görseli</div>
-            </div>
+          {/* GERCEK SMC urun gorseli - katalog mavisi gradyan + hafif desen zemine BUYUK yerlesir (kendi hucresi, yazisiz) */}
+          <div
+            className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--hair)]"
+            style={{ background: 'linear-gradient(140deg,#eef5fd 0%,#bcd6f0 44%,#6c9fd4 100%)' }}
+          >
+            {/* katalog hissi: ince nokta deseni */}
+            <div className="pointer-events-none absolute inset-0 opacity-[0.16]" style={{ backgroundImage: 'radial-gradient(rgba(0,72,150,0.6) 1px, transparent 1px)', backgroundSize: '15px 15px' }} />
+            {/* sol-ust isik parlamasi */}
+            <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/40 blur-3xl" />
+            <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE' }}>{model.code}</span>
+            <img
+              src="/products/ams-product.png"
+              alt="SMC Hava Yönetim Sistemi — gerçek ürün görseli"
+              className="relative z-[1] max-h-[280px] w-auto object-contain p-4 drop-shadow-[0_18px_30px_rgba(10,40,80,0.35)]"
+              loading="lazy"
+            />
+            <span className="absolute bottom-3 right-3 z-10 text-[11px] font-semibold text-[#0a3a72]">
+              {model.type === 'A' ? 'Elektro-pnömatik regülatör' : 'Regülatör (elle ayar)'}
+            </span>
           </div>
         </Tilt3D>
       </Reveal>
@@ -126,10 +143,10 @@ export function ProductPage() {
         </div>
       </div>
 
-      {/* Baglanabilirlik */}
+      {/* Baglanabilirlik + secili bagli moduller (Urun Ayarlari'ndan) */}
       <Reveal>
         <div className="glass rounded-2xl p-5">
-          <h3 className="mb-3 text-lg font-bold text-white">Bağlanabilirlik</h3>
+          <h3 className="mb-3 text-lg font-bold text-white">Bağlanabilirlik &amp; Modüller</h3>
           <div className="flex flex-wrap gap-2.5">
             {CONNECT.map((c) => {
               const Icon = c.icon
@@ -140,7 +157,19 @@ export function ProductPage() {
                 </span>
               )
             })}
+            {/* Secili bagli moduller - kazanc renginde vurgulu, "+" ile ayirt edilir */}
+            {activeModules.map((m) => (
+              <span key={m.id} className="flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold" style={{ borderColor: 'rgba(65,224,138,0.5)', background: 'rgba(65,224,138,0.12)', color: 'var(--c-saving)' }}>
+                <Plus size={15} />
+                {m.badge}
+              </span>
+            ))}
           </div>
+          {activeModules.length === 0 && (
+            <div className="mt-3 text-xs text-[var(--ink-soft)]">
+              Ek modül seçilmedi. <b className="text-[var(--ink)]">Ürün Ayarları &gt; Bağlı Modüller</b>'den ekleyebilirsiniz (ör. kablosuz EXW1).
+            </div>
+          )}
         </div>
       </Reveal>
 

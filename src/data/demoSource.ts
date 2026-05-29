@@ -7,14 +7,24 @@
  */
 import type { DataSource, Mode, Reading } from './types'
 import { getDeviceSettings } from './deviceSettings'
+import { getActiveModel, defaultsForModel, type AmsModel } from './model'
 
 interface Targets { flow: number; pressure: number; temperature: number; humidity: number }
 
-// Mod bazli hedef olcumler (gercekci AMS40 araligi: ~1800 l/dak calisma, 0.5 MPa)
-const TARGETS: Record<Mode, Targets> = {
-  normal: { flow: 1800, pressure: 0.5, temperature: 24.5, humidity: 46 },
-  standby: { flow: 210, pressure: 0.2, temperature: 23.5, humidity: 47 },
-  isolation: { flow: 6, pressure: 0.02, temperature: 23.0, humidity: 47 },
+/*
+ * Mod bazli hedef olcumler AKTIF MODELDEN turetilir (Mehmet Bey: "tum degerler secilen modele uysun").
+ *  - normal   : tam calisma -> debi = modelin baseline'i, basinc = modele uygun calisma basinci
+ *  - standby  : basinc kullanici ayarindan (bekleme basinci); debi basinca oranli (tickte hesaplanir)
+ *  - isolation: hava kesintisi -> sifira yakin
+ * Sicaklik/nem fiziksel ortam degerleri (modelden bagimsiz).
+ */
+function targetsForModel(m: AmsModel): Record<Mode, Targets> {
+  const d = defaultsForModel(m)
+  return {
+    normal: { flow: m.baselineFlow, pressure: d.workingPressure, temperature: 24.5, humidity: 46 },
+    standby: { flow: Math.max(m.flowMin, Math.round(m.baselineFlow * 0.12)), pressure: 0.2, temperature: 23.5, humidity: 47 },
+    isolation: { flow: Math.max(0, Math.round(m.flowMin * 0.2)), pressure: 0.02, temperature: 23.0, humidity: 47 },
+  }
 }
 
 // Otomatik tur sirasi + her modda kalma suresi (ms)
@@ -30,13 +40,13 @@ export class DemoDataSource implements DataSource {
   private timer: number | null = null
   private autoResume: number | null = null
   private cb: ((r: Reading) => void) | null = null
-  private cur: Targets = { ...TARGETS.normal }
+  private cur: Targets = { ...targetsForModel(getActiveModel()).normal }
   private target: Mode = 'normal'
   private autoCycle = true
   private cycleIdx = 0
   private cycleElapsed = 0
   private t0 = 0
-  private readonly tickMs = 200
+  private readonly tickMs = 80 // daha sik veri -> grafikte daha ince/akici adimlar (duraksama hissi azalir)
 
   start(onReading: (r: Reading) => void): void {
     this.cb = onReading
@@ -67,6 +77,8 @@ export class DemoDataSource implements DataSource {
 
   private tick(): void {
     const s = getDeviceSettings()
+    const model = getActiveModel()
+    const TARGETS = targetsForModel(model) // model degisirse hedefler aninda o modele uyar
     if (this.autoCycle) {
       this.cycleElapsed += this.tickMs
       // Bekleme suresi kullanici ayarindan (otomatik kesintiye kadar); diger modlar sabit
@@ -78,11 +90,11 @@ export class DemoDataSource implements DataSource {
       this.target = CYCLE[this.cycleIdx].mode
     }
 
-    // Bekleme hedefleri kullanici ayarindan: bekleme basinci -> tahmini bekleme debisi
+    // Bekleme hedefleri kullanici ayarindan: bekleme basinci -> tahmini bekleme debisi (modele oranli)
     const base = TARGETS[this.target]
     const tg =
       this.target === 'standby'
-        ? { ...base, pressure: s.standbyPressure, flow: Math.max(40, Math.round(s.standbyPressure * 1050)) }
+        ? { ...base, pressure: s.standbyPressure, flow: Math.max(model.flowMin, Math.round(s.standbyPressure * model.baselineFlow * 0.58)) }
         : base
     const ease = 0.09 // hedefe yumusak yaklasma (akan his)
     this.cur.flow += (tg.flow - this.cur.flow) * ease

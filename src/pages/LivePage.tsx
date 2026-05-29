@@ -10,17 +10,17 @@ import { HeroKPI } from '@/components/HeroKPI'
 import { MetricCard } from '@/components/MetricCard'
 import { ModeStrip } from '@/components/ModeStrip'
 import { PageHeader } from '@/components/PageHeader'
-import { METRICS, type MetricDef, type MetricKey } from '@/data/metrics'
+import { useMetrics, type MetricDef, type MetricKey } from '@/data/metrics'
 import { savingPercent } from '@/lib/savings'
 import { useSensorVisibility } from '@/data/sensorVisibility'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
-const byKey = Object.fromEntries(METRICS.map((m) => [m.key, m])) as Record<MetricKey, MetricDef>
-
 export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
   const { reading, history, setMode } = data
+  const metrics = useMetrics() // aktif modele gore reaktif (debi/basinc olcegi modelle gelir)
+  const byKey = Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<MetricKey, MetricDef>
   const { visible } = useSensorVisibility()
-  const visibleMetrics = METRICS.filter((m) => visible[m.key])
+  const visibleMetrics = metrics.filter((m) => visible[m.key])
   const mode = reading?.mode ?? 'normal'
   const percent = reading ? savingPercent(reading.flow) : 0
 
@@ -40,7 +40,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
         <div className="absolute inset-0">
           <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
         </div>
-        <ChartOverlay reading={reading} metrics={visibleMetrics} />
+        <ChartOverlay reading={reading} history={history} metrics={visibleMetrics} />
       </section>
 
       {/* ALT: mozaik - hicbiri ayni boyutta degil, onem hiyerarsisine gore */}

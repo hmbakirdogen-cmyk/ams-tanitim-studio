@@ -5,15 +5,9 @@
  * YAN ETKI: Saf gorsel; deger App'ten (reading.flow -> savingPercent).
  */
 import { useSmoothNumber } from '@/hooks/useSmoothNumber'
-import { MODE_LABEL, MODE_DESC, type Mode } from '@/data/types'
+import { MODE_LABEL, MODE_DESC, MODE_COLOR, type Mode } from '@/data/types'
 import { fmt1 } from '@/lib/format'
 import { Tilt3D } from './Tilt3D'
-
-const MODE_COLOR: Record<Mode, string> = {
-  normal: '#2E9BFF',
-  standby: '#41E08A',
-  isolation: '#FFB04D',
-}
 
 export function HeroKPI({ percent, mode }: { percent: number; mode: Mode }) {
   const p = useSmoothNumber(percent, 0.1)

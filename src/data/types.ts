@@ -20,6 +20,14 @@ export const MODE_DESC: Record<Mode, string> = {
   isolation: 'Hava tamamen kesildi',
 }
 
+// Mod renkleri - EKRAN (koyu tema) paleti, TEK dogruluk kaynagi (HeroKPI + AnalysisPage buradan okur).
+// Not: ReportView beyaz kagit icin bilerek koyu varyant kullanir (orada ayrica tanimli).
+export const MODE_COLOR: Record<Mode, string> = {
+  normal: '#2E9BFF',
+  standby: '#41E08A',
+  isolation: '#FFB04D',
+}
+
 // Cihazdan (veya demodan) gelen tek bir anlik olcum
 export interface Reading {
   t: number            // baslangictan beri gecen sure (ms)

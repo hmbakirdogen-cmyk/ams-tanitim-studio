@@ -1,14 +1,18 @@
 /*
- * NE      : Cok ozel ZAMAN ARALIGI analiz penceresi - bir veri kumesinde araik secip (slider/preset) o araligi inceler.
- * NEDEN   : Mehmet Bey: "hangi zaman araliginda veriler nasil; belli araliklari kolay sec/filtrele; cok ozel bir pencere".
- * NASIL   : baslangic/bitis % ile pencere; her sensor icin secili aralik Sparkline + en dusuk/ort/en yuksek + birim (KATI).
+ * NE      : ZAMAN ARALIGI analiz penceresi - bir veri kumesinde TARIH+SAAT araligi secip (baslangic-bitis) o araligi inceler;
+ *           "Rapor Ver" ile secili araligin TUM analizini yazdirilabilir ayri rapora (ReportView) dokulur.
+ * NEDEN   : Mehmet Bey: "basit tarih+saat araligi sec; o araligin tum analizleri; CIKTI alinabilsin (yazdir/PDF)".
+ * NASIL   : startedAt (t=0 duvar saati) ile her okuma mutlak zamana cevrilir; datetime-local giris + presetler; secili pencere
+ *           icin her sensor Sparkline + en dusuk/ort/en yuksek + birim (KATI). "Rapor Ver" -> ReportView (yazdirilabilir).
  * YAN ETKI: Saf gorsel; canli gunluk ya da kayitli oturum (Reading[]) ile calisir.
  */
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { X, Clock } from 'lucide-react'
+import { X, Clock, FileBarChart } from 'lucide-react'
 import { Sparkline } from './Sparkline'
-import { METRICS } from '@/data/metrics'
+import { ReportView } from './ReportView'
+import { useMetrics } from '@/data/metrics'
+import { toLocalInputValue, fromLocalInputValue } from '@/lib/datetime'
 import type { Reading } from '@/data/types'
 
 const fmt = (v: number, d: number) =>
@@ -27,21 +31,34 @@ function stats(series: number[]) {
   return { min, max, avg: sum / series.length }
 }
 
-const PRESETS: { label: string; start: number; end: number }[] = [
-  { label: 'Tümü', start: 0, end: 100 },
-  { label: 'Son Yarı', start: 50, end: 100 },
-  { label: 'Son Çeyrek', start: 75, end: 100 },
-]
-
-export function RangeAnalysisModal({ points, title, onClose }: { points: Reading[]; title: string; onClose: () => void }) {
-  const [startPct, setStartPct] = useState(0)
-  const [endPct, setEndPct] = useState(100)
-
+export function RangeAnalysisModal({ points, startedAt, title, onClose }: { points: Reading[]; startedAt: number; title: string; onClose: () => void }) {
+  const metrics = useMetrics()
   const n = points.length
-  const si = Math.floor((startPct / 100) * Math.max(0, n - 1))
-  const ei = Math.ceil((endPct / 100) * Math.max(0, n - 1))
-  const win = points.slice(si, ei + 1)
+  const firstAbs = n ? startedAt + points[0].t : startedAt
+  const lastAbs = n ? startedAt + points[n - 1].t : startedAt
+
+  const [startMs, setStartMs] = useState(firstAbs)
+  const [endMs, setEndMs] = useState(lastAbs)
+  const [report, setReport] = useState<{ at: number } | null>(null)
+
+  // Secili tarih/saat araligindaki noktalar.
+  // datetime-local saniyeye yuvarlar -> secili saniyenin SONUNU da kapsa (son okumalar dusmesin).
+  const endInclusive = endMs + 999
+  const win = points.filter((p) => {
+    const ab = startedAt + p.t
+    return ab >= startMs && ab <= endInclusive
+  })
   const spanSec = win.length > 1 ? (win[win.length - 1].t - win[0].t) / 1000 : 0
+
+  const clampStart = (ms: number) => setStartMs(Math.max(firstAbs, Math.min(ms, endMs - 1000)))
+  const clampEnd = (ms: number) => setEndMs(Math.min(lastAbs, Math.max(ms, startMs + 1000)))
+
+  const span = lastAbs - firstAbs
+  const PRESETS: { label: string; start: number; end: number }[] = [
+    { label: 'Tümü', start: firstAbs, end: lastAbs },
+    { label: 'Son Yarı', start: firstAbs + span * 0.5, end: lastAbs },
+    { label: 'Son Çeyrek', start: firstAbs + span * 0.75, end: lastAbs },
+  ]
 
   return (
     <motion.div
@@ -64,13 +81,13 @@ export function RangeAnalysisModal({ points, title, onClose }: { points: Reading
           </button>
         </div>
 
-        {/* Aralik secimi */}
+        {/* Tarih + saat araligi secimi */}
         <div className="mt-5 rounded-2xl border border-[var(--hair)] p-4">
           <div className="mb-3 flex flex-wrap items-center gap-2">
             {PRESETS.map((p) => (
               <button
                 key={p.label}
-                onClick={() => { setStartPct(p.start); setEndPct(p.end) }}
+                onClick={() => { setStartMs(p.start); setEndMs(p.end) }}
                 className="rounded-lg border border-[var(--hair)] px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"
               >
                 {p.label}
@@ -80,21 +97,47 @@ export function RangeAnalysisModal({ points, title, onClose }: { points: Reading
               <Clock size={13} /> Seçili aralık: <b className="num text-white">{fmt(spanSec, 1)} sn</b> · {win.length} ölçüm
             </span>
           </div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <div className="mb-1 text-[11px] text-[var(--ink-soft)]">Başlangıç (%{startPct})</div>
-              <input type="range" min={0} max={99} value={startPct} onChange={(e) => setStartPct(Math.min(parseInt(e.target.value, 10), endPct - 1))} className="w-full" style={{ accentColor: '#2E9BFF' }} />
+              <label className="mb-1 block text-[11px] text-[var(--ink-soft)]">Başlangıç (tarih + saat)</label>
+              <input
+                type="datetime-local"
+                step={1}
+                value={toLocalInputValue(startMs)}
+                min={toLocalInputValue(firstAbs)}
+                max={toLocalInputValue(lastAbs)}
+                onChange={(e) => { const v = fromLocalInputValue(e.target.value); if (!Number.isNaN(v)) clampStart(v) }}
+                className="num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
+              />
             </div>
             <div>
-              <div className="mb-1 text-[11px] text-[var(--ink-soft)]">Bitiş (%{endPct})</div>
-              <input type="range" min={1} max={100} value={endPct} onChange={(e) => setEndPct(Math.max(parseInt(e.target.value, 10), startPct + 1))} className="w-full" style={{ accentColor: '#41E08A' }} />
+              <label className="mb-1 block text-[11px] text-[var(--ink-soft)]">Bitiş (tarih + saat)</label>
+              <input
+                type="datetime-local"
+                step={1}
+                value={toLocalInputValue(endMs)}
+                min={toLocalInputValue(firstAbs)}
+                max={toLocalInputValue(lastAbs)}
+                onChange={(e) => { const v = fromLocalInputValue(e.target.value); if (!Number.isNaN(v)) clampEnd(v) }}
+                className="num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
+              />
             </div>
+          </div>
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={() => setReport({ at: Date.now() })}
+              disabled={win.length < 2}
+              className="keep-white flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40"
+              style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}
+            >
+              <FileBarChart size={16} /> Rapor Ver
+            </button>
           </div>
         </div>
 
-        {/* Sensor bazli secili aralik analizi */}
+        {/* Sensor bazli secili aralik onizleme */}
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-          {METRICS.map((m) => {
+          {metrics.map((m) => {
             const series = win.map(m.get)
             const s = stats(series)
             return (
@@ -120,6 +163,19 @@ export function RangeAnalysisModal({ points, title, onClose }: { points: Reading
           })}
         </div>
       </motion.div>
+
+      {/* Yazdirilabilir rapor - secili araligin TUM analizi */}
+      {report && (
+        <ReportView
+          points={win}
+          startedAt={startedAt}
+          rangeStart={startMs}
+          rangeEnd={endMs}
+          title={title}
+          generatedAt={report.at}
+          onClose={() => setReport(null)}
+        />
+      )}
     </motion.div>
   )
 }

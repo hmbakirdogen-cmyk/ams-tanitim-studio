@@ -1,15 +1,17 @@
 # HANDOFF — AMS Tanıtım Stüdyosu
 
-**Son güncelleme:** 2026-05-29 (otonom gece oturumu — Mehmet Bey tam yetki verdi)
+**Son güncelleme:** 2026-05-29 (otonom oturum — Mehmet Bey tam yetki; model+grafik+rapor+modül+ürün görseli + 2 review turu)
 **Durum:** Çalışıyor. `npm run dev` → http://localhost:5180 · `npm run build` ✅ (offline, fontlar gömülü).
 **Giriş:** Halil İbrahim Karakelle · şifre **`smc`** (yönetici). Uygulama içi hitabet **AD ile** ("Halil İbrahim Bey", soyad değil).
 
-## 🔧 DEVAM NOTLARI (yarım kalan iş — buradan sürdür, 2026-05-29 gece-2)
-- **Gerçek görseller indirildi → `public/products/`:** `ams-system.jpg` (2800×1867, ANA AMS render), `exa1-hub.jpg`, `regulator-itv.jpg`, `regulator-ar.jpg`, `valve-vp.jpg`. → Ürün & Teknoloji (hero vitrin + bileşen kartları) ve Login'e tasteful gömülecek. (smc.eu/smcetech doğrulanmış URL'ler.)
-- **Model seçimi (YARIM):** `src/data/model.ts` oluşturuldu (AMS20/30/40/60 × A/B; debi 5–4000 + basınç A:0.8/B:0.7). YAPILACAK: (1) demoSource hedefleri `getActiveModel()`'den (normal=baselineFlow, bekleme/kesinti ölçekli, basınç modelden); (2) flow metrik `max` modele göre ölçek (metricsForModel → LivePage/AnalysisPage/SensorsPage); (3) Ürün Ayarları'na **model seçici (tam kod dropdown)** + seçince `economy.baselineFlow` güncelle; (4) PageHeader aktif model kodunu göstersin (şu an PRODUCT.code statik).
-- **Mehmet Bey yeni istek:** model seçilirken **ek modüler bağlı ürünler** de seçilebilsin (kablosuz adaptör EXW1, ek sensörler, regülatör A/B, valf, soft-start) → özellik/görünürlük/spec'i etkilesin.
-- **Ürün & Teknoloji:** TÜM özellikler eklenecek (WiFi/kablosuz EXW1 100m şifreli + OPC UA + IO-Link + Endüstriyel Ethernet + web sunucu + kestirimci bakım + güvenlik + sürdürülebilirlik) — katalogdan.
-- **Yapıldı ✅:** başlıklara ürün kimliği (`data/product.ts` + PageHeader).
+## 🔧 DEVAM NOTLARI (2026-05-29 gece-3 — büyük oturum: model + 3D boru grafik + rapor + modüller)
+- **✅ Model seçimi TAM:** `src/data/model.ts` artık **paylaşılan store** (useSyncExternalStore — model değişince tüm uygulama reaktif) + `defaultsForModel()` (modele en mantıklı çalışma basıncı/bekleme/eşik). `useMetrics()` reaktif dizi tüm tüketicilere bağlı (debi/basınç ölçeği modelle gelir). Ürün Ayarları'nda **model seçici (tam kod dropdown)** — seçince `economy.baselineFlow` + device eşikleri mantıklı varsayılana güncellenir, slider aralıkları modele uyar. PageHeader aktif model kodunu gösterir. demoSource hedefleri `getActiveModel()`'den.
+- **✅ Bağlı modüller TAM:** `src/data/modules.ts` (EXW1 kablosuz, yumuşak başlatma, ek basınç sensörü, IO-Link hub, web sunucu) — Ürün Ayarları'nda seç, Ürün & Teknoloji vitrinine yansır.
+- **✅ Canlı grafik — `Hero3DChart.tsx` SIFIRDAN TEMİZ yazıldı (çok iterasyon → ONAYLI son hal):** her sensör **TEK gerçek 3D boru** (THREE.TubeGeometry); renk **EMISSIVE** (kendi renginde ışır → koyu sahnede asla SİYAH değil — ⚠️ PBR/metalik/clearcoat DENEME, defalarca karattı, bkz. memory `chart-look-emissive-not-pbr`); `side=DoubleSide` (garanti görünür); **vertexColors RGBA** ile kuyruk izi (uç opak → kuyruk saydam = kuyruklu‑yıldız); uçta küçük **additive komet başı**; `frustumCulled=false`. **60fps:** geometri bir kez kurulur, her karede position/normal **yerinde** yazılır (sıfır tahsis). **L=125 nokta = ~10 sn pencere** @80ms tik; ChartOverlay X ekseni **canlı zaman etiketleri** (şimdi ↔ −10 sn).
+- **✅ Rapor ekranı TAM:** `ReportView.tsx` (yazdırılabilir kurumsal belge: özet KPI + mod dağılımı + tasarruf ₺/kWh/CO₂ + sensör grafikleri). RangeAnalysisModal'a **tarih+saat aralığı (datetime-local)** + **"Rapor Ver"** (+999ms son‑saniye toleransı). `useLiveReadings.startedAt` (ilk okumada tam zaman) + `recordings.startedAt` (geriye uyumlu) + `lib/datetime.ts` + `pointsToCSV` (yerel saat). `@media print` → sadece rapor, çok sayfaya yayılır.
+- **✅ Gerçek ürün görseli:** SMC AMS katalog PDF'i (`Desktop/AMS-Da_EU.pdf`) kapağındaki render → beyaz zemin **şeffaflaştırılıp** kırpıldı (`public/products/ams-product.png`), **katalog mavisi gradyan + desen** hücreye büyük yerleştirildi (Ürün & Teknoloji hero). (Python/PyMuPDF+Pillow kuruldu; çıkarma scripti `%TEMP%`'te.)
+- **✅ İKİ review turu:** Tur‑1: 8 bulgu (60fps perf×3, rapor print kırpma, ölü‑kod, birim/yerel‑saat, datetime kenar) — hepsi düzeltildi. Tur‑2 (baştan tam tarama): 7 düşük bulgu — hepsi düzeltildi (frustumCull, **economy de paylaşılan store**, tam startedAt, **MODE_COLOR types.ts'te merkezi**, debi kimlik rengi). typecheck+build temiz.
+- **Ürün & Teknoloji:** TÜM katalog özellikleri (kestirimci bakım, güvenlik, sürdürülebilirlik vb.) eklenebilir (sıradaki).
 
 ## ✅ Tamamlananlar
 - **Canlı Panel:** gerçek WebGL 3D çok‑çizgili **akan** grafik (Debi/Basınç/Sıcaklık/Nem); bloom, yansıyan zemin, prosedürel stüdyo ışıkları + Sparkles, fareyle parallax; 60fps emniyetli; yuvarlak/kırılmasız çizgiler. Kendini açıklayan: X/Y eksen başlıkları, %0–100 seviye çizgileri, sağda koyu‑net **canlı okuma paneli**, sol üstte **canlı akış süresi sayacı**. Altta **eşit‑olmayan mozaik** kartlar (her biri kendi mini grafiği + sayaçlı rakam + birim). Mod kontrolü (Normal/Tasarruf/Kesinti) + Web Audio ses (mute).
@@ -20,7 +22,7 @@
 - **Birim her yerde**, kafa karıştıran kısaltma yok, büyük değerler kompakt.
 
 ## ⏳ Bekleyenler / Sıradaki
-1. **GitHub push + Lovable bağlama** — `gh` kurulu DEĞİL, hesap yetkisi yok. Mehmet Bey döndüğünde: (a) `gh` kur + `gh auth login`, ya da (b) `hmbakirdogen-cmyk` altında boş repo aç + URL ver → CC `git remote add origin … && git push` yapar. Sonra Lovable'da **"Import GitHub repository"**. (Web çekirdeği Lovable‑uyumlu; iki‑yönlü senkron, CC kontrolünde.)
+1. **GitHub push + Lovable bağlama** — `gh` kurulu: **`C:\Program Files\GitHub CLI\gh.exe` (v2.93.0)** ama PATH'te değil + **giriş YAPILMAMIŞ**. KALAN: Mehmet Bey tek seferlik `& "C:\Program Files\GitHub CLI\gh.exe" auth login`. Sonra CC: `hmbakirdogen-cmyk` altında repo aç + `git remote add origin … && git push` (dal: master). Ardından Lovable'da **"Import GitHub repository"**.
 2. **Gündüz/Gece teması** — toggle + ışık modu (koyu varsayılan; kontrast korunarak).
 3. **Gerçek SMC ürün görselleri** (AMS hub/regülatör/valf) — Ürün sayfasında şu an zarif placeholder; smc.eu/smcusa ürün sayfalarından eklenecek.
 4. **Canlı cihaz adaptörü (OPC UA)** — `opc.tcp://<IP>:4840`, node‑opcua; otomatik bağlan zinciri. Masaüstü (Electron) köprü gerektirir; cihaza takılınca doğrulanır. Şu an demo veri.

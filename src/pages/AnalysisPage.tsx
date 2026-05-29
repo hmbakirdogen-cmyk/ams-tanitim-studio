@@ -9,8 +9,8 @@ import { Clock, Layers, PiggyBank } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { Sparkline } from '@/components/Sparkline'
-import { METRICS } from '@/data/metrics'
-import { MODE_LABEL, type Mode } from '@/data/types'
+import { useMetrics } from '@/data/metrics'
+import { MODE_LABEL, MODE_COLOR, type Mode } from '@/data/types'
 import { useEconomy } from '@/data/economy'
 import { litersToSavings, tickLitersSaved } from '@/lib/savings'
 import { fmtInt, fmt1, fmtCompact, fmtTLCompact } from '@/lib/format'
@@ -19,8 +19,6 @@ import type { LiveState } from '@/hooks/useLiveReadings'
 
 const fmt = (v: number, d: number) =>
   new Intl.NumberFormat('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
-
-const MODE_COLOR: Record<Mode, string> = { normal: '#2E9BFF', standby: '#41E08A', isolation: '#FFB04D' }
 
 const PRESETS: { label: string; start: number; end: number }[] = [
   { label: 'Tümü', start: 0, end: 100 },
@@ -44,6 +42,7 @@ function stats(series: number[]) {
 
 export function AnalysisPage({ data }: { data: LiveState }) {
   const { economy } = useEconomy()
+  const metrics = useMetrics()
   const [startPct, setStartPct] = useState(0)
   const [endPct, setEndPct] = useState(100)
 
@@ -135,7 +134,7 @@ export function AnalysisPage({ data }: { data: LiveState }) {
 
           {/* Her sensor: secili aralik detayli */}
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {METRICS.map((m) => {
+            {metrics.map((m) => {
               const series = win.map(m.get)
               const s = stats(series)
               const Icon = m.icon

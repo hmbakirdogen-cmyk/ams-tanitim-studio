@@ -1,16 +1,34 @@
 /*
- * NE      : Urun Ayarlari sayfasi - cihaz parametreleri: bekleme basinci / otomatik kesinti suresi / bekleme esigi / valf modu.
- * NEDEN   : Mehmet Bey: "programdan urune ayar yapilabilsin; hangi senaryoda hava kesiliyor". Program = kontrol+ayar merkezi.
- * NASIL   : useDeviceSettings (kalici); slider + segmented; her degerin yaninda BIRIMI. Demo'da senaryoyu surer, canlida OPC UA write.
- * YAN ETKI: Degisiklik aninda demoSource'a yansir (bekleme basinci/oto-kesinti suresi grafikte gorunur).
+ * NE      : Urun Ayarlari sayfasi - URUN MODELI secimi (tam kod) + BAGLI MODULLER + cihaz parametreleri
+ *           (bekleme basinci / otomatik kesinti suresi / bekleme esigi / valf modu) + sensor gorunurlugu.
+ * NEDEN   : Mehmet Bey: "urun tam koduyla secilsin, tum degerler o modele gore optimize/mantikli gelsin" +
+ *           "ek moduler bagli urunler de secilebilsin" + "varsayilanlar en mantikli sekilde karsiya ciksin".
+ * NASIL   : useModel ile model secimi; secince defaultsForModel -> economy.baselineFlow + device esikleri MANTIKLI degerlere
+ *           guncellenir, slider araliklari modele uyarlanir. useModules ile moduller. Demo'da senaryoyu canli surer, canlida OPC UA.
+ * YAN ETKI: Model degisimi tum uygulamaya yansir (grafik olcegi/PageHeader/demoSource). Degerlerin yaninda BIRIMI (KATI kural).
  */
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { useDeviceSettings, type ValveMode } from '@/data/deviceSettings'
 import { useSensorVisibility } from '@/data/sensorVisibility'
-import { METRICS } from '@/data/metrics'
+import { useMetrics } from '@/data/metrics'
+import { useModel, AMS_MODELS, defaultsForModel, TYPE_LABEL } from '@/data/model'
+import { useModules, MODULES } from '@/data/modules'
+import { useEconomy } from '@/data/economy'
 import { fmt2, fmtInt } from '@/lib/format'
-import { Gauge, Timer, Wind, ToggleRight, Info, RotateCcw, Eye, EyeOff, type LucideIcon } from 'lucide-react'
+import {
+  Gauge, Timer, Wind, ToggleRight, Info, RotateCcw, Eye, EyeOff, Boxes, Wifi, Zap, Network, Server, Plus,
+  type LucideIcon,
+} from 'lucide-react'
+
+// Modul kimligine ikon (veri tarafi pure kalsin diye eslesme burada)
+const MODULE_ICON: Record<string, LucideIcon> = {
+  exw1: Wifi,
+  softstart: Zap,
+  pressureSensor: Gauge,
+  iolink: Network,
+  webserver: Server,
+}
 
 function SettingCard({ icon: Icon, color, title, desc, children }: { icon: LucideIcon; color: string; title: string; desc: string; children: React.ReactNode }) {
   return (
@@ -33,18 +51,84 @@ function SettingCard({ icon: Icon, color, title, desc, children }: { icon: Lucid
 export function ProductSettingsPage() {
   const { settings, update, reset } = useDeviceSettings()
   const { visible, toggle, showAll } = useSensorVisibility()
+  const metrics = useMetrics()
+  const { model, setModel } = useModel()
+  const { modules, toggle: toggleModule } = useModules()
+  const { update: updateEconomy } = useEconomy()
+
+  // Model degisince: o modele EN MANTIKLI calisma degerleri kullanicinin karsisina cikar
+  const onSelectModel = (code: string) => {
+    setModel(code)
+    const m = AMS_MODELS.find((x) => x.code === code)
+    if (!m) return
+    const d = defaultsForModel(m)
+    updateEconomy({ baselineFlow: d.baselineFlow }) // tasarruf hesabi baseline'i modele uyar
+    update({ standbyPressure: d.standbyPressure, standbyThreshold: d.standbyThreshold }) // esikler modele uyar
+  }
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
       <PageHeader
         title="Ürün Ayarları"
-        subtitle="Cihazın çalışma parametreleri — havayı hangi koşullarda kıstığını/kestiğini siz belirleyin"
+        subtitle="Önce ürün modelini seçin — tüm değerler o modele göre en mantıklı haline gelir"
         right={
           <button onClick={reset} className="flex items-center gap-1.5 rounded-lg border border-[var(--hair)] px-3 py-2 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white">
             <RotateCcw size={13} /> Varsayılana dön
           </button>
         }
       />
+
+      {/* URUN MODELI SECIMI - tam kod; secince tum degerler o modele optimize olur.
+          Not: native <select> 3D transform (Tilt3D) icinde yanlis/yarim render olabiliyor -> DUZ panel kullanildi. */}
+      <div className="glass relative overflow-hidden rounded-2xl p-6">
+        <span className="absolute inset-x-0 top-0 h-1" style={{ background: '#0072CE', boxShadow: '0 0 18px #0072CE' }} />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl" style={{ background: '#0072CE1f', color: '#2E9BFF' }}>
+              <Boxes size={24} />
+            </span>
+            <div>
+              <div className="text-base font-semibold text-white">Ürün Modeli</div>
+              <div className="text-xs text-[var(--ink-soft)]">Tam kodu seçin — debi/basınç ölçeği ve tüm varsayılanlar otomatik uyar</div>
+            </div>
+          </div>
+          <div className="w-full lg:w-72">
+            <label className="mb-1 block text-xs text-[var(--ink-soft)]">Model (tam kod)</label>
+            <select
+              value={model.code}
+              onChange={(e) => onSelectModel(e.target.value)}
+              className="num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2.5 text-sm font-semibold text-white outline-none transition focus:border-[var(--smc-bright)]"
+            >
+              {AMS_MODELS.map((m) => (
+                <option key={m.code} value={m.code} className="bg-[#0a1424] text-white">
+                  {m.code} — {TYPE_LABEL[m.type]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Secili modelin ozeti - sayisal degerler (birimli) */}
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[
+            { label: 'Debi Aralığı', value: `${fmtInt(model.flowMin)} – ${fmtInt(model.flowMax)}`, unit: 'l/dak', color: '#2E9BFF' },
+            { label: 'Normal Tüketim', value: fmtInt(model.baselineFlow), unit: 'l/dak', color: '#2E9BFF' },
+            { label: 'Azami Basınç', value: fmt2(model.pressureMax), unit: 'MPa', color: '#36E0C8' },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl border border-[var(--hair)] bg-white/[0.03] px-3 py-2.5">
+              <div className="text-[11px] text-[var(--ink-soft)]">{s.label}</div>
+              <div className="num text-lg font-bold text-white" style={{ textShadow: `0 0 16px ${s.color}55` }}>
+                {s.value} <span className="text-xs font-medium text-[var(--ink-soft)]">{s.unit}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Regulator tipi - tam etiket (kisaltma yok), tam genislik satir */}
+        <div className="mt-3 flex items-center gap-2 rounded-xl border px-3 py-2.5" style={{ borderColor: '#FFB04D55', background: '#FFB04D12' }}>
+          <span className="text-[11px] text-[var(--ink-soft)]">Regülatör Tipi</span>
+          <span className="ml-auto text-sm font-semibold text-white">{TYPE_LABEL[model.type]}</span>
+        </div>
+      </div>
 
       <div className="glass flex items-start gap-3 rounded-2xl p-4 text-sm text-[var(--ink-soft)]">
         <Info size={18} className="mt-0.5 shrink-0 text-[var(--smc-bright)]" />
@@ -55,15 +139,15 @@ export function ProductSettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Bekleme Basinci */}
-        <SettingCard icon={Gauge} color="#36E0C8" title="Bekleme Basıncı" desc="Tasarruf modunda düşürülen hedef basınç">
+        {/* Bekleme Basinci - ust sinir modelin azami basinci */}
+        <SettingCard icon={Gauge} color="#36E0C8" title="Bekleme Basıncı" desc={`Tasarruf modunda düşürülen hedef basınç (azami ${fmt2(model.pressureMax)} MPa)`}>
           <div className="mb-1 flex items-baseline justify-between">
             <span className="text-xs text-[var(--ink-soft)]">Hedef</span>
             <span className="num text-2xl font-bold text-white">
               {fmt2(settings.standbyPressure)} <span className="text-sm font-medium text-[var(--ink-soft)]">MPa</span>
             </span>
           </div>
-          <input type="range" min={0.1} max={0.4} step={0.05} value={settings.standbyPressure} onChange={(e) => update({ standbyPressure: parseFloat(e.target.value) })} className="w-full" style={{ accentColor: '#36E0C8' }} />
+          <input type="range" min={0.1} max={model.pressureMax} step={0.05} value={Math.min(settings.standbyPressure, model.pressureMax)} onChange={(e) => update({ standbyPressure: parseFloat(e.target.value) })} className="w-full" style={{ accentColor: '#36E0C8' }} />
         </SettingCard>
 
         {/* Otomatik Kesinti Suresi */}
@@ -77,15 +161,15 @@ export function ProductSettingsPage() {
           <input type="range" min={2} max={30} step={1} value={settings.autoIsolationSec} onChange={(e) => update({ autoIsolationSec: parseInt(e.target.value, 10) })} className="w-full" style={{ accentColor: '#FFB04D' }} />
         </SettingCard>
 
-        {/* Bekleme Esigi */}
-        <SettingCard icon={Wind} color="#2E9BFF" title="Bekleme Eşiği" desc="Debi bu değerin altına düşünce bekleme moduna geçilir">
+        {/* Bekleme Esigi - ust sinir modelin normal tuketimi */}
+        <SettingCard icon={Wind} color="#2E9BFF" title="Bekleme Eşiği" desc={`Debi bu değerin altına düşünce bekleme moduna geçilir (azami ${fmtInt(model.baselineFlow)} l/dak)`}>
           <div className="mb-1 flex items-baseline justify-between">
             <span className="text-xs text-[var(--ink-soft)]">Eşik</span>
             <span className="num text-2xl font-bold text-white">
               {fmtInt(settings.standbyThreshold)} <span className="text-sm font-medium text-[var(--ink-soft)]">l/dak</span>
             </span>
           </div>
-          <input type="range" min={50} max={800} step={10} value={settings.standbyThreshold} onChange={(e) => update({ standbyThreshold: parseInt(e.target.value, 10) })} className="w-full" style={{ accentColor: '#2E9BFF' }} />
+          <input type="range" min={10} max={model.baselineFlow} step={10} value={Math.min(settings.standbyThreshold, model.baselineFlow)} onChange={(e) => update({ standbyThreshold: parseInt(e.target.value, 10) })} className="w-full" style={{ accentColor: '#2E9BFF' }} />
         </SettingCard>
 
         {/* Valf Modu */}
@@ -108,6 +192,44 @@ export function ProductSettingsPage() {
         </SettingCard>
       </div>
 
+      {/* BAGLI MODULLER - opsiyonel ek urunler; secim Urun & Teknoloji vitrinine de yansir */}
+      <div className="glass rounded-2xl p-6">
+        <div className="mb-1 flex items-center gap-2 text-base font-semibold text-white">
+          <Plus size={18} className="text-[var(--smc-bright)]" /> Bağlı Modüller
+        </div>
+        <div className="mb-4 text-xs text-[var(--ink-soft)]">
+          AMS'e takılan opsiyonel ürünler. Seçtikleriniz Ürün &amp; Teknoloji sayfasında da görünür. (Çekirdekte OPC UA + Endüstriyel Ethernet zaten dahil.)
+        </div>
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+          {MODULES.map((mod) => {
+            const on = modules[mod.id]
+            const Icon = MODULE_ICON[mod.id] ?? Plus
+            const color = '#2E9BFF'
+            return (
+              <button
+                key={mod.id}
+                onClick={() => toggleModule(mod.id)}
+                className="flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition"
+                style={{ borderColor: on ? `${color}66` : 'var(--hair)', background: on ? `${color}14` : 'transparent' }}
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${color}1f`, color }}>
+                  <Icon size={18} />
+                </span>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-white">{mod.name}</div>
+                  <div className="text-[11px] leading-snug text-[var(--ink-soft)]">{mod.desc}</div>
+                </div>
+                <span className="ml-auto shrink-0">
+                  {on
+                    ? <span className="rounded-full bg-[var(--c-saving)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--c-saving)]">Bağlı</span>
+                    : <span className="rounded-full border border-[var(--hair)] px-2 py-0.5 text-[10px] font-medium text-[var(--ink-soft)]">Ekle</span>}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Sensor gorunurlugu - hangi sensorler grafik/kartlarda gorunsun (yeni sensore hazir) */}
       <div className="glass rounded-2xl p-6">
         <div className="mb-1 flex items-center justify-between">
@@ -122,7 +244,7 @@ export function ProductSettingsPage() {
           Hangi sensörlerin grafik ve kartlarda görüneceğini seçin. Yeni sensör eklendiğinde burada otomatik görünür. (Şu an hepsi etkin.)
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-          {METRICS.map((m) => {
+          {metrics.map((m) => {
             const on = visible[m.key]
             const Icon = m.icon
             return (

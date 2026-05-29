@@ -134,3 +134,24 @@ body {
 /* Renkli (accent) butonlarda metin daima beyaz */
 :root[data-theme='light'] .keep-white,
 :root[data-theme='light'] .keep-white .text-white { color: #fff !important; }
+
+/* === YAZDIRMA (Rapor cikti / PDF) ===
+ * Yazdirirken SADECE .report-sheet gorunur; uygulama kabugu/3D sahne gizlenir.
+ * visibility ile (display degil) -> .report-sheet konumu korunur; .no-print daima gizli. */
+@media print {
+  html, body, #root { height: auto; overflow: visible; background: #fff; }
+  body * { visibility: hidden; }
+  .report-sheet, .report-sheet * { visibility: visible; }
+  /* Fixed kabugu notrle -> rapor NORMAL AKISTA, dogal sayfa kirilimiyla COK SAYFAYA yayilir (kirpilmaz) */
+  .report-shell {
+    position: static !important; inset: auto !important; overflow: visible !important;
+    background: #fff !important; padding: 0 !important;
+  }
+  .report-sheet {
+    position: static; width: auto; max-width: none;
+    margin: 0; box-shadow: none; border-radius: 0;
+  }
+  .report-sheet > * { break-inside: avoid; }
+  .no-print { display: none !important; }
+}
+@page { margin: 12mm; }
