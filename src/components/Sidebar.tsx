@@ -47,7 +47,7 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
   return (
     <aside className="glass z-10 m-5 mr-0 flex w-[260px] shrink-0 flex-col rounded-3xl p-5">
       <div className="px-1">
-        <SmcLogo size={44} slogan />
+        <SmcLogo size={52} />
       </div>
 
       <nav className="mt-8 flex flex-col gap-1.5">

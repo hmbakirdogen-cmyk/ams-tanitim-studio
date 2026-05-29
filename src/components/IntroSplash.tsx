@@ -5,7 +5,7 @@
  * YAN ETKI: Sadece ilk acilista; bittikten sonra DOM'dan kalkar. Performansli (sadece transform/opacity/filter).
  */
 import { motion } from 'framer-motion'
-import { SmcLogo, SMC_SLOGAN } from './SmcLogo'
+import { SmcLogo } from './SmcLogo'
 
 export function IntroSplash({ onDone }: { onDone: () => void }) {
   return (
@@ -34,7 +34,6 @@ export function IntroSplash({ onDone }: { onDone: () => void }) {
           <div className="mt-1.5 text-xs font-medium uppercase tracking-[0.3em] text-[var(--ink-soft)]">
             Canlı Tanıtım Stüdyosu
           </div>
-          <div className="mt-2 text-[11px] italic text-[var(--ink-soft)]">{SMC_SLOGAN}</div>
         </motion.div>
 
         <div className="h-0.5 w-52 overflow-hidden rounded-full bg-white/10">

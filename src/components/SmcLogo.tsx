@@ -27,13 +27,13 @@ function Smc3D({ height }: { height: number }) {
 
 // Gercek beyaz SMC logosu - bombeli (convex) cam kapli, parlak SMC-mavisi 3D rozet uzerinde
 function LogoImage({ height }: { height: number }) {
-  const logoH = height * 0.52
+  const logoH = height * 0.64
   return (
     <div
       className="relative inline-flex items-center overflow-hidden"
       style={{
-        padding: `${height * 0.24}px ${height * 0.34}px`,
-        borderRadius: height * 0.26,
+        padding: `${height * 0.16}px ${height * 0.22}px`,
+        borderRadius: height * 0.24,
         background: 'linear-gradient(160deg, #2491f0 0%, #0072CE 46%, #024a96 100%)',
         boxShadow: `0 ${height * 0.12}px ${height * 0.34}px -${height * 0.1}px rgba(2,16,40,0.7), 0 0 ${height * 0.46}px -${height * 0.2}px rgba(46,155,255,0.75), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -${height * 0.08}px ${height * 0.16}px rgba(2,16,40,0.45)`,
       }}
@@ -76,8 +76,8 @@ export function SmcLogo({ size = 40, withText = true, slogan = false }: SmcLogoP
         <div className="leading-tight">
           <div className="text-[15px] font-semibold text-[var(--ink)]">Hava Yönetim Sistemi</div>
           <div className="text-[11px] font-medium tracking-wide text-[var(--ink-soft)]">Canlı Tanıtım Stüdyosu</div>
-          {/* SMC orijinal slogani (logonun altinda) */}
-          {slogan && <div className="mt-0.5 text-[10px] italic text-[var(--ink-soft)]">{SMC_SLOGAN}</div>}
+          {/* Slogan SADECE gercek logo YOKSA (logoda zaten basili - duplikasyon olmasin) */}
+          {slogan && !imgOk && <div className="mt-0.5 text-[10px] italic text-[var(--ink-soft)]">{SMC_SLOGAN}</div>}
         </div>
       </div>
     )
@@ -85,7 +85,7 @@ export function SmcLogo({ size = 40, withText = true, slogan = false }: SmcLogoP
   return (
     <div className="flex select-none flex-col items-center gap-2">
       {visual}
-      {slogan && (
+      {slogan && !imgOk && (
         <div className="text-center text-[11px] font-medium italic tracking-wide text-[var(--ink-soft)]">{SMC_SLOGAN}</div>
       )}
     </div>
