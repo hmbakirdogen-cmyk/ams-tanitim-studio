@@ -23,10 +23,11 @@
 
 ## ⏳ Bekleyenler / Sıradaki
 1. **GitHub push + Lovable bağlama** — `gh` kurulu: **`C:\Program Files\GitHub CLI\gh.exe` (v2.93.0)** ama PATH'te değil + **giriş YAPILMAMIŞ**. KALAN: Mehmet Bey tek seferlik `& "C:\Program Files\GitHub CLI\gh.exe" auth login`. Sonra CC: `hmbakirdogen-cmyk` altında repo aç + `git remote add origin … && git push` (dal: master). Ardından Lovable'da **"Import GitHub repository"**.
-2. **Gündüz/Gece teması** — toggle + ışık modu (koyu varsayılan; kontrast korunarak).
-3. **Gerçek SMC ürün görselleri** (AMS hub/regülatör/valf) — Ürün sayfasında şu an zarif placeholder; smc.eu/smcusa ürün sayfalarından eklenecek.
-4. **Canlı cihaz adaptörü (OPC UA)** — `opc.tcp://<IP>:4840`, node‑opcua; otomatik bağlan zinciri. Masaüstü (Electron) köprü gerektirir; cihaza takılınca doğrulanır. Şu an demo veri.
-5. **PWA / mobil** — telefondan kurulabilir; offline.
+2. **✅ Gündüz/Gece teması** — toggle + yumuşak geçiş (sahne iki katman cross-fade + aurora opacity) + gündüz kontrast/okunaklılık rötuşu. (Tamam)
+3. **✅ Gerçek görseller** — Ürün hero: katalog render şeffaf kesim (`ams-product.png`) mavi gradyan hücrede; Login: smcusa.com bağlı sistem diyagramı (`ams-diagram.jpg`, 2x upscale). Bileşen kartlarına ek görseller (exa1/regülatör/valf) ileride bağlanabilir.
+4. **🟡 Canlı cihaz adaptörü (OPC UA) — UYGULAMA HAZIR:** Ürün Ayarları > Veri Bağlantısı (Demo/Canlı + cihaz IP + durum); `src/data/liveSource.ts` (WebSocket→köprü, reconnect, demo fallback). KALAN (donanım): internetli makinede `npm i node-opcua ws`, cihaza göre `bridge/opcua-bridge.mjs` içindeki NODE_IDS'i ayarla, `node bridge/opcua-bridge.mjs` çalıştır → "Canlı" moda geç. Cihaz olmadan test edilemedi.
+5. **GitHub push + Lovable** — `gh` kurulu, **giriş YAPILMADI** (Mehmet Bey tek seferlik `gh auth login`). Sonra repo+push+Lovable import.
+6. **PWA / mobil** — telefondan kurulabilir; offline (mevcut).
 
 ## Çalıştırma
 `npm install` → `npm run dev`. Yerel git geçmişi var (4+ commit); uzak depo henüz yok.
