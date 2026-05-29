@@ -15,11 +15,20 @@ import { useMetrics } from '@/data/metrics'
 import { useModel, AMS_MODELS, defaultsForModel, TYPE_LABEL } from '@/data/model'
 import { useModules, MODULES } from '@/data/modules'
 import { useEconomy } from '@/data/economy'
+import { useConnection, type ConnStatus } from '@/data/connection'
 import { fmt2, fmtInt } from '@/lib/format'
 import {
-  Gauge, Timer, Wind, ToggleRight, Info, RotateCcw, Eye, EyeOff, Boxes, Wifi, Zap, Network, Server, Plus,
+  Gauge, Timer, Wind, ToggleRight, Info, RotateCcw, Eye, EyeOff, Boxes, Wifi, Zap, Network, Server, Plus, Radio,
   type LucideIcon,
 } from 'lucide-react'
+
+// Baglanti durumu -> etiket + renk (kullaniciya net)
+const CONN_UI: Record<ConnStatus, { label: string; color: string }> = {
+  demo: { label: 'Demo verisi', color: '#FFB04D' },
+  connecting: { label: 'Bağlanıyor…', color: '#2E9BFF' },
+  connected: { label: 'Bağlı', color: '#41E08A' },
+  error: { label: 'Bağlantı yok', color: '#ff6b6b' },
+}
 
 // Modul kimligine ikon (veri tarafi pure kalsin diye eslesme burada)
 const MODULE_ICON: Record<string, LucideIcon> = {
@@ -55,6 +64,7 @@ export function ProductSettingsPage() {
   const { model, setModel } = useModel()
   const { modules, toggle: toggleModule } = useModules()
   const { update: updateEconomy } = useEconomy()
+  const { settings: conn, status: connStatus, setMode: setConnMode, setEndpoint } = useConnection()
 
   // Model degisince: o modele EN MANTIKLI calisma degerleri kullanicinin karsisina cikar
   const onSelectModel = (code: string) => {
@@ -137,7 +147,58 @@ export function ProductSettingsPage() {
         </div>
       </div>
 
-      <div className="glass flex items-start gap-3 rounded-2xl p-4 text-sm text-[var(--ink-soft)]">
+      {/* VERI BAGLANTISI - Demo / Canli cihaz (OPC UA kopru) + canli durum */}
+      <div className="glass relative shrink-0 overflow-hidden rounded-2xl p-6">
+        <span className="absolute inset-x-0 top-0 h-1" style={{ background: CONN_UI[connStatus].color, boxShadow: `0 0 18px ${CONN_UI[connStatus].color}` }} />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl" style={{ background: `${CONN_UI[connStatus].color}1f`, color: CONN_UI[connStatus].color }}>
+              {conn.mode === 'live' ? <Wifi size={24} /> : <Radio size={24} />}
+            </span>
+            <div>
+              <div className="flex items-center gap-2 text-base font-semibold text-white">
+                Veri Bağlantısı
+                <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: `${CONN_UI[connStatus].color}22`, color: CONN_UI[connStatus].color }}>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: CONN_UI[connStatus].color, boxShadow: `0 0 8px ${CONN_UI[connStatus].color}` }} />
+                  {CONN_UI[connStatus].label}
+                </span>
+              </div>
+              <div className="text-xs text-[var(--ink-soft)]">Demo verisi mi, gerçek cihazdan canlı veri mi (OPC UA)</div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {([['demo', 'Demo Verisi'], ['live', 'Canlı Cihaz']] as const).map(([m, label]) => {
+              const on = conn.mode === m
+              return (
+                <button
+                  key={m}
+                  onClick={() => setConnMode(m)}
+                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
+                  style={on ? { background: 'rgba(46,155,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : { border: '1px solid var(--hair)' }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        {conn.mode === 'live' && (
+          <div className="mt-4">
+            <label className="mb-1 block text-xs text-[var(--ink-soft)]">Cihaz adresi (OPC UA)</label>
+            <input
+              value={conn.endpoint}
+              onChange={(e) => setEndpoint(e.target.value)}
+              placeholder="opc.tcp://192.168.1.50:4840"
+              className="num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
+            />
+            <div className="mt-2 text-[11px] text-[var(--ink-soft)]">
+              Canlı veri için bilgisayarda yerel <b className="text-[var(--ink)]">OPC UA köprüsü</b> çalışmalı (<span className="num">bridge/opcua-bridge.mjs</span>). Cihaz yoksa Demo'ya dönün.
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="glass flex shrink-0 items-start gap-3 rounded-2xl p-4 text-sm text-[var(--ink-soft)]">
         <Info size={18} className="mt-0.5 shrink-0 text-[var(--smc-bright)]" />
         <div>
           Bu ayarlar demo modunda <b className="text-white">senaryoyu canlı sürer</b> (bekleme basıncı ve otomatik kesinti süresi

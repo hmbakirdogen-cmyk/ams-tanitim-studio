@@ -7,10 +7,11 @@
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Activity, LineChart, PiggyBank, Package, SlidersHorizontal, Database,
-  Radio, Volume2, VolumeX, LogOut, Users, Sun, Moon,
+  Radio, Wifi, Volume2, VolumeX, LogOut, Users, Sun, Moon,
   type LucideIcon,
 } from 'lucide-react'
 import { SmcLogo } from './SmcLogo'
+import { useConnection } from '@/data/connection'
 import { Avatar } from './Avatar'
 import type { User } from '@/auth/users'
 import type { Theme } from '@/hooks/useTheme'
@@ -47,6 +48,12 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
     return () => window.clearInterval(id)
   }, [])
   const time = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+  // Veri kaynagi rozeti - Demo mu Canli cihaz mi (Urun Ayarlari'ndan)
+  const { settings: conn, status: connStatus } = useConnection()
+  const live = conn.mode === 'live'
+  const connColor = connStatus === 'connected' ? 'var(--c-saving)' : connStatus === 'error' ? '#ff6b6b' : live ? 'var(--smc-bright)' : 'var(--c-temp)'
+  const connLabel = !live ? 'DEMO VERİSİ' : connStatus === 'connected' ? 'CANLI · BAĞLI' : connStatus === 'error' ? 'CANLI · YOK' : 'CANLI · …'
 
   return (
     <aside className="glass z-10 m-5 mr-0 flex w-[260px] shrink-0 flex-col rounded-3xl p-5">
@@ -113,8 +120,8 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
         </div>
 
         <div className="flex items-center gap-2 rounded-xl border border-[var(--hair)] px-3 py-2">
-          <Radio size={14} className="text-[var(--c-temp)]" />
-          <span className="text-xs font-semibold tracking-wide text-[var(--ink-soft)]">DEMO VERİSİ</span>
+          {live ? <Wifi size={14} style={{ color: connColor }} /> : <Radio size={14} style={{ color: connColor }} />}
+          <span className="text-xs font-semibold tracking-wide" style={{ color: connColor }}>{connLabel}</span>
           <span className="num ml-auto text-xs font-medium text-[var(--ink-soft)]">{time}</span>
         </div>
 
