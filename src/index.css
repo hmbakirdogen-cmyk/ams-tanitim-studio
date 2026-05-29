@@ -1,0 +1,109 @@
+/*
+ * NE      : Uygulamanin gorsel temeli - tema renkleri (SMC mavisi), sinematik arka plan, glow/cam yardimci siniflari, animasyonlar.
+ * NEDEN   : Mehmet Bey vizyonu: Apple-keynote kalite, isildayan cizgiler, isik-golge derinligi, her yerde SMC kimligi, premium-temiz.
+ * NASIL   : Tailwind v4 import + Inter font + :root tasarim token'lari + keyframe animasyonlari + .glass/.glow yardimci siniflari.
+ * YAN ETKI: Tum uygulama bu token'lara dayanir; SMC mavisi tek degiskenden (--smc) yonetilir (marka degisirse tek nokta).
+ *           Font OFFLINE icin projeye gomulu (@fontsource-variable/inter, main.tsx'te import) - internet GEREKMEZ.
+ */
+@import "tailwindcss";
+
+:root {
+  /* SMC marka kimligi (Pantone 285C) */
+  --smc: #0072CE;            /* ana SMC mavisi */
+  --smc-bright: #2E9BFF;     /* isiltili acik mavi (glow/vurgu) */
+  --smc-deep: #003A78;       /* koyu mavi */
+
+  /* Sinematik sahne (koyu lacivert derinlik) */
+  --bg-0: #04060f;           /* en koyu zemin */
+  --bg-1: #071427;           /* lacivert */
+  --bg-2: #0a2148;           /* SMC lacivert */
+
+  /* Metrik renkleri (acik, net - kafa karistirmayan) */
+  --c-flow: #2E9BFF;         /* Debi / Hava Tuketimi */
+  --c-pressure: #36E0C8;     /* Basinc */
+  --c-temp: #FFB04D;         /* Sicaklik */
+  --c-humidity: #7CE0FF;     /* Nem */
+  --c-saving: #41E08A;       /* Tasarruf (yesil) */
+
+  --ink: #EAF2FF;            /* ana metin */
+  --ink-soft: #9DB4D6;       /* ikincil metin */
+  --hair: rgba(126, 170, 230, 0.16); /* ince cizgi/sinir */
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--ink);
+  background: var(--bg-0);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;                 /* tam ekran uygulama hissi */
+  letter-spacing: -0.01em;
+}
+
+/* Tabular rakamlar - sayilar titremeden akar */
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+
+/* --- Cam (glassmorphism) panel --- */
+.glass {
+  background: linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+  border: 1px solid var(--hair);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow:
+    0 24px 60px -28px rgba(0,0,0,0.8),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+/* --- Isiltili metin / kenar --- */
+.glow-text { text-shadow: 0 0 24px var(--glow, rgba(46,155,255,0.55)); }
+.glow-soft { box-shadow: 0 0 32px -4px var(--glow, rgba(46,155,255,0.45)); }
+
+/* --- Animasyonlar --- */
+@keyframes aurora-drift {
+  0%   { transform: translate3d(-6%, -4%, 0) scale(1.05); }
+  50%  { transform: translate3d(6%, 5%, 0) scale(1.18); }
+  100% { transform: translate3d(-6%, -4%, 0) scale(1.05); }
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.45; transform: scale(0.78); }
+}
+@keyframes ring-pulse {
+  0%   { transform: scale(0.9); opacity: 0.7; }
+  70%  { transform: scale(2.2); opacity: 0; }
+  100% { opacity: 0; }
+}
+@keyframes sheen {
+  0%   { background-position: -160% 0; }
+  100% { background-position: 260% 0; }
+}
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+.animate-aurora { animation: aurora-drift 22s ease-in-out infinite; }
+.animate-live   { animation: live-pulse 1.6s ease-in-out infinite; }
+.animate-float  { animation: float-soft 7s ease-in-out infinite; }
+
+/* Canli nokta dis halkasi */
+.live-ring::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--c-saving);
+  animation: ring-pulse 1.8s ease-out infinite;
+}
+
+/* --- Ince scrollbar (gerekirse) --- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(126,170,230,0.25); border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
