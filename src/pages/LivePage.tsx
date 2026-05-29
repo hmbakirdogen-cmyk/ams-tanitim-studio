@@ -17,7 +17,7 @@ import type { LiveState } from '@/hooks/useLiveReadings'
 
 const byKey = Object.fromEntries(METRICS.map((m) => [m.key, m])) as Record<MetricKey, MetricDef>
 
-export function LivePage({ data, greetName }: { data: LiveState; greetName?: string }) {
+export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
   const { reading, history, setMode } = data
   const { visible } = useSensorVisibility()
   const visibleMetrics = METRICS.filter((m) => visible[m.key])
@@ -38,7 +38,7 @@ export function LivePage({ data, greetName }: { data: LiveState; greetName?: str
       {/* UST: grafik tek satir, tam genislik */}
       <section className="glass relative min-h-0 flex-1 overflow-hidden rounded-3xl">
         <div className="absolute inset-0">
-          <Hero3DChart history={history} metrics={visibleMetrics} />
+          <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
         </div>
         <ChartOverlay reading={reading} metrics={visibleMetrics} />
       </section>

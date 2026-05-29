@@ -102,7 +102,7 @@ function SmoothLine({ history, m }: { history: Reading[]; m: MetricDef }) {
   )
 }
 
-function ReflectiveFloor() {
+function ReflectiveFloor({ color }: { color: string }) {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
       <planeGeometry args={[70, 44]} />
@@ -116,7 +116,7 @@ function ReflectiveFloor() {
         depthScale={1}
         minDepthThreshold={0.4}
         maxDepthThreshold={1.3}
-        color="#050c1a"
+        color={color}
         metalness={0.55}
       />
     </mesh>
@@ -134,16 +134,28 @@ function ParallaxRig() {
   return null
 }
 
-export function Hero3DChart({ history, metrics = METRICS }: { history: Reading[]; metrics?: MetricDef[] }) {
+export function Hero3DChart({
+  history,
+  metrics = METRICS,
+  theme = 'dark',
+}: {
+  history: Reading[]
+  metrics?: MetricDef[]
+  theme?: 'dark' | 'light'
+}) {
   // Arkadan-one siralama (z artan) -> dogru derinlik/saydamlik
   const ordered = useMemo(() => [...metrics].sort((a, b) => a.z - b.z), [metrics])
+  // Gunduz modunda sahne zemini/sisi acilir (grafigin alt tarafi koyu kalmasin)
+  const light = theme === 'light'
+  const fogColor = light ? '#dce8f7' : '#04060f'
+  const floorColor = light ? '#c2d4ec' : '#050c1a'
   return (
     <Canvas
       dpr={[1, 1.75]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       camera={{ position: [0, 2.4, 9], fov: 42 }}
     >
-      <fog attach="fog" args={['#04060f', 12, 28]} />
+      <fog attach="fog" args={[fogColor, 12, 28]} />
       <ambientLight intensity={0.4} />
       <directionalLight position={[6, 8, 4]} intensity={0.5} color="#9ec9ff" />
       <pointLight position={[-6, 4, 6]} intensity={2.5} color="#0072CE" distance={22} />
@@ -160,7 +172,7 @@ export function Hero3DChart({ history, metrics = METRICS }: { history: Reading[]
       {ordered.map((m) => (
         <SmoothLine key={m.key} history={history} m={m} />
       ))}
-      <ReflectiveFloor />
+      <ReflectiveFloor color={floorColor} />
       <ParallaxRig />
 
       <EffectComposer multisampling={4}>

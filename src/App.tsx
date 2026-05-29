@@ -78,7 +78,7 @@ export default function App() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.35, ease: 'easeOut' }}
               >
-                {page === 'live' && <LivePage data={data} greetName={auth.user.firstName} />}
+                {page === 'live' && <LivePage data={data} greetName={auth.user.firstName} theme={theme} />}
                 {page === 'sensors' && <SensorsPage data={data} />}
                 {page === 'analysis' && <AnalysisPage data={data} />}
                 {page === 'savings' && <SavingsPage data={data} />}
