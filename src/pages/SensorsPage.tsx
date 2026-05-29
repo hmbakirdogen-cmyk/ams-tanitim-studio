@@ -46,11 +46,11 @@ function SensorDetail({ def, history }: { def: MetricDef; history: Reading[] }) 
           <div className="text-base font-semibold text-white">{def.name}</div>
           <div className="text-xs text-[var(--ink-soft)]">{def.unitShort}</div>
         </div>
-        <div className="ml-auto text-right">
-          <div className="num text-4xl font-bold text-white" style={{ textShadow: `0 0 22px ${def.color}66` }}>
+        <div className="ml-auto flex items-baseline gap-1.5">
+          <span className="num text-4xl font-bold text-white" style={{ textShadow: `0 0 22px ${def.color}66` }}>
             {fmt(cur, def.digits)}
-          </div>
-          <div className="text-[11px] font-medium text-[var(--ink-soft)]">{def.unitShort}</div>
+          </span>
+          <span className="text-xs font-medium text-[var(--ink-soft)]">{def.unitShort}</span>
         </div>
       </div>
 

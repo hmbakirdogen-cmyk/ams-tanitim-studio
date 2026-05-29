@@ -40,14 +40,14 @@ export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; hist
         <span className="text-sm font-semibold text-[var(--ink)]">{def.name}</span>
       </div>
 
-      <div style={{ transform: 'translateZ(14px)' }}>
+      <div className="flex items-baseline gap-1.5" style={{ transform: 'translateZ(14px)' }}>
         <span
           className={`num ${NUM_SIZE[size]} font-bold leading-none text-white`}
           style={{ textShadow: `0 0 24px ${def.color}66` }}
         >
           {text}
         </span>
-        <span className="ml-1.5 text-xs font-medium text-[var(--ink-soft)]">{def.unitShort}</span>
+        <span className="text-xs font-medium text-[var(--ink-soft)]">{def.unitShort}</span>
       </div>
 
       {/* Kendi mini canli grafigi - her veri kendi karakterini gosterir */}
