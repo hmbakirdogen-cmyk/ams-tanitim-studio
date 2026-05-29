@@ -1,24 +1,50 @@
 /*
- * NE      : Vite (web) yapilandirmasi - React + Tailwind v4 + "@" alias + ag erisimli dev sunucu.
- * NEDEN   : Lovable-uyumlu web-first cekirdek; ayni uygulamayi telefon ayni WiFi'den acabilsin (gorerek/mobil).
- * NASIL   : host:true (LAN'a acik), strictPort + sabit port 5180 (tek URL disiplini), "@" -> ./src.
- * YAN ETKI: Electron yok; saf web. Canli kablo (OPC UA) okuma sonradan ince masaustu kopru ile eklenecek.
+ * NE      : Vite (web) yapilandirmasi - React + Tailwind v4 + "@" alias + ag erisimli dev sunucu + PWA (kurulabilir + offline).
+ * NEDEN   : Lovable-uyumlu web-first cekirdek; telefon ayni WiFi'den acabilsin; PWA ile "Yukle" + tam offline (Mehmet Bey: mobil app + offline).
+ * NASIL   : host:true (LAN), strictPort sabit 5180, "@" -> ./src. VitePWA: manifest + servis worker (build'de tum varliklari onbelleğe alir).
+ * YAN ETKI: Electron yok; saf web. Servis worker yalnizca build'de aktif (dev etkilenmez). Canli OPC UA okuma sonra ince masaustu kopru ile.
  */
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['smc-logo.svg', 'icon.svg'],
+      manifest: {
+        name: 'SMC Hava Yönetim Sistemi',
+        short_name: 'AMS Stüdyo',
+        description: 'SMC Hava Yönetim Sistemi — canlı tanıtım & demo (offline)',
+        theme_color: '#0072CE',
+        background_color: '#04060f',
+        display: 'standalone',
+        orientation: 'any',
+        lang: 'tr',
+        icons: [
+          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,woff2,svg,png}'],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+      },
+    }),
+  ],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
   },
   server: {
     host: true,
     port: 5180,
-    strictPort: true
-  }
+    strictPort: true,
+  },
 })
