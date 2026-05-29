@@ -48,13 +48,27 @@ export function LoginScreen({ auth }: { auth: Auth }) {
         initial={{ opacity: 0, y: 18, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="glass w-full max-w-2xl rounded-3xl p-8"
+        className="glass w-full max-w-5xl rounded-3xl p-6 sm:p-8"
       >
-        <div className="flex flex-col items-center text-center">
-          <SmcLogo size={56} withText={false} slogan />
-          <h1 className="mt-4 text-2xl font-bold text-white">Hava Yönetim Sistemi</h1>
-          <p className="text-sm text-[var(--ink-soft)]">Personel Girişi</p>
-        </div>
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-center lg:gap-10">
+          {/* SOL: SMC bagli sistem diyagrami (smcusa.com Best Practices gorseli, yuksek kalite) */}
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--hair)]" style={{ background: 'linear-gradient(140deg,#f3f8fd,#cfe0f2 55%,#a9c8e6)' }}>
+            <span className="absolute left-3 top-3 z-10 rounded-md px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: '#0072CE' }}>SMC · Bağlı Sistem</span>
+            <img
+              src="/products/ams-diagram.jpg"
+              alt="SMC Hava Yönetim Sistemi — bağlı sistem şeması: EXW1 kablosuz, IO-Link, Fieldbus"
+              className="max-h-44 w-full object-contain p-3 lg:max-h-[340px]"
+              loading="lazy"
+            />
+          </div>
+
+          {/* SAG: personel girisi */}
+          <div>
+            <div className="flex flex-col items-center text-center">
+              <SmcLogo size={56} withText={false} slogan />
+              <h1 className="mt-4 text-2xl font-bold text-white">Hava Yönetim Sistemi</h1>
+              <p className="text-sm text-[var(--ink-soft)]">Personel Girişi</p>
+            </div>
 
         <AnimatePresence mode="wait">
           {!sel ? (
@@ -137,7 +151,9 @@ export function LoginScreen({ auth }: { auth: Auth }) {
               {error && <div className="mt-2 text-center text-xs text-[#ff8a8a]">Şifre hatalı, tekrar deneyin</div>}
             </motion.form>
           )}
-        </AnimatePresence>
+            </AnimatePresence>
+          </div>
+        </div>
       </motion.div>
     </div>
   )
