@@ -26,7 +26,7 @@ import type { Reading } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 
 // --- Sahne sabitleri ---
-const SPAN_X = 13 // borularin X (zaman) genisligi - dunya birimi (onaylanan oran)
+const SPAN_X = 17 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis" (sol) kenara kadar. Skala (10sn/%0-100) bundan bagimsiz.
 const MAX_H = 4.0 // normalize deger -> yukseklik
 const L = 125 // ekran penceresi nokta sayisi (~10 sn @80ms tik) + boru boyu cozunurlugu (puruzsuz)
 const RADIAL = 12 // boru kesit cozunurlugu (yuvarlak)
@@ -94,7 +94,7 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
   const headRef = useRef<THREE.Mesh>(null) // ucta kuyruklu-yildiz basi (hafif glow)
   const lightRef = useRef<THREE.PointLight>(null)
 
-  const tubeRadius = Math.max(0.05, m.width * 0.95)
+  const tubeRadius = Math.max(0.04, m.width * 0.62) // daha ince boru (gercek tel/boru hissi)
 
   const yRef = useRef<number[]>(new Array(L).fill(0.2))
   const targetRef = useRef<number[]>(sampleY(history, m))
@@ -111,7 +111,7 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
     const colors = new Float32Array(count * 4)
     for (let p = 0; p < count; p++) {
       const ring = Math.floor(p / (RADIAL + 1)) // 0 = kuyruk(eski/sol) ... L-1 = bas(yeni/sag)
-      const a = 0.08 + 0.92 * Math.pow(ring / (L - 1), 1.25) // arkaya dogru sonumlenen iz
+      const a = 0.06 + 0.94 * Math.pow(ring / (L - 1), 1.0) // arkaya dogru UZUN, yumusak sonumlenen kuyruk izi
       colors[p * 4] = 1; colors[p * 4 + 1] = 1; colors[p * 4 + 2] = 1; colors[p * 4 + 3] = a
     }
     g.setAttribute('color', new THREE.BufferAttribute(colors, 4)) // RGBA -> three alpha'yi kullanir
@@ -154,9 +154,10 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
         <meshStandardMaterial
           color={m.color}
           emissive={m.color}
-          emissiveIntensity={0.85}
+          emissiveIntensity={0.6}
           metalness={0}
-          roughness={0.5}
+          roughness={0.38}
+          envMapIntensity={0.6}
           vertexColors
           transparent
           depthWrite={false}

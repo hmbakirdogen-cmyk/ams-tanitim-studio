@@ -78,34 +78,40 @@ export function ProductSettingsPage() {
         }
       />
 
-      {/* URUN MODELI SECIMI - tam kod; secince tum degerler o modele optimize olur.
-          Not: native <select> 3D transform (Tilt3D) icinde yanlis/yarim render olabiliyor -> DUZ panel kullanildi. */}
+      {/* URUN MODELI SECIMI - tam kod. Native <select> sorun cikardigi icin SECILEBILIR BUTON IZGARASI
+          (valf modu/modul butonlariyla ayni kanitli patern) -> garanti calisir, koyu temayla tutarli. */}
       <div className="glass relative overflow-hidden rounded-2xl p-6">
         <span className="absolute inset-x-0 top-0 h-1" style={{ background: '#0072CE', boxShadow: '0 0 18px #0072CE' }} />
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl" style={{ background: '#0072CE1f', color: '#2E9BFF' }}>
-              <Boxes size={24} />
-            </span>
-            <div>
-              <div className="text-base font-semibold text-white">Ürün Modeli</div>
-              <div className="text-xs text-[var(--ink-soft)]">Tam kodu seçin — debi/basınç ölçeği ve tüm varsayılanlar otomatik uyar</div>
-            </div>
+        <div className="flex items-center gap-3">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl" style={{ background: '#0072CE1f', color: '#2E9BFF' }}>
+            <Boxes size={24} />
+          </span>
+          <div>
+            <div className="text-base font-semibold text-white">Ürün Modeli</div>
+            <div className="text-xs text-[var(--ink-soft)]">Tam kodu seçin — debi/basınç ölçeği ve tüm varsayılanlar otomatik uyar</div>
           </div>
-          <div className="w-full lg:w-72">
-            <label className="mb-1 block text-xs text-[var(--ink-soft)]">Model (tam kod)</label>
-            <select
-              value={model.code}
-              onChange={(e) => onSelectModel(e.target.value)}
-              className="num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2.5 text-sm font-semibold text-white outline-none transition focus:border-[var(--smc-bright)]"
-            >
-              {AMS_MODELS.map((m) => (
-                <option key={m.code} value={m.code} className="bg-[#0a1424] text-white">
-                  {m.code} — {TYPE_LABEL[m.type]}
-                </option>
-              ))}
-            </select>
-          </div>
+        </div>
+
+        {/* Model kodu secenekleri - tiklanabilir butonlar (8 model: AMS20/30/40/60 x A/B) */}
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {AMS_MODELS.map((mm) => {
+            const on = mm.code === model.code
+            return (
+              <button
+                key={mm.code}
+                onClick={() => onSelectModel(mm.code)}
+                className={`rounded-xl border px-3 py-2.5 text-center transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
+                style={
+                  on
+                    ? { borderColor: '#2E9BFF', background: 'rgba(46,155,255,0.18)', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.55), 0 0 22px -8px rgba(46,155,255,0.9)' }
+                    : { borderColor: 'var(--hair)' }
+                }
+              >
+                <div className="num text-sm font-bold">{mm.code}</div>
+                <div className="text-[10px] text-[var(--ink-soft)]">{mm.type === 'A' ? 'Tip A' : 'Tip B'}</div>
+              </button>
+            )
+          })}
         </div>
 
         {/* Secili modelin ozeti - sayisal degerler (birimli) */}
