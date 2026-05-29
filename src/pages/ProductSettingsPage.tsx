@@ -32,7 +32,7 @@ function SettingCard({ icon: Icon, color, title, desc, children }: { icon: Lucid
 
 export function ProductSettingsPage() {
   const { settings, update, reset } = useDeviceSettings()
-  const { visible, toggle } = useSensorVisibility()
+  const { visible, toggle, showAll } = useSensorVisibility()
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
@@ -110,8 +110,13 @@ export function ProductSettingsPage() {
 
       {/* Sensor gorunurlugu - hangi sensorler grafik/kartlarda gorunsun (yeni sensore hazir) */}
       <div className="glass rounded-2xl p-6">
-        <div className="mb-1 flex items-center gap-2 text-base font-semibold text-white">
-          <Eye size={18} className="text-[var(--smc-bright)]" /> Sensörler
+        <div className="mb-1 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-base font-semibold text-white">
+            <Eye size={18} className="text-[var(--smc-bright)]" /> Sensörler
+          </div>
+          <button onClick={showAll} className="rounded-lg border border-[var(--hair)] px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)]">
+            Tümünü Aç
+          </button>
         </div>
         <div className="mb-4 text-xs text-[var(--ink-soft)]">
           Hangi sensörlerin grafik ve kartlarda görüneceğini seçin. Yeni sensör eklendiğinde burada otomatik görünür. (Şu an hepsi etkin.)

@@ -29,6 +29,7 @@ export function useSensorVisibility() {
   }, [visible])
 
   const toggle = useCallback((k: MetricKey) => setVisible((v) => ({ ...v, [k]: !v[k] })), [])
+  const showAll = useCallback(() => setVisible({ ...DEFAULT }), [])
 
-  return { visible, toggle }
+  return { visible, toggle, showAll }
 }
