@@ -121,6 +121,33 @@ export async function verify(id: string, password: string): Promise<boolean> {
   return (await hashPassword(password)) === u.hash
 }
 
+/*
+ * Laptoplar arasi tasima (OFFLINE dosya). Dısa aktar: bu bilgisayardaki TUM personeli (sifre hash'leriyle) JSON'a yazar.
+ * Ice aktar: dosyadaki personeli MERGE eder (id'ye gore gunceller, yeni ekler) - mevcut kisiler SILINMEZ. Sifreler korunur (hash tasinir).
+ */
+export function exportUsers(): string {
+  const users = read()
+  return JSON.stringify({ kind: 'ams-users', version: 1, count: users.length, users }, null, 2)
+}
+
+export function importUsers(json: string): { added: number; updated: number } {
+  const data = JSON.parse(json)
+  const incoming: unknown = Array.isArray(data) ? data : (data && data.users)
+  if (!Array.isArray(incoming)) throw new Error('Geçersiz personel dosyası')
+  const current = read()
+  let added = 0
+  let updated = 0
+  for (const raw of incoming) {
+    const u = raw as Partial<User>
+    if (!u || typeof u.id !== 'string' || typeof u.hash !== 'string' || typeof u.firstName !== 'string') continue // gecersiz kayit atla
+    const idx = current.findIndex((x) => x.id === u.id)
+    if (idx >= 0) { current[idx] = { ...current[idx], ...(u as User) }; updated++ }
+    else { current.push(u as User); added++ }
+  }
+  write(current)
+  return { added, updated }
+}
+
 export function getSession(): string | null {
   return localStorage.getItem(SESSION_KEY)
 }

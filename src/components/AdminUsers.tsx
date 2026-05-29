@@ -4,10 +4,11 @@
  * NASIL   : auth.addUser(details) / auth.updateUser(id,patch) / auth.setPassword / auth.removeUser; her satir genisleyip detay duzenlenir.
  * YAN ETKI: Sadece yonetici erisir. KATI: cıplak sifre asla gosterilmez; kullanici kendini silemez.
  */
-import { useState, type FormEvent } from 'react'
+import { useState, useRef, type FormEvent, type ChangeEvent } from 'react'
 import { motion } from 'framer-motion'
-import { X, UserPlus, Trash2, KeyRound, Pencil, Check, ShieldCheck, User as UserIcon } from 'lucide-react'
+import { X, UserPlus, Trash2, KeyRound, Pencil, Check, ShieldCheck, User as UserIcon, Download, Upload, ArrowLeftRight } from 'lucide-react'
 import { sound } from '@/lib/sound'
+import { download } from '@/data/recordings'
 import { Avatar } from './Avatar'
 import type { Auth } from '@/auth/useAuth'
 import type { Role } from '@/auth/users'
@@ -30,6 +31,31 @@ export function AdminUsers({ auth, onClose }: { auth: Auth; onClose: () => void 
   const [eEmail, setEEmail] = useState('')
   const [resetId, setResetId] = useState<string | null>(null)
   const [resetPw, setResetPw] = useState('')
+  // Laptoplar arasi tasima
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [transferMsg, setTransferMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const doExport = () => {
+    sound.click()
+    download('ams-personel.json', auth.exportUsers(), 'application/json')
+    setTransferMsg({ ok: true, text: `${auth.users.length} kişi "ams-personel.json" dosyasına aktarıldı. USB/e-posta ile diğer laptoplara taşıyın.` })
+  }
+  const onPickFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    e.target.value = '' // ayni dosya tekrar secilebilsin
+    if (!f) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const res = auth.importUsers(String(reader.result))
+        sound.click()
+        setTransferMsg({ ok: true, text: `İçe aktarıldı: ${res.added} kişi eklendi, ${res.updated} kişi güncellendi. (Mevcut kişiler silinmedi.)` })
+      } catch {
+        setTransferMsg({ ok: false, text: 'Dosya okunamadı ya da geçersiz personel dosyası.' })
+      }
+    }
+    reader.readAsText(f)
+  }
 
   const add = async (e: FormEvent) => {
     e.preventDefault()
@@ -129,6 +155,28 @@ export function AdminUsers({ auth, onClose }: { auth: Auth; onClose: () => void 
           </div>
           <button type="submit" className="keep-white mt-3 w-full rounded-lg py-2.5 text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>Ekle</button>
         </form>
+
+        {/* Laptoplar arasi tasima - HER butonun NE yaptigi acikca yazili */}
+        <div className="mt-6 rounded-2xl border border-[var(--hair)] p-4">
+          <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-white"><ArrowLeftRight size={16} className="text-[var(--smc-bright)]" /> Personeli Taşı (laptoplar arası)</div>
+          <div className="mb-3 text-xs leading-relaxed text-[var(--ink-soft)]">Her bilgisayar bağımsızdır. Listeyi bir kez kurup diğer laptoplara taşıyın — internet gerekmez.</div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <button onClick={doExport} className="flex flex-col items-start gap-0.5 rounded-xl border border-[var(--hair)] p-3 text-left transition hover:bg-white/5">
+              <span className="flex items-center gap-2 text-sm font-semibold text-white"><Download size={15} className="text-[var(--smc-bright)]" /> Dışa Aktar</span>
+              <span className="text-[11px] leading-snug text-[var(--ink-soft)]">Bu bilgisayardaki TÜM personeli (şifreleriyle) bir dosyaya kaydeder.</span>
+            </button>
+            <button onClick={() => fileRef.current?.click()} className="flex flex-col items-start gap-0.5 rounded-xl border border-[var(--hair)] p-3 text-left transition hover:bg-white/5">
+              <span className="flex items-center gap-2 text-sm font-semibold text-white"><Upload size={15} className="text-[var(--c-saving)]" /> İçe Aktar</span>
+              <span className="text-[11px] leading-snug text-[var(--ink-soft)]">Dosyadaki personeli bu bilgisayara EKLER/GÜNCELLER. Mevcut kişiler silinmez.</span>
+            </button>
+          </div>
+          <input ref={fileRef} type="file" accept="application/json,.json" onChange={onPickFile} className="hidden" />
+          {transferMsg && (
+            <div className="mt-3 rounded-lg px-3 py-2 text-xs" style={{ background: transferMsg.ok ? 'rgba(65,224,138,0.12)' : 'rgba(255,107,107,0.12)', color: transferMsg.ok ? 'var(--c-saving)' : '#ff8a8a' }}>
+              {transferMsg.text}
+            </div>
+          )}
+        </div>
       </motion.div>
     </motion.div>
   )

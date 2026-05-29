@@ -20,6 +20,8 @@ export interface Auth {
   updateProfile: (patch: ProfilePatch) => void
   updateUser: (id: string, patch: ProfilePatch) => void
   changePassword: (current: string, next: string) => Promise<boolean>
+  exportUsers: () => string
+  importUsers: (json: string) => { added: number; updated: number }
 }
 
 export function useAuth(): Auth {
@@ -115,7 +117,19 @@ export function useAuth(): Auth {
     [user],
   )
 
+  // Laptoplar arasi tasima (offline dosya)
+  const exportUsers = useCallback(() => store.exportUsers(), [])
+  const importUsers = useCallback(
+    (json: string) => {
+      const res = store.importUsers(json)
+      refresh()
+      return res
+    },
+    [refresh],
+  )
+
   return {
     ready, user, users, login, logout, addUser, setPassword, removeUser, updateProfile, updateUser, changePassword,
+    exportUsers, importUsers,
   }
 }
