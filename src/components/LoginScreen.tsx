@@ -56,12 +56,15 @@ export function LoginScreen({ auth }: { auth: Auth }) {
       >
         <div className="grid gap-6 lg:grid-cols-2 lg:items-center lg:gap-10">
           {/* SOL: SMC bagli sistem diyagrami (smcusa.com Best Practices gorseli, yuksek kalite) */}
-          <div className="relative overflow-hidden rounded-2xl border border-[var(--hair)]" style={{ background: 'linear-gradient(140deg,#f3f8fd,#cfe0f2 55%,#a9c8e6)' }}>
-            <span className="absolute left-3 top-3 z-10 rounded-md px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: '#0072CE' }}>SMC · Bağlı Sistem</span>
+          <div className="relative h-52 overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424] sm:h-60 lg:h-[380px]">
+            {/* Urun adi etiketi (eski "Bagli Sistem" yerine - markaya uygun) */}
+            <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS Hava Yönetim Sistemi</span>
             <img
               src={asset('products/ams-diagram.jpg')}
-              alt="SMC Hava Yönetim Sistemi — bağlı sistem şeması: EXW1 kablosuz, IO-Link, Fieldbus"
-              className="max-h-44 w-full object-contain p-3 lg:max-h-[340px]"
+              alt="SMC AMS — Hava Yönetim Sistemi (gerçek ürün)"
+              /* object-cover + hafif zoom: urun daha IRI/belirgin (kenar kablolar bir miktar kirpilabilir - sorun degil) */
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ objectPosition: 'center', transform: 'scale(1.1)' }}
               loading="lazy"
             />
           </div>
