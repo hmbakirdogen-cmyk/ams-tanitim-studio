@@ -265,7 +265,8 @@ export function DeviceFlowChart({
 
       const fc = colorRef.current.flow, pc = colorRef.current.pressure, hc = colorRef.current.hum
       // ISI RANGE GENİŞLETME: dar sensör bandını orta etrafında AÇ → soğukta daha mavi, sıcakta daha kırmızı (fark net)
-      const tempEff = clamp01(0.5 + (sig.temp - 0.5) * 1.7)
+      // + hafif SICAK BIAS (Mehmet Abi: biraz kırmızıya, abartmadan) — +0.12 ile rampa ölçülü ısıya kayar
+      const tempEff = clamp01(0.5 + (sig.temp - 0.5) * 1.7 + 0.12)
       const [tr, tg, tb] = tempRGB(tempEff)
       const cF = (a: number) => `rgba(${fc[0]},${fc[1]},${fc[2]},${a})` // debi rengi
       const cP = (a: number) => `rgba(${pc[0]},${pc[1]},${pc[2]},${a})` // basinc rengi
