@@ -311,21 +311,41 @@ export function DeviceFlowChart({
 
       // 3) AKAN HAVA — streak rengi SICAKLIĞA göre (dünya std mavi→kırmızı) → akışa bakınca sıcaklık net okunur.
       //   (uzunluk∝debi hızı, parlaklık∝debi). Debi rengi boru gövdesinde kalır; havanın KENDİSİ ısındıkça kızarır.
+      //   VALF KAPANINCA (izolasyon): valf SONRASI (çıkış/ön) hava GERİ akar (sağdan→valfe) ve valfte AŞAĞI egzoza dökülür.
       const pr = pipeH * 0.4
       const baseV = 0.05 + 0.95 * sig.flow
+      const valvePhase = (valveCx - 0) / W // valf x'inin faz karsiligi (0..1)
       ctx.lineCap = 'round'
       for (let i = 0; i < FLOW_COUNT; i++) {
         const layer = fLayer[i], depth = layer === 0 ? 0.55 : layer === 1 ? 0.8 : 1.15
+        const x0 = fPhase[i] * W
+        const afterValve = x0 > valveCx
+        if (afterValve && sig.valve > 0.1) {
+          // GERİ AKIŞ: çıkış tarafındaki hava valfe doğru geri çekilir (sola), valfe varınca egzoza düşer
+          fPhase[i] -= (0.18 + 0.5 * sig.valve) * fSpd[i] * dt
+          if (fPhase[i] <= valvePhase) {
+            // valfe ulaştı → aşağı egzoza "dök" (bu parçacığı çıkış ucuna geri ışınla, geri-akış sürsün)
+            fPhase[i] = 0.992
+          }
+          const x = fPhase[i] * W
+          const prog = clamp01((x - valveCx) / Math.max(1, W - valveCx)) // valfe yakinlik (0=valf,1=cikis)
+          // valfe yaklaştıkça aşağı kıvrıl (egzoza dökülme hissi)
+          const dropY = (1 - prog) * pipeH * 1.1 * sig.valve
+          const y = axisY + fLane[i] * pr * 0.5 + dropY
+          const a = (0.22 + 0.4 * sig.valve) * (layer === 0 ? 0.5 : layer === 1 ? 0.85 : 1)
+          const len = (5 + 14 * sig.valve) * depth
+          ctx.strokeStyle = cT(a)
+          ctx.lineWidth = (1.4 + 1.0 * depth)
+          ctx.beginPath(); ctx.moveTo(x + len, y - dropY * 0.3); ctx.lineTo(x, y); ctx.stroke() // kuyruk sağda (geri geliyor)
+          continue
+        }
+        // NORMAL ileri akış
         fPhase[i] += (baseV * fSpd[i] * depth * 0.55 + 0.008) * dt
         if (fPhase[i] > 1) fPhase[i] -= 1
         const x = fPhase[i] * W
-        // valf kapali (izolasyon): valf SONRASI (cikisa dogru) akis kesilir
-        const afterValve = x > valveCx
-        const cut = afterValve ? (1 - sig.valve) : 1
-        if (cut < 0.06) continue
         const y = axisY + fLane[i] * pr * (0.6 + 0.4 * depth)
         const len = (6 + baseV * 34) * depth
-        const a = (0.14 + 0.6 * sig.flow) * (layer === 0 ? 0.5 : layer === 1 ? 0.82 : 1) * cut
+        const a = (0.14 + 0.6 * sig.flow) * (layer === 0 ? 0.5 : layer === 1 ? 0.82 : 1)
         ctx.strokeStyle = cT(a) // ← SICAKLIK rengi (akış ısındıkça mavi→kırmızı)
         ctx.lineWidth = (1.4 + 1.2 * depth) * (0.6 + sig.flow * 0.8)
         ctx.beginPath(); ctx.moveTo(x - len, y); ctx.lineTo(x, y); ctx.stroke()
