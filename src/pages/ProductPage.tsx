@@ -176,13 +176,26 @@ export function ProductPage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {COMPONENTS.map((c, i) => {
             const Icon = c.icon
-            const cimg = c.imgB && model.type === 'B' ? c.imgB : c.img // regulator: modele gore dogru varyant
             return (
               <Reveal key={c.title} delay={i * 0.08}>
                 <Tilt3D className="glass relative flex h-full flex-col overflow-hidden rounded-2xl" max={6}>
-                  {/* bilesen FOTOGRAFI - temiz acik panel (urun net gorunur) */}
+                  {/* bilesen FOTOGRAFI(LARI) - temiz acik panel. Regulator: HER IKI varyant (elektro-pnomatik + elle ayar) yan yana */}
                   <div className="border-b border-[var(--hair)]" style={{ background: 'linear-gradient(160deg,#f6f9fd,#dde9f6)' }}>
-                    <img src={asset(cimg)} alt={c.title} className="mx-auto h-36 w-auto object-contain p-3" loading="lazy" />
+                    {c.imgB ? (
+                      <div className="flex items-stretch justify-center gap-1 p-3">
+                        <div className="flex flex-1 flex-col items-center justify-end">
+                          <img src={asset(c.img)} alt="Elektro-pnömatik regülatör" className="h-28 w-auto object-contain" loading="lazy" />
+                          <span className="mt-1 text-[10px] font-semibold text-slate-500">Elektro-pnömatik</span>
+                        </div>
+                        <div className="mx-1 w-px self-stretch bg-slate-300/60" />
+                        <div className="flex flex-1 flex-col items-center justify-end">
+                          <img src={asset(c.imgB)} alt="Elle ayarlı regülatör" className="h-28 w-auto object-contain" loading="lazy" />
+                          <span className="mt-1 text-[10px] font-semibold text-slate-500">Elle ayar</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <img src={asset(c.img)} alt={c.title} className="mx-auto h-36 w-auto object-contain p-3" loading="lazy" />
+                    )}
                   </div>
                   <div className="flex flex-col gap-2 p-5">
                     <div className="flex items-center gap-2.5">
