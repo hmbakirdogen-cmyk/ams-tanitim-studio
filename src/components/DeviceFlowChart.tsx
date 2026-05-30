@@ -197,8 +197,9 @@ export function DeviceFlowChart({
       const [tr, tg, tb] = tempRGB(tempEff)
       const dark = themeRef.current !== 'light'
 
+      // Trail/zemin: PANEL iç rengiyle aynı ton (cam çerçeveyle kaynaşsın; kutu hissi gitsin). Tema-duyarlı.
       ctx.globalCompositeOperation = 'source-over'
-      ctx.fillStyle = dark ? 'rgba(6,10,22,0.30)' : 'rgba(225,235,247,0.40)'
+      ctx.fillStyle = dark ? 'rgba(6,12,26,0.32)' : 'rgba(231,240,249,0.42)'
       ctx.fillRect(0, 0, W, H)
 
       let dw = W * DEV_FILL, dh = dw / devAR
@@ -215,6 +216,26 @@ export function DeviceFlowChart({
 
       // 1) GERÇEK ÜRÜN — olduğu gibi
       if (deviceCanvas) ctx.drawImage(deviceCanvas, dx, dy, dw, dh)
+
+      // 1b) KENAR ADAPTASYONU — görselin dış kenarlarını PANEL rengine yumuşakça erit (cam çerçeveyle kaynaşsın; B'nin
+      //     siyah dikdörtgen zemini de panele karışır). Ortadaki ürüne dokunmaz (sadece kenar bandı).
+      const panel = dark ? '6,12,26' : '231,240,249'
+      const fadeW = Math.min(W, H) * 0.16
+      ctx.globalCompositeOperation = 'source-over'
+      // sol/sağ
+      let gEdge = ctx.createLinearGradient(0, 0, fadeW, 0)
+      gEdge.addColorStop(0, `rgba(${panel},1)`); gEdge.addColorStop(1, `rgba(${panel},0)`)
+      ctx.fillStyle = gEdge; ctx.fillRect(0, 0, fadeW, H)
+      gEdge = ctx.createLinearGradient(W, 0, W - fadeW, 0)
+      gEdge.addColorStop(0, `rgba(${panel},1)`); gEdge.addColorStop(1, `rgba(${panel},0)`)
+      ctx.fillStyle = gEdge; ctx.fillRect(W - fadeW, 0, fadeW, H)
+      // üst/alt
+      gEdge = ctx.createLinearGradient(0, 0, 0, fadeW)
+      gEdge.addColorStop(0, `rgba(${panel},1)`); gEdge.addColorStop(1, `rgba(${panel},0)`)
+      ctx.fillStyle = gEdge; ctx.fillRect(0, 0, W, fadeW)
+      gEdge = ctx.createLinearGradient(0, H, 0, H - fadeW)
+      gEdge.addColorStop(0, `rgba(${panel},1)`); gEdge.addColorStop(1, `rgba(${panel},0)`)
+      ctx.fillStyle = gEdge; ctx.fillRect(0, H - fadeW, W, fadeW)
 
       // 2) BORU içi = KOYU CAM TÜP (belirgin koyulaştır) → açık/beyaz ürünün üstünde içindeki ışıklı akış KONTRAST yapar, görünür olur.
       //    Üstte ince glint (cam parlaması) + içi koyu + alt iç gölge (yuvarlak tüp hissi).
