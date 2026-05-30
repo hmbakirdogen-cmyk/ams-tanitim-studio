@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { Waves, BarChart3 } from 'lucide-react'
 import { Hero3DChart } from '@/components/Hero3DChart'
 import { ChartOverlay } from '@/components/ChartOverlay'
-import { PipeFlowChart } from '@/components/PipeFlowChart'
+import { DeviceFlowChart } from '@/components/DeviceFlowChart'
 import { PipeOverlay } from '@/components/PipeOverlay'
 import { HeroKPI } from '@/components/HeroKPI'
 import { MetricCard } from '@/components/MetricCard'
@@ -23,9 +23,8 @@ import { sound } from '@/lib/sound'
 import { useLang } from '@/i18n'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
-type LiveView = 'pipe' | 'classic'
+type LiveView = 'flow' | 'classic'
 const VIEW_KEY = 'ams_live_view_v1'
-const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
 
 export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
   const { reading, history, setMode } = data
@@ -37,16 +36,13 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   const mode = reading?.mode ?? 'normal'
   const percent = reading ? savingPercent(reading.flow) : 0
 
-  // Grafik gorunumu: "Boru" (yeni Pnomatik Hat) <-> "Klasik" (kuyruklu 3D); secim kalici (localStorage)
-  const [view, setView] = useState<LiveView>(() => (localStorage.getItem(VIEW_KEY) === 'classic' ? 'classic' : 'pipe'))
+  // Grafik gorunumu: "Akis" (yeni 3B cihaz akisi) <-> "Klasik" (kuyruklu 3D); secim kalici (localStorage)
+  // Eski "pipe" (Boru) kaydi da artik "flow"a duser (Boru komple kaldirildi; Klasik kalir).
+  const [view, setView] = useState<LiveView>(() => (localStorage.getItem(VIEW_KEY) === 'classic' ? 'classic' : 'flow'))
   useEffect(() => { localStorage.setItem(VIEW_KEY, view) }, [view])
 
-  // ESIK degerleri (Urun Ayarlari'ndan) - boru uzerinde isaret (0..1) + okunabilir etiket
+  // ESIK degerleri (Urun Ayarlari'ndan) - PipeOverlay'de okunabilir etiket (anlik deger + birim)
   const { settings: dev } = useDeviceSettings()
-  const thrNorm: Record<string, number | null> = {
-    flow: byKey.flow ? clamp01((dev.standbyThreshold - byKey.flow.min) / (byKey.flow.max - byKey.flow.min)) : null,
-    pressure: byKey.pressure ? clamp01((dev.standbyPressure - byKey.pressure.min) / (byKey.pressure.max - byKey.pressure.min)) : null,
-  }
   const thrInfo: Record<string, { value: number; label: string } | undefined> = {
     flow: byKey.flow ? { value: dev.standbyThreshold, label: `${fmtInt(dev.standbyThreshold)} ${byKey.flow.unitShort}` } : undefined,
     pressure: byKey.pressure ? { value: dev.standbyPressure, label: `${fmt2(dev.standbyPressure)} ${byKey.pressure.unitShort}` } : undefined,
@@ -68,7 +64,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
           <div className="flex flex-wrap items-center gap-2">
             {/* Grafik gorunumu anahtari - Boru (yeni) / Klasik (eski onayli) */}
             <div className="glass flex gap-1 rounded-2xl p-1">
-              {([['pipe', 'Boru', Waves], ['classic', 'Klasik', BarChart3]] as const).map(([id, label, Icon]) => {
+              {([['flow', 'Akış', Waves], ['classic', 'Klasik', BarChart3]] as const).map(([id, label, Icon]) => {
                 const on = view === id
                 return (
                   <button
@@ -90,13 +86,13 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
       {/* UST: grafik tek satir, tam genislik - "Boru" (Pnomatik Hat) ya da "Klasik" (kuyruklu 3D) */}
       <section className="glass relative min-h-0 flex-1 overflow-hidden rounded-3xl">
         <div className="absolute inset-0">
-          {view === 'pipe' ? (
-            <PipeFlowChart history={history} metrics={visibleMetrics} threshold={thrNorm} theme={theme} />
+          {view === 'flow' ? (
+            <DeviceFlowChart reading={reading} metrics={visibleMetrics} mode={mode} theme={theme} />
           ) : (
             <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
           )}
         </div>
-        {view === 'pipe' ? (
+        {view === 'flow' ? (
           <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} />
         ) : (
           <ChartOverlay reading={reading} history={history} metrics={visibleMetrics} />

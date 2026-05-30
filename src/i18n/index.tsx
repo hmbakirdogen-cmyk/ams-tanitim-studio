@@ -67,6 +67,7 @@ const EN: Record<string, string> = {
   'Tüm sensörler tek ekranda, gerçek zamanlı akıyor': 'All sensors on one screen, streaming in real time',
   'Boru': 'Pipe',
   'Klasik': 'Classic',
+  'Akış': 'Flow',
   // Sensor Detaylari
   'Her sensörün anlık değeri, eğilimi ve istatistikleri': 'Each sensor’s live value, trend and statistics',
   'En düşük': 'Lowest',
@@ -448,6 +449,7 @@ const JA: Record<string, string> = {
   'Tüm sensörler tek ekranda, gerçek zamanlı akıyor': '全センサーを一画面でリアルタイム表示',
   'Boru': 'パイプ',
   'Klasik': 'クラシック',
+  'Akış': 'フロー',
   // Sensor Detaylari
   'Her sensörün anlık değeri, eğilimi ve istatistikleri': '各センサーのライブ値・傾向・統計',
   'En düşük': '最小',
