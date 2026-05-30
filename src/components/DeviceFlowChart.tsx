@@ -1,19 +1,23 @@
 /*
- * NE      : "Cihaz Akışı" - Canlı Panel'in 2. canlı görünümü (Klasik'in yanında). GERÇEK SMC AMS ünitesinin fotoğrafı
- *           (public/products/ams-product.png, şeffaf zemin) YARI ŞEFFAF arka planda; önünde uçtan uca cam boru içinde
- *           SOLDAN SAĞA akan hava. Hepsi anlık VERİYE bağlı — tek bakışta debi/basınç/sıcaklık/nem anlaşılır.
- *           Ayrıca VALF ve ORANSAL REGÜLATÖR DEVREYE GİRİNCE foto üzerinde nabız atan parlak halka ile gösterilir.
+ * NE      : "Cihaz Akışı" - Canlı Panel'in 2. canlı görünümü (Klasik'in yanında). GERÇEK SMC AMS ünitesinin TEMİZ ÖNDEN fotosu
+ *           (public/products/ams-front.jpg; beyaz zemin koda gömülü şeffaflaştırılır → koyu sahnede yüzer). Cihaz BÜYÜK; cihazın
+ *           giriş/çıkış hattı, animasyon borusuyla AYNI EKSENde; hortum çapı = boru çapı (o yüzden cihaz iri görünür).
+ *           İçinden soldan sağa TOP-SEVİYE animasyonla hava akar; valf/regülatör devreye girince foto üzerinde gösterilir.
  *
- * NEDEN   : Mehmet Abi: "procedural 3B'yi beğenmedim; cihazın KENDİ GERÇEK görünümünü koy, biraz şeffaf; soldan giriş → sağdan
- *           çıkış; hava içinden aksın; debi/basınç/sıcaklık/nem + valf egzozu + valf/regülatörün DEVREYE GİRDİĞİ görünsün."
+ * NEDEN   : Mehmet Abi: "katalog fotosu değil internetten bulunan temiz ÖNDEN görünüm; giriş hattı boru kadar büyük → cihaz iri;
+ *           giriş/çıkış hatları animasyon hattıyla aynı eksende; molekül/renk/su damlası/hareket en üst seviye gerçekçi."
  *
- * NASIL   : Saf Canvas 2B (akıcı/hafif, gerçek foto ile bütünleşir). requestAnimationFrame; değerler ref'te yumuşatılır. 60fps,
- *           sabit parçacık havuzu (kare-başı tahsis yok). Mod → reg/valf devreye-girme sinyali (Tasarruf=regülatör, Kesinti=valf).
- *             - Debi  → akış HIZI + yoğunluk + parlaklık.   - Basınç → REGÜLATÖR bölgesinde SIKIŞMA.
- *             - Sıcaklık→ boru/parçacık RENGİ.              - Nem → SU DAMLALARI.
- *             - Valf devreye → EGZOZ püskürtme + valf modülünde nabız halka.  - Regülatör devreye → regülatör modülünde nabız halka.
+ * NASIL   : Saf Canvas 2D (akıcı, foto ile bütünleşir). Araştırma-temelli spec:
+ *             - Akış (debi): streak (uzunluk ∝ hız) + yoğunluk + 3 parallax katman + additive glow.  dt-bazlı (144Hz güvenli).
+ *             - Basınç: regülatör bölgesinde DİATOMİK "dumbbell" moleküller sıkışır (yoğunluk+jitter+parlaklık ∝ basınç).
+ *             - Sıcaklık: Turbo rampası (mavi→kırmızı) parçacık renginde + sıcak yarıda glow.
+ *             - Nem: boru altında YASSI elips su damlaları (sayı ∝ nem) + üst-sol speküler highlight + yavaş kayma.
+ *             - Valf: mod normal değilken egzoz KONİSİ (hızlı çıkış + genişleyip sönme).
+ *           Beyaz zemin knockout: foto bir kez offscreen'e çizilir, ~beyaz pikseller saydamlaştırılır (yerel asset → taint yok).
+ *           60fps: havuzlar sabit, kare-başı tahsis yok; translucent-clear ile iz (motion-blur) + hafif koyu sahne (glow patlar).
  *
- * YAN ETKI: Offline (foto gömülü). Üstüne PipeOverlay biner (mod + anlık değer + eşik + giriş/çıkış + Regülatör/Valf "devrede" rozeti).
+ * YAN ETKI: Offline (foto gömülü). Üstüne PipeOverlay biner (mod + anlık değer + eşik + giriş/çıkış + "devrede" rozeti).
+ * AYAR     : AXIS_FRAC / DEV_FRAC / PIPE_FRAC sabitleri ile hizalama-ölçek kolayca rötuşlanır (Mehmet Abi geri bildirimi için).
  */
 import { useEffect, useMemo, useRef } from 'react'
 import { asset } from '@/lib/asset'
@@ -21,18 +25,47 @@ import type { Reading, Mode } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
+
+// --- Yerlesim/olcek (rotuslanabilir) ---
+const DEV_FRAC = 0.86  // cihaz cizim yuksekligi / canvas yuksekligi (BUYUK gorunsun)
+const AXIS_FRAC = 0.605 // cihaz icindeki hava-eksen Y orani (alt gecis bloğu; giris/cikis portlari bu hatta)
+const PIPE_FRAC = 0.150 // boru (= giris/cikis hortum) capi / cihaz cizim yuksekligi → hortum capi boru capi ile AYNI
+const REG_FRAC: [number, number] = [0.06, 0.30] // regulator (sikisma) bolgesi: cihazin SOL modulu hizasi (x orani, cihaz icinde)
+const VALVE_FRAC = 0.84 // valf modulu x orani (cihaz icinde) → egzoz ve "devrede" halkasi burada
+
+// Parcacik havuzlari
 const FLOW_COUNT = 150
-const DROPLET_MAX = 24
-const PUFF_COUNT = 34
-const COLD: [number, number, number] = [55, 163, 255]
-const WARM: [number, number, number] = [255, 90, 50]
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t
-const tempRGB = (t: number): [number, number, number] => [Math.round(lerp(COLD[0], WARM[0], t)), Math.round(lerp(COLD[1], WARM[1], t)), Math.round(lerp(COLD[2], WARM[2], t))]
+const MOLE_COUNT = 90      // regulator bolgesi diatomik molekulleri
+const DROPLET_MAX = 60
+const PUFF_COUNT = 48
+
+// Turbo (truncated) sicaklik rampasi: mavi → kirmizi (arastirma onerisi)
+const TEMP_STOPS: { t: number; c: [number, number, number] }[] = [
+  { t: 0.0, c: [58, 79, 196] },
+  { t: 0.2, c: [70, 117, 237] },
+  { t: 0.4, c: [27, 207, 212] },
+  { t: 0.55, c: [97, 252, 108] },
+  { t: 0.7, c: [209, 232, 52] },
+  { t: 0.85, c: [254, 155, 45] },
+  { t: 1.0, c: [177, 25, 1] },
+]
+function tempRGB(t: number): [number, number, number] {
+  t = clamp01(t)
+  for (let i = 1; i < TEMP_STOPS.length; i++) {
+    if (t <= TEMP_STOPS[i].t) {
+      const a = TEMP_STOPS[i - 1], b = TEMP_STOPS[i]
+      const f = (t - a.t) / (b.t - a.t || 1)
+      return [Math.round(a.c[0] + (b.c[0] - a.c[0]) * f), Math.round(a.c[1] + (b.c[1] - a.c[1]) * f), Math.round(a.c[2] + (b.c[2] - a.c[2]) * f)]
+    }
+  }
+  return TEMP_STOPS[TEMP_STOPS.length - 1].c
+}
 
 export function DeviceFlowChart({
   reading,
   metrics = METRICS,
   mode = 'normal',
+  theme = 'dark',
 }: {
   reading: Reading | null
   metrics?: MetricDef[]
@@ -52,6 +85,8 @@ export function DeviceFlowChart({
     }
     targetRef.current = { flow: nv('flow'), pressure: nv('pressure'), temp: nv('temperature'), hum: nv('humidity'), mode }
   }
+  const themeRef = useRef(theme)
+  themeRef.current = theme
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -59,72 +94,86 @@ export function DeviceFlowChart({
     if (!canvas || !wrap) return
     const ctx = canvas.getContext('2d')!
 
+    // Gercek cihaz fotosu → beyaz zemini saydamlastir (bir kez, offscreen'e)
     const img = new Image()
-    let imgReady = false
-    img.onload = () => { imgReady = true }
-    img.src = asset('products/ams-product.png')
+    let deviceCanvas: HTMLCanvasElement | null = null
+    let devAR = 1
+    img.onload = () => {
+      const oc = document.createElement('canvas')
+      oc.width = img.width; oc.height = img.height
+      const octx = oc.getContext('2d')!
+      octx.drawImage(img, 0, 0)
+      try {
+        const d = octx.getImageData(0, 0, oc.width, oc.height)
+        const a = d.data
+        for (let i = 0; i < a.length; i += 4) {
+          const r = a[i], g = a[i + 1], b = a[i + 2]
+          const mn = Math.min(r, g, b)
+          if (r > 244 && g > 244 && b > 244) a[i + 3] = 0 // ~beyaz → tam saydam
+          else if (mn > 232) a[i + 3] = Math.round(a[i + 3] * (1 - (mn - 232) / (245 - 232))) // kenar feather
+        }
+        octx.putImageData(d, 0, 0)
+      } catch { /* taint olursa fotoyu oldugu gibi kullan */ }
+      deviceCanvas = oc
+      devAR = img.width / img.height
+    }
+    img.src = asset('products/ams-front.jpg')
 
     const sig = { flow: 0, pressure: 0, temp: 0, hum: 0, exhaust: 0, reg: 0, valve: 0 }
 
-    const phase = Float32Array.from({ length: FLOW_COUNT }, (_, i) => i / FLOW_COUNT)
-    const lane = Float32Array.from({ length: FLOW_COUNT }, () => Math.random() * 2 - 1)
-    const psize = Float32Array.from({ length: FLOW_COUNT }, () => 0.6 + Math.random() * 0.8)
-    const pspd = Float32Array.from({ length: FLOW_COUNT }, () => 0.8 + Math.random() * 0.4)
-    const dropX = Float32Array.from({ length: DROPLET_MAX }, () => Math.random())
-    const dropLane = Float32Array.from({ length: DROPLET_MAX }, () => Math.random() * 2 - 1)
-    const dropSpd = Float32Array.from({ length: DROPLET_MAX }, () => 0.01 + Math.random() * 0.03)
-    const puffX = new Float32Array(PUFF_COUNT)
-    const puffY = new Float32Array(PUFF_COUNT)
-    const puffVx = new Float32Array(PUFF_COUNT)
-    const puffVy = new Float32Array(PUFF_COUNT)
-    const puffLife = Float32Array.from({ length: PUFF_COUNT }, () => Math.random())
+    // Akan hava (3 parallax katman: 0=arka soluk/yavas, 2=on parlak/hizli)
+    const fLayer = Int8Array.from({ length: FLOW_COUNT }, () => (Math.random() < 0.4 ? 0 : Math.random() < 0.6 ? 1 : 2))
+    const fPhase = Float32Array.from({ length: FLOW_COUNT }, () => Math.random())
+    const fLane = Float32Array.from({ length: FLOW_COUNT }, () => Math.random() * 2 - 1)
+    const fSpd = Float32Array.from({ length: FLOW_COUNT }, () => 0.82 + Math.random() * 0.4)
+    // Regulator diatomik molekulleri (dumbbell) - reg bolgesinde sikisir
+    const mU = Float32Array.from({ length: MOLE_COUNT }, () => Math.random()) // 0..1 reg bolgesi boyunca
+    const mLane = Float32Array.from({ length: MOLE_COUNT }, () => Math.random() * 2 - 1)
+    const mRot = Float32Array.from({ length: MOLE_COUNT }, () => Math.random() * Math.PI)
+    // Su damlalari
+    const dActive = new Uint8Array(DROPLET_MAX)
+    const dX = Float32Array.from({ length: DROPLET_MAX }, () => Math.random())
+    const dLane = Float32Array.from({ length: DROPLET_MAX }, () => Math.random())
+    const dR = Float32Array.from({ length: DROPLET_MAX }, () => 1.5 + Math.random() * Math.random() * 4.5) // cogu kucuk
+    const dSlide = new Float32Array(DROPLET_MAX)
+    // Egzoz pufleri
+    const pX = new Float32Array(PUFF_COUNT), pY = new Float32Array(PUFF_COUNT)
+    const pVx = new Float32Array(PUFF_COUNT), pVy = new Float32Array(PUFF_COUNT)
+    const pLife = Float32Array.from({ length: PUFF_COUNT }, () => Math.random())
+    const pR = new Float32Array(PUFF_COUNT)
 
     let W = 0, H = 0, dpr = 1
     const resize = () => {
       dpr = Math.min(2, window.devicePixelRatio || 1)
-      W = wrap.clientWidth
-      H = wrap.clientHeight
-      canvas.width = Math.max(1, Math.round(W * dpr))
-      canvas.height = Math.max(1, Math.round(H * dpr))
-      canvas.style.width = W + 'px'
-      canvas.style.height = H + 'px'
+      W = wrap.clientWidth; H = wrap.clientHeight
+      canvas.width = Math.max(1, Math.round(W * dpr)); canvas.height = Math.max(1, Math.round(H * dpr))
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     }
     resize()
-    const ro = new ResizeObserver(resize)
-    ro.observe(wrap)
+    const ro = new ResizeObserver(resize); ro.observe(wrap)
 
-    // Devreye-girme nabız halkası (regülatör/valf modülü üzerinde)
     const drawEngage = (cx: number, cy: number, rgb: string, intensity: number, pulse: number, radius: number) => {
       if (intensity < 0.04) return
       const pr = radius * (1 + 0.12 * Math.sin(pulse))
       ctx.globalCompositeOperation = 'lighter'
       const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, pr * 1.7)
-      rg.addColorStop(0, `rgba(${rgb},${0.30 * intensity})`)
-      rg.addColorStop(0.55, `rgba(${rgb},${0.12 * intensity})`)
-      rg.addColorStop(1, `rgba(${rgb},0)`)
-      ctx.fillStyle = rg
-      ctx.beginPath(); ctx.arc(cx, cy, pr * 1.7, 0, Math.PI * 2); ctx.fill()
-      ctx.lineWidth = 2.5
-      ctx.strokeStyle = `rgba(${rgb},${0.75 * intensity})`
+      rg.addColorStop(0, `rgba(${rgb},${0.32 * intensity})`); rg.addColorStop(0.55, `rgba(${rgb},${0.13 * intensity})`); rg.addColorStop(1, `rgba(${rgb},0)`)
+      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(cx, cy, pr * 1.7, 0, Math.PI * 2); ctx.fill()
+      ctx.lineWidth = 2.5; ctx.strokeStyle = `rgba(${rgb},${0.8 * intensity})`
       ctx.beginPath(); ctx.arc(cx, cy, pr, 0, Math.PI * 2); ctx.stroke()
       ctx.globalCompositeOperation = 'source-over'
     }
 
-    let raf = 0
-    let last = performance.now()
-
+    let raf = 0, last = performance.now()
     const draw = (now: number) => {
-      const dt = Math.min(0.05, (now - last) / 1000)
-      last = now
-
+      const dt = Math.min(0.05, (now - last) / 1000); last = now
       const t = targetRef.current
-      const k = Math.min(1, dt * 3)
+      const k = Math.min(1, dt * 4)
       sig.flow += (t.flow - sig.flow) * k
       sig.pressure += (t.pressure - sig.pressure) * k
       sig.temp += (t.temp - sig.temp) * k
       sig.hum += (t.hum - sig.hum) * k
-      // Mod → bileşen devreye-girme sinyalleri (Tasarruf=regülatör basıncı düşürür; Kesinti=valf havayı keser/tahliye)
       const regTarget = t.mode === 'standby' ? 1 : t.mode === 'isolation' ? 0.35 : 0
       const valveTarget = t.mode === 'isolation' ? 1 : t.mode === 'standby' ? 0.5 : 0
       sig.reg += (regTarget - sig.reg) * Math.min(1, dt * 2.5)
@@ -132,133 +181,162 @@ export function DeviceFlowChart({
       const exTarget = t.mode === 'normal' ? 0 : 0.4 + 0.6 * sig.valve
       sig.exhaust += (exTarget - sig.exhaust) * Math.min(1, dt * 2.2)
 
-      const [r, g, b] = tempRGB(sig.temp)
-      const col = (a: number) => `rgba(${r},${g},${b},${a})`
+      const [cr, cg, cb] = tempRGB(sig.temp)
+      const col = (a: number) => `rgba(${cr},${cg},${cb},${a})`
+      const dark = themeRef.current !== 'light'
 
-      ctx.clearRect(0, 0, W, H)
+      // Iz (motion-blur) + hafif koyu sahne → glow patlar (translucent clear)
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.fillStyle = dark ? 'rgba(6,10,22,0.32)' : 'rgba(225,235,247,0.40)'
+      ctx.fillRect(0, 0, W, H)
 
-      // 1) GERÇEK CİHAZ FOTOSU - yarı şeffaf, içine sığan (contain)
-      let dx = 0, dy = 0, dw = W, dh = H
-      if (imgReady) {
-        const pad = 18
-        const ar = img.width / img.height
-        dw = W - pad * 2; dh = dw / ar
-        if (dh > H - pad * 2) { dh = H - pad * 2; dw = dh * ar }
-        dx = (W - dw) / 2; dy = (H - dh) / 2
-        ctx.globalAlpha = 0.62
-        ctx.drawImage(img, dx, dy, dw, dh)
+      // Cihaz cizim dikdortgeni (BUYUK, ortali)
+      let dh = H * DEV_FRAC, dw = dh * devAR
+      if (dw > W * 0.94) { dw = W * 0.94; dh = dw / devAR }
+      const dx = (W - dw) / 2, dy = (H - dh) / 2
+      const axisY = dy + dh * AXIS_FRAC
+      const pipeH = dh * PIPE_FRAC
+      const top = axisY - pipeH / 2, bot = axisY + pipeH / 2
+      // Regulator/valf hizalari (cihaz icinde)
+      const regX0 = dx + dw * REG_FRAC[0], regX1 = dx + dw * REG_FRAC[1]
+      const regCx = dx + dw * 0.17, regCy = dy + dh * 0.42
+      const valveCx = dx + dw * VALVE_FRAC, valveCy = dy + dh * 0.44
+      const exOx = dx + dw * VALVE_FRAC, exOy = dy + dh * 0.66
+      const markR = Math.min(dw, dh) * 0.12
+
+      // 1) GERÇEK CİHAZ FOTOSU — ARKA PLAN (yari saydam; akis ÜSTÜNE binip "rontgen/icinden geciyor" hissi verir)
+      if (deviceCanvas) {
+        ctx.globalAlpha = dark ? 0.82 : 0.92
+        ctx.drawImage(deviceCanvas, dx, dy, dw, dh)
         ctx.globalAlpha = 1
       }
 
-      // Modül konumları (foto üzerinde yaklaşık): regülatör üst-orta-sol, valf orta-sağ-alt
-      const regCx = dx + dw * 0.36, regCy = dy + dh * 0.30
-      const valveCx = dx + dw * 0.60, valveCy = dy + dh * 0.64
-      const markR = Math.min(dw, dh) * 0.13
+      // 2) BORU + giris/cikis hortumu (UÇTAN UCA tek surekli, AYNI cap, AYNI eksen). Dusuk alpha → cihaz okunur kalir.
+      const grad = ctx.createLinearGradient(0, top, 0, bot)
+      grad.addColorStop(0, col(0.14)); grad.addColorStop(0.5, dark ? 'rgba(8,16,28,0.06)' : 'rgba(255,255,255,0.06)'); grad.addColorStop(1, col(0.09))
+      ctx.fillStyle = grad; ctx.fillRect(0, top, W, pipeH)
+      ctx.strokeStyle = col(0.45); ctx.lineWidth = 1.5
+      ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(W, top); ctx.moveTo(0, bot); ctx.lineTo(W, bot); ctx.stroke()
+      // Hortum birlesim kelepceleri (cihaz giris/cikis hizasinda)
+      const coupler = (cx: number) => {
+        const cw = Math.max(7, pipeH * 0.14)
+        const cgr = ctx.createLinearGradient(0, top, 0, bot)
+        cgr.addColorStop(0, 'rgba(196,212,230,0.9)'); cgr.addColorStop(0.5, 'rgba(96,116,140,0.9)'); cgr.addColorStop(1, 'rgba(165,183,203,0.9)')
+        ctx.fillStyle = cgr
+        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(cx - cw / 2, top - 3, cw, pipeH + 6, 3); ctx.fill() }
+        else ctx.fillRect(cx - cw / 2, top - 3, cw, pipeH + 6)
+      }
+      coupler(dx + dw * 0.04); coupler(dx + dw * 0.96)
 
-      const pipeY = H * 0.58
-      const pipeH = Math.max(46, Math.min(120, H * 0.17))
-      const regX0 = W * 0.40, regX1 = W * 0.58
-      const HOSE = 0.17 // sol/sag uctaki hortum bolgesi orani (boru ile AYNI cap)
+      // 3) AKAN HAVA — streak (uzunluk ∝ hiz), 3 parallax katman, additive (cihazin ÜSTÜNDE → icinden geciyor hissi)
+      const pr = pipeH * 0.38
+      const baseV = (0.05 + 0.95 * sig.flow) // 0..1
+      ctx.lineCap = 'round'
+      ctx.globalCompositeOperation = 'lighter'
+      for (let i = 0; i < FLOW_COUNT; i++) {
+        const layer = fLayer[i] // 0 arka .. 2 on
+        const depth = layer === 0 ? 0.55 : layer === 1 ? 0.8 : 1.15
+        const inReg = false // akis genelde; reg sikismasi molekul katmaninda
+        const v = baseV * fSpd[i] * depth * (inReg ? 0.5 : 1)
+        fPhase[i] += (v * 0.55 + 0.01) * dt
+        if (fPhase[i] > 1) fPhase[i] -= 1
+        const x = fPhase[i] * W
+        const y = axisY + fLane[i] * pr * (0.6 + 0.4 * depth)
+        const len = (6 + baseV * 34) * depth
+        const a = (0.10 + 0.55 * sig.flow) * (layer === 0 ? 0.45 : layer === 1 ? 0.8 : 1)
+        const w = (1.4 + 1.2 * depth) * (0.6 + sig.flow * 0.8)
+        ctx.strokeStyle = col(a)
+        ctx.lineWidth = w
+        ctx.beginPath(); ctx.moveTo(x - len, y); ctx.lineTo(x, y); ctx.stroke()
+        // on katman parlak basa hafif glow noktasi
+        if (layer === 2 && sig.temp > 0.5) {
+          const gl = (sig.temp - 0.5) * 2 * 5
+          const rg = ctx.createRadialGradient(x, y, 0, x, y, gl)
+          rg.addColorStop(0, col(0.5 * a)); rg.addColorStop(1, col(0))
+          ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(x, y, gl, 0, Math.PI * 2); ctx.fill()
+        }
+      }
 
-      // 2) DEVREYE GİRME nabız halkaları (regülatör yeşil / valf amber)
+      // 3) REGÜLATÖR bölgesi: DİATOMİK moleküller sıkışır (yoğunluk+jitter ∝ basınç)
+      const moleVisible = Math.round(MOLE_COUNT * (0.18 + 0.82 * sig.pressure))
+      const jitter = 0.4 + 2.2 * sig.pressure
+      const regW = regX1 - regX0
+      for (let i = 0; i < moleVisible; i++) {
+        // basinc artinca sol tarafa (giris) dogru sikis: u^p ile yogunlastir
+        const u = Math.pow(mU[i], 1 + sig.pressure * 1.2)
+        const x = regX0 + u * regW + (Math.random() - 0.5) * jitter
+        const y = axisY + mLane[i] * pr * 0.85 + (Math.random() - 0.5) * jitter
+        const a = 0.4 + 0.5 * sig.pressure
+        const rot = mRot[i] + now * 0.001
+        const dxm = Math.cos(rot) * 2.2, dym = Math.sin(rot) * 2.2
+        const rr = 1.6
+        ctx.strokeStyle = col(a * 0.7); ctx.lineWidth = 1
+        ctx.beginPath(); ctx.moveTo(x - dxm, y - dym); ctx.lineTo(x + dxm, y + dym); ctx.stroke()
+        ctx.fillStyle = col(a)
+        ctx.beginPath(); ctx.arc(x - dxm, y - dym, rr, 0, Math.PI * 2); ctx.fill()
+        ctx.beginPath(); ctx.arc(x + dxm, y + dym, rr, 0, Math.PI * 2); ctx.fill()
+      }
+      ctx.globalCompositeOperation = 'source-over'
+
+      // 4) DEVREYE GİRME halkalari (regülatör yeşil / valf amber) — foto üzerinde
       const pulse = now * 0.006
       drawEngage(regCx, regCy, '54,224,200', sig.reg, pulse, markR)
       drawEngage(valveCx, valveCy, '255,176,77', sig.valve, pulse + 1.5, markR)
 
-      // 3) CAM BORU bandı - UÇTAN UCA tek sürekli şeffaf boru (giriş/çıkış hortumları AYNI çap; hava içlerinde de akar)
-      const top = pipeY - pipeH / 2, bot = pipeY + pipeH / 2
-      const grad = ctx.createLinearGradient(0, top, 0, bot)
-      grad.addColorStop(0, col(0.16)); grad.addColorStop(0.5, 'rgba(8,16,28,0.10)'); grad.addColorStop(1, col(0.10))
-      ctx.fillStyle = grad
-      ctx.fillRect(0, top, W, pipeH)
-      // Hortum bölgeleri (uçlar) - hafif lastik tonu (içindeki akış görünür kalsın diye düşük alpha)
-      ctx.fillStyle = 'rgba(38,52,72,0.13)'
-      ctx.fillRect(0, top, W * HOSE, pipeH)
-      ctx.fillRect(W * (1 - HOSE), top, W * HOSE, pipeH)
-      // Boru kenar çizgileri (uçtan uca)
-      ctx.strokeStyle = col(0.5); ctx.lineWidth = 1.5
-      ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(W, top); ctx.moveTo(0, bot); ctx.lineTo(W, bot); ctx.stroke()
-      // Hortum ↔ cihaz birleşim kelepçeleri (metalik) - hortumu belli eder, çapı borunun aynısı
-      const drawCoupler = (cx: number) => {
-        const cw = 10
-        const cg = ctx.createLinearGradient(0, top, 0, bot)
-        cg.addColorStop(0, 'rgba(190,206,224,0.92)'); cg.addColorStop(0.5, 'rgba(95,114,138,0.92)'); cg.addColorStop(1, 'rgba(160,178,198,0.92)')
-        ctx.fillStyle = cg
-        ctx.beginPath(); ctx.roundRect(cx - cw / 2, top - 3, cw, pipeH + 6, 3); ctx.fill()
+      // 6) SU DAMLALARI (nem) — boru altinda, yassi elips + speküler highlight + yavas kayma
+      const wantActive = Math.round((sig.hum) * DROPLET_MAX)
+      for (let i = 0; i < DROPLET_MAX; i++) {
+        if (i < wantActive) {
+          if (!dActive[i]) { dActive[i] = 1 }
+          // buyukler kayar
+          if (dR[i] > 4.6) dSlide[i] = Math.min(1, dSlide[i] + dt * 0.6)
+          dX[i] += (0.004 + dSlide[i] * 0.05) * dt * 60 / W
+          if (dX[i] > 1) { dX[i] -= 1; dSlide[i] = 0 }
+          const x = dX[i] * W
+          const y = bot - dR[i] * 0.7 - dLane[i] * 2
+          const rw = dR[i] * (1.3 + dR[i] * 0.05), rh = dR[i]
+          ctx.fillStyle = 'rgba(170,205,232,0.40)'
+          ctx.beginPath(); ctx.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2); ctx.fill()
+          ctx.strokeStyle = 'rgba(120,150,180,0.45)'; ctx.lineWidth = 0.6
+          ctx.beginPath(); ctx.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2); ctx.stroke()
+          // ust-sol highlight
+          ctx.fillStyle = 'rgba(255,255,255,0.8)'
+          ctx.beginPath(); ctx.arc(x - rw * 0.3, y - rh * 0.35, Math.max(0.6, rw * 0.22), 0, Math.PI * 2); ctx.fill()
+        } else { dActive[i] = 0 }
       }
-      drawCoupler(W * HOSE); drawCoupler(W * (1 - HOSE))
 
-      // 4) AKAN HAVA parçacıkları
-      const baseSpeed = (0.04 + 0.96 * sig.flow) * 0.24
-      const pr = pipeH * 0.36
+      // 7) VALF EGZOZU — koni: hizli cikis + genisleyip sonme (additive)
       ctx.globalCompositeOperation = 'lighter'
-      for (let i = 0; i < FLOW_COUNT; i++) {
-        let x = phase[i] * W
-        const inReg = x > regX0 && x < regX1
-        const factor = inReg ? 1 - 0.6 * sig.pressure : 1
-        phase[i] += baseSpeed * pspd[i] * factor * dt
-        if (phase[i] > 1) phase[i] -= 1
-        x = phase[i] * W
-        const y = pipeY + lane[i] * pr + Math.sin(now * 0.002 + i) * 3
-        const size = (1.6 + psize[i] * (2.2 + sig.flow * 4.2)) * (inReg ? 1 + 0.35 * sig.pressure : 1)
-        const a = 0.18 + 0.6 * sig.flow
-        const rg = ctx.createRadialGradient(x, y, 0, x, y, size)
-        rg.addColorStop(0, col(a)); rg.addColorStop(1, col(0))
-        ctx.fillStyle = rg
-        ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill()
-      }
-      ctx.globalCompositeOperation = 'source-over'
-
-      // 5) SU DAMLALARI (nem)
-      const active = Math.round(sig.hum * DROPLET_MAX)
-      for (let i = 0; i < active; i++) {
-        dropX[i] += dropSpd[i] * dt * (0.4 + sig.hum)
-        if (dropX[i] > 1) dropX[i] -= 1
-        const x = dropX[i] * W
-        const y = bot - 5 + dropLane[i] * 3
-        const s = 2.2 + sig.hum * 2.4
-        ctx.fillStyle = 'rgba(150,210,255,0.85)'
-        ctx.beginPath(); ctx.ellipse(x, y, s * 0.7, s, 0, 0, Math.PI * 2); ctx.fill()
-        ctx.fillStyle = 'rgba(255,255,255,0.6)'
-        ctx.beginPath(); ctx.arc(x - s * 0.2, y - s * 0.3, s * 0.22, 0, Math.PI * 2); ctx.fill()
-      }
-
-      // 6) VALF EGZOZU - valf devreye girince valf modülünden havayı aşağı püskürtür
-      ctx.globalCompositeOperation = 'lighter'
-      const exOx = imgReady ? valveCx : W * 0.62
-      const exOy = imgReady ? valveCy + markR * 0.5 : bot
       for (let i = 0; i < PUFF_COUNT; i++) {
-        puffLife[i] -= dt * 1.3
-        if (puffLife[i] <= 0) {
+        pLife[i] -= dt / (0.6 + Math.random() * 0.6)
+        if (pLife[i] <= 0) {
           if (sig.exhaust > 0.08) {
-            puffX[i] = exOx + (Math.random() - 0.5) * 12
-            puffY[i] = exOy
-            puffVx[i] = (Math.random() - 0.5) * 60
-            puffVy[i] = (45 + Math.random() * 80) * (0.5 + sig.exhaust)
-            puffLife[i] = 1
+            // koni: asagi-disa, ~20° yari aci, hafif yukari bias degil (egzoz asagi)
+            const ang = Math.PI * 0.5 + (Math.random() - 0.5) * 0.7 // ~asagi ±20°
+            const sp = (140 + Math.random() * 180) * (0.5 + sig.exhaust)
+            pX[i] = exOx + (Math.random() - 0.5) * 10
+            pY[i] = exOy
+            pVx[i] = Math.cos(ang) * sp * (Math.random() < 0.5 ? 1 : -1) * 0.5 + (Math.random() - 0.5) * 40
+            pVy[i] = Math.sin(ang) * sp
+            pR[i] = 2; pLife[i] = 1
           } else { continue }
         }
-        puffX[i] += puffVx[i] * dt
-        puffY[i] += puffVy[i] * dt
-        puffVy[i] += 70 * dt
-        const l = puffLife[i]
-        const s = (3 + sig.exhaust * 7) * Math.sin(Math.min(1, l) * Math.PI)
-        if (s <= 0.2) continue
-        const rg = ctx.createRadialGradient(puffX[i], puffY[i], 0, puffX[i], puffY[i], s)
-        rg.addColorStop(0, `rgba(200,225,255,${0.5 * l})`); rg.addColorStop(1, 'rgba(200,225,255,0)')
-        ctx.fillStyle = rg
-        ctx.beginPath(); ctx.arc(puffX[i], puffY[i], s, 0, Math.PI * 2); ctx.fill()
+        pVx[i] *= 0.94; pVy[i] = pVy[i] * 0.94 + 30 * dt
+        pX[i] += pVx[i] * dt; pY[i] += pVy[i] * dt
+        pR[i] += (16 - pR[i]) * dt * 2.2 // grow
+        const l = Math.max(0, pLife[i])
+        const a = (l < 0.9 ? l : (1 - l) * 9) * 0.55 * sig.exhaust
+        if (a <= 0.01) continue
+        const rg = ctx.createRadialGradient(pX[i], pY[i], 0, pX[i], pY[i], pR[i])
+        rg.addColorStop(0, `rgba(210,230,255,${a})`); rg.addColorStop(1, 'rgba(210,230,255,0)')
+        ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(pX[i], pY[i], pR[i], 0, Math.PI * 2); ctx.fill()
       }
       ctx.globalCompositeOperation = 'source-over'
 
       raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
-
-    return () => {
-      cancelAnimationFrame(raf)
-      ro.disconnect()
-    }
+    return () => { cancelAnimationFrame(raf); ro.disconnect() }
   }, [])
 
   return (
