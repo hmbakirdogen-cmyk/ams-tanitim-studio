@@ -398,12 +398,16 @@ export function DeviceFlowChart({
   return (
     <div ref={wrapRef} className="absolute inset-0">
       <canvas ref={canvasRef} className="block h-full w-full" />
-      {/* A/B görsel seçimi (Mehmet Abi: ikisini de dene, sonra seç) */}
+      {/* A/B görsel seçimi (Mehmet Abi: ekranda hangisi açık net yazsın, tıkla-değiştir) */}
       <button
         onClick={() => setVariant((v) => (v === 'a' ? 'b' : 'a'))}
-        className="absolute right-2 top-2 z-10 rounded-md border border-[var(--hair)] bg-black/40 px-2 py-1 text-[10px] font-semibold text-white/80 backdrop-blur transition hover:text-white"
-        title="Ürün görseli A/B"
-      >Görsel {variant.toUpperCase()}</button>
+        className="absolute right-3 top-3 z-10 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold backdrop-blur transition"
+        style={{ borderColor: 'var(--smc-bright)', background: 'rgba(0,114,206,0.22)', color: '#fff', boxShadow: '0 0 18px -6px var(--smc-bright)' }}
+        title="Tıkla → diğer ürün görseline geç"
+      >
+        <span className="grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold" style={{ background: 'var(--smc-bright)', color: '#04122a' }}>{variant.toUpperCase()}</span>
+        Şu an: Görsel {variant.toUpperCase()} · değiştir →
+      </button>
     </div>
   )
 }
