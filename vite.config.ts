@@ -40,7 +40,8 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,woff2,svg,png}'],
+        // OFFLINE icin TUM varliklar onbellege alinir - JPG eklendi (urun/personel fotolari .jpg; yoksa offline gorunmezdi)
+        globPatterns: ['**/*.{js,css,html,woff,woff2,svg,png,jpg,jpeg,webp,ico}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
     }),
