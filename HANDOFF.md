@@ -6,6 +6,14 @@
 **Giriş:** Halil İbrahim Karakelle · şifre **`smc`** (varsayılan avatar gömülü: `public/users/halil.jpg`).
 **Hitabet (CC↔kullanıcı):** **Mehmet Abi**.
 
+## 🟡 EN SON NEREDE KALDIK (2026-05-30 akşam) — Cihaz Akışı görünümü
+Canlı Panel'de "Akış" görünümü (`DeviceFlowChart.tsx`) uzun iterasyon gördü; **çok deneme kafa karıştırdı**, en sonunda commit **`07b3843`** = `8ebf2ff` (19:01) haline **geri dönüldü** (animasyon araştırma-ajanları ÖNCESİ). Bu sürümde: `ams-front.jpg` (300px) boydan boya + sıcaklık renginde **streak akış** + geri-akış + canlı LCD + modül LED'leri + soft-start valf + egzoz.
+- **Önemli ders (Mehmet Abi):** akış denemelerinde NET onay hiç çıkmadı; "komik/çizgifilm/görünmüyor" döngüsüne girildi. Yeni pencerede **tek tek değiştirip durMA** — önce ne istediğini netleştir, küçük adım, onay al.
+- **Beğenilen yön:** "sıcaklık renginde akan ÇİZGİLER/izler", SADE (molekül/duman/LED yığını sevilmedi). Akış **tüm grafik satırını** kaplamalı (dar boruya hapsedilmemeli).
+- **Reddedilenler:** A/B yüksek-çöz render denemeleri (`ams-render-a.png` 2048px şeffaf + `ams-render-b.jpg` 1583px) — ikisi de beğenilmedi, repo'dan SİLİNDİ. Procedural 3B çizim de beğenilmedi.
+- **Açık fikir (Mehmet Abi sordu, yapılmadı):** "Bu kadar görsel araştırması yaptın, programın TÜMÜNDEKİ görselleri (giriş ekranı/Ürün sayfası/rozet — hepsi düşük-çöz `ams-diagram.jpg`) temizleriyle değiştir." → görsel envanteri çıkarılıp sunulacaktı, YAPILMADI.
+- `ams-front.jpg` (smc.eu, 300px temiz önden) duruyor; daha yüksek çöz net görsel public SMC'de YOK (3 ajan taradı; sadece marketing/CAD render var).
+
 ## ✅ TAMAMLANDI: Çok dilli (i18n) — FAZ 2 (TR / EN / **JA**) — TÜM PROGRAM
 "Dil değişince HER YER değişsin." **Almanca yerine Japonca** (Mehmet Abi değiştirdi) — bayrak Hinomaru, sözlük JA.
 - **Mimari:** `src/i18n/index.tsx` — anahtar = TÜRKÇE metin; `useLang().t("...")` → EN/JA sözlükten, yoksa TR'ye düşer (kırılmaz). Dil kalıcı (`ams_lang_v1`). **357 anahtar, EN/JA tam parite** (doğrulandı; 0 eksik `t()` literal).
