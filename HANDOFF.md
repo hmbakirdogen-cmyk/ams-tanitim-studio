@@ -1,18 +1,32 @@
 # HANDOFF — AMS Tanıtım Stüdyosu
 
-**Son güncelleme:** 2026-05-30 (uzun otonom oturum — Mehmet Abi tam yetki)
+**Son güncelleme:** 2026-05-30 (Cihaz Akışı TAM elden geçti — gerçek AMS40A görseli + venturi + egzoz + nem + regülatör LED/ekran)
 **Durum:** Çalışıyor + CANLI yayında. `npm run dev` → http://localhost:5180 · `npm run build` ✅ (offline).
 **Canlı:** https://hmbakirdogen-cmyk.github.io/ams-tanitim-studio/ · Repo (public): github.com/hmbakirdogen-cmyk/ams-tanitim-studio · **master push → otomatik deploy** (`.github/workflows/deploy.yml`, `VITE_BASE=/ams-tanitim-studio/`).
 **Giriş:** Halil İbrahim Karakelle · şifre **`smc`** (varsayılan avatar gömülü: `public/users/halil.jpg`).
 **Hitabet (CC↔kullanıcı):** **Mehmet Abi**.
 
-## 🟡 EN SON NEREDE KALDIK (2026-05-30 akşam) — Cihaz Akışı görünümü
-Canlı Panel'de "Akış" görünümü (`DeviceFlowChart.tsx`) uzun iterasyon gördü; **çok deneme kafa karıştırdı**, en sonunda commit **`07b3843`** = `8ebf2ff` (19:01) haline **geri dönüldü** (animasyon araştırma-ajanları ÖNCESİ). Bu sürümde: `ams-front.jpg` (300px) boydan boya + sıcaklık renginde **streak akış** + geri-akış + canlı LCD + modül LED'leri + soft-start valf + egzoz.
-- **Önemli ders (Mehmet Abi):** akış denemelerinde NET onay hiç çıkmadı; "komik/çizgifilm/görünmüyor" döngüsüne girildi. Yeni pencerede **tek tek değiştirip durMA** — önce ne istediğini netleştir, küçük adım, onay al.
-- **Beğenilen yön:** "sıcaklık renginde akan ÇİZGİLER/izler", SADE (molekül/duman/LED yığını sevilmedi). Akış **tüm grafik satırını** kaplamalı (dar boruya hapsedilmemeli).
-- **Reddedilenler:** A/B yüksek-çöz render denemeleri (`ams-render-a.png` 2048px şeffaf + `ams-render-b.jpg` 1583px) — ikisi de beğenilmedi, repo'dan SİLİNDİ. Procedural 3B çizim de beğenilmedi.
-- **Açık fikir (Mehmet Abi sordu, yapılmadı):** "Bu kadar görsel araştırması yaptın, programın TÜMÜNDEKİ görselleri (giriş ekranı/Ürün sayfası/rozet — hepsi düşük-çöz `ams-diagram.jpg`) temizleriyle değiştir." → görsel envanteri çıkarılıp sunulacaktı, YAPILMADI.
-- `ams-front.jpg` (smc.eu, 300px temiz önden) duruyor; daha yüksek çöz net görsel public SMC'de YOK (3 ajan taradı; sadece marketing/CAD render var).
+## 🟢 EN SON NEREDE KALDIK (2026-05-30) — "Cihaz Akışı" tam elden geçti (gerçek AMS40A görseli)
+Canlı Panel → "Akış" görünümü (`DeviceFlowChart.tsx`, saf Canvas 2D) bu oturumda baştan sona iyileştirildi. Mehmet Abi **tek tek yönlendirdi, her adım `npm run dev`'de onaylandı** (eski loop tuzağına girilmedi). Hepsi typecheck+build temiz.
+
+**Arka plan görseli:** Mehmet'in masaüstünden verdiği **gerçek AMS40A fotosu** (`1.jpg`) → `public/products/ams-flow.png`. Zemin **`tools/clean-image.py`** (Python + numpy/scipy/Pillow) ile TİTİZ temizlendi: dış zemin + KAPALI montaj delikleri + kablo-içi + parlak kenar halesi → şeffaf, "kırpılmış durmaz". Runtime'da ön-temiz PNG algılanır → flood-fill atlanır (alfa bozulmaz). **Giriş ekranı görseli ESKİ haline döndürüldü** (`ams-diagram.jpg`, object-cover). SMC afişi `ams-overview.jpg` repo'da duruyor ama KULLANILMIYOR.
+
+**Yerleşim T-tipi:** hava yolu ÜSTTE (yatay manifold, portlar otomatik ölçülür), regülatör SOL-ALT, valf SAĞ. Konum sabitleri foto-ölçümle: `REG_FRAC`/`LED_REG`/`LED_VALVE`/`VALVE_CX`/`EXHAUST_*`/`REG_DISP`/`FOCUS_*`. **Tahmini/ölçüm — gözle son nudge gerekebilir.**
+
+**Akış (hepsi onaylı):**
+- **Laminar/karışmaz:** hız parçacığa değil ŞERİDE bağlı (parabolik profil) → aynı şeritte aynı hız, asla geçişmez. Renk **ağırlıklı MAVİ**, tema-duyarlı (gece additif / gündüz koyu-mavi source-over). 224 molekül.
+- **Nem:** dipte damla DEĞİL → havada süspanse **buhar zerreleri** (akışla sürüklenir) + nem tülü; **buhar rengi** (gece buz-beyazı / gündüz teal) akış mavisinden AYRI; crisp çekirdek (yoğun ama karışmaz).
+- **Sıcaklık:** ısı tülü eşikli/soluk + tam hızda boru camı ÇOK hafif kızarır (gece kısık).
+- **Egzoz:** valfin TAM ORTA EKSENİNDE alttaki SİYAH parçadan; DUMAN değil **HAVA jeti** (geniş yelpaze). İzolasyon GERİ-AKIŞI: yatay → yumuşak çeyrek DİRSEK (bezier) → dik iniş; kesit Y→X döner, porta funnel; dirsek+iniş yavaşlatıldı (graceful), portta sönüp jete bağlanır.
+- **Regülatör molekülleri = AKICI VENTURI:** dar hücrede giriş→çıkış süzülür, orifiste kesit DARALIR (hourglass) + HIZLANIR; devredeyken çıkış hızlı→seyrek (continuity ⇒ P1>P2). Animasyon **rahatlatıldı** (az/seyrek, sakin). `REG_FRAC` 0.155–0.305.
+- **Regülatör LED'i:** yüzen halka KALDIRILDI → ışık gerçek **POWER LED'inde** (ekran altı), ÇOK küçük + gerçekçi + **yanıp söner**. Valf devrede-halkası duruyor (turuncu, biraz sağ).
+- **Regülatör kırmızı dijital ekranı:** CANLI basınç (MPa) — orijinal foto çerçevesi korunur, statik ".200" koyu camla gizlenir. Cihaz **TERS monteli** ⇒ rakamlar **180° döndürülmüş + DAHA KOYU kırmızı**.
+- **Debimetre LCD:** rakamlar büyük/okunaklı (P/Q/T kalktı, birim ölçülerek). **Debimetre odaklı hafif zoom** (`ZOOM`=1.12, dış çerçeve sabit).
+
+**Ses/Sidebar (bu oturum):** ses **VARSAYILAN AÇIK** (load'da çalmaz; ilk harekette AudioContext); ses+tema küçük ikon olarak **dil satırına** taşındı; nav/aralık sıkıştırıldı → scroll azaldı.
+
+**Eski ders (hâlâ geçerli):** akışta tek tek deneyip durMA — netleştir, küçük adım, onay al. Bu oturum böyle yürüdü.
+**SIRADAKİ (yeni oturum):** konumları (egzoz/LED/`REG_DISP`/`ZOOM`/`REG_FRAC`) gözle son rötuş → beğeni sonrası **`git push`** = canlı deploy.
 
 ## ✅ TAMAMLANDI: Çok dilli (i18n) — FAZ 2 (TR / EN / **JA**) — TÜM PROGRAM
 "Dil değişince HER YER değişsin." **Almanca yerine Japonca** (Mehmet Abi değiştirdi) — bayrak Hinomaru, sözlük JA.
@@ -22,8 +36,8 @@ Canlı Panel'de "Akış" görünümü (`DeviceFlowChart.tsx`) uzun iterasyon gö
 - **İmza:** `Signature.tsx` — "This software is crafted with precision & passion by **Mehmet Bakırdöğen**" (HEP İngilizce, çevrilmez). Her sayfada: Sidebar altı + Giriş ekranı.
 - **Logo:** Paneldeki SMC logosu büyütüldü (60→**84px**, `stack`: yazı logonun altında 2 satır).
 
-## ✅ YAPILDI (v1): Canlı grafik 2. görünüm — "Cihaz Akışı"
-**"Boru" kaldırıldı; "Klasik" kaldı; yeni "Akış" eklendi** (LivePage view anahtarı: Akış / Klasik). `DeviceFlowChart.tsx` = **Canvas 2B** (procedural 3B Mehmet Abi'nin isteğiyle ATILDI). **Gerçek AMS fotosu** `public/products/ams-product.png` (şeffaf zemin) yarı şeffaf arkada; uçtan uca tek **şeffaf boru** içinde soldan sağa akan hava. Giriş/çıkış hortumları **boru ile aynı çap** + içinde de akış (birleşim kelepçeli). **Debi**→akış hızı/parlaklık · **basınç**→regülatör bölgesinde sıkışma · **sıcaklık**→renk (soğuk→sıcak) · **nem**→su damlaları · **valf/regülatör DEVREYE GİRİNCE** foto üzerinde nabız halka (Tasarruf=regülatör/yeşil, Kesinti=valf/amber) + **valf egzoz püskürtme**. Üstünde PipeOverlay (mod+değer+eşik+giriş/çıkış+"devrede" rozeti). **Açık:** Mehmet Abi 1 saatlik işe gitti — dönüşte canlıyı görüp rötuş/geri bildirim verecek. Detay: hafıza [[live-chart-pnomatik-hat]].
+## ✅ Canlı grafik 2. görünüm — "Cihaz Akışı" (LivePage: Akış / Klasik)
+`DeviceFlowChart.tsx` = saf Canvas 2D; gerçek cihaz fotosu (`ams-flow.png`) üstüne tüm animasyon biner; üstünde PipeOverlay (mod+değer+eşik+giriş/çıkış+"devrede" rozeti). **Güncel hal yukarıdaki EN SON bölümünde.** Mimari: merkezi sensör `src/data/metrics.ts`; görsel yolları base-uyumlu `src/lib/asset.ts`. Eski tasarım notu: hafıza [[live-chart-pnomatik-hat]].
 
 ## 🟢 KARARLAR + İSKELETLER (bu oturum)
 - **Cihaz ayar senkronu = HİBRİT (iskelet HAZIR, donanımla aktif):** Bağlanınca cihaz ayarları **okunur** (Ürün Ayarları o değerlerle devam), kullanıcı değiştirince cihaza **yazılır** (echo-write korumalı). Kod: `deviceSettings.ts` (paylaşılan store + `applyDeviceSettingsFromDevice`), `liveSource.ts` (`setSettings`/`onDeviceSettings`), `bridge/opcua-bridge.mjs` (bağlanınca ayar oku→gönder + `setSettings` yaz; ayar node'ları cihazda yoksa atlar), `useLiveReadings.ts` köprüleme. Bkz [[cihaz-ayar-senkron-karari]].

@@ -37,13 +37,13 @@ const FB_AXIS = 0.19, FB_PIPE = 0.06, FB_IN = 0.03, FB_OUT = 0.95  // image #1 (
 // Fallback dijital ekran dikdortgenleri (tum-foto orani) — tespit tutmazsa (hub LCD + ikincil)
 const FB_DISPLAYS = [{ x: 0.41, y: 0.165, w: 0.16, h: 0.095 }]  // image #1: üst-orta dijital monitör LCD
 // PDF'e gore modul bolgeleri (tum-foto x/y orani)
-const REG_FRAC: [number, number] = [0.12, 0.34] // standby/oransal regülatör (basınç regüle bölgesi)
-const REG_CX = 0.22                              // regülatör merkezi (devrede halkası)
+const REG_FRAC: [number, number] = [0.155, 0.305] // standby/oransal regülatör — regüle hücresi (Mehmet Abi: biraz genişletildi)
+const REG_DISP: [number, number, number, number] = [0.198, 0.450, 0.073, 0.022] // regülatör KIRMIZI dijital LCD (image #1, foto-ölçüm) [x,y,w,h]
 const VALVE_CX = 0.74                            // tahliye valfi merkezi (image #1: sağ modül)
 const EXHAUST_CX = 0.76, EXHAUST_CY = 0.335      // egzoz = valf orta-ekseninin BİRAZ SAĞINDAKİ siyah parça (Mehmet Abi); hava AŞAĞI atılır
 // PDF LED konumlari (tum-foto orani; araştırma OMA1007/EXA1/VP): hub LCD altı 5'li satır + port LED + valf konnektör kırmızı + regülatör 2 yeşil
 const LED_VALVE: [number, number] = [0.72, 0.31]  // valf solenoid konnektör LED (image #1: sağ modül alt siyah konnektör) — KIRMIZI
-const LED_REG: [number, number] = [0.21, 0.365]   // regülatör IO-Link COMM/POWER LED satırı (image #1: kırmızı ekran altı) — YEŞİL
+const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (image #1: ekranın ALTINDA, foto-ölçüm) — YEŞİL, devredeyken parlar
 
 const FLOW_COUNT = 224       // akan molekül sayısı — Mehmet Abi: çoğaltıldı (160→224)
 const FLOW_LANES = 14        // paralel laminar şerit; aynı şeritteki moleküller AYNI hızda → asla karışmaz
@@ -308,7 +308,6 @@ export function DeviceFlowChart({
       const top = axisY - pipeH / 2, bot = axisY + pipeH / 2
       const inX = dx + dw * meas.inX, outX = dx + dw * meas.outX
       const regX0 = dx + dw * REG_FRAC[0], regX1 = dx + dw * REG_FRAC[1]
-      const regCx = dx + dw * REG_CX, regCy = dy + dh * 0.345   // image #1: sol-alt regülatör modülü merkezi
       const valveCx = dx + dw * VALVE_CX, valveCy = dy + dh * 0.24 // image #1: sağ valf modülü
       // EGZOZ PORTU: valf modülünün ALT-orta noktası (PDF: tahliye aşağı, susturucu valfin altında). Duman TAM buradan çıkar.
       const exOx = dx + dw * EXHAUST_CX, exOy = dy + dh * EXHAUST_CY
@@ -363,27 +362,34 @@ export function DeviceFlowChart({
         //   → dik iniş; porta yaklaşınca söner, section-7 jeti devralır (kesintisiz/bağlantılı). Tüm faz x ≥ valf (sınıflama temiz).
         if (sig.valve > 0.12 && x0 > valveCx) {
           const exFrac = exOx / W, vFrac = valveCx / W
-          const ELBW = 0.07                      // dirsek fphase genişliği (yavaş, düzgün dönüş)
+          const ELBW = 0.08                      // dirsek fphase genişliği
           const elbStart = exFrac + ELBW         // dirsek başlangıcı (egzozun biraz sağı)
           const elbY = axisY + pipeH * 1.35      // dirsek bitiş y (dik inişin başı)
-          fPhase[i] -= (0.10 + 0.5 * sig.valve) * prof * dt
-          if (fPhase[i] <= vFrac) { fPhase[i] = (W - 2) / W; continue } // egzoza ulaştı → çıkış ucuna ışınla (döngü)
+          const off = lane * pr * 0.4            // kesit-içi konum (laminar şerit) — köşede Y→X döner, porta funnel ile daralır
+          // FAZ HIZI: yatay HIZLI; dirsek+iniş YAVAŞ (graceful dönüş + iniş görünür olsun)
+          let dec = (0.11 + 0.5 * sig.valve) * prof
+          if (fPhase[i] <= elbStart) dec *= 0.4
+          fPhase[i] -= dec * dt
+          if (fPhase[i] <= vFrac) { fPhase[i] = (W - 2) / W; continue } // egzoza indi → çıkış ucuna ışınla (döngü)
           let px: number, py: number, dirx: number, diry: number, fade = 1
           if (fPhase[i] > elbStart) {
-            // YATAY geri-akış (pipe boyunca, sağdan sola)
-            px = fPhase[i] * W; py = axisY + lane * pr * 0.32
+            // YATAY geri-akış — kesit Y'de yayılı (şerit), sağdan sola
+            px = fPhase[i] * W; py = axisY + off
             dirx = -1; diry = 0
           } else if (fPhase[i] > exFrac) {
-            // DİRSEK — quadratic bezier P0=(elbStart·W,axisY) sol→, C=(exOx,axisY), P1=(exOx,elbY)↓ : düzgün çeyrek dönüş
+            // DİRSEK — bezier çeyrek dönüş; KESİT yayılımı Y→X döner (akış köşeyi dönerken kesiti de döner)
             const tt = (elbStart - fPhase[i]) / ELBW, omt = 1 - tt, p0x = elbStart * W
-            px = omt * omt * p0x + (1 - omt * omt) * exOx
-            py = axisY + (elbY - axisY) * tt * tt
+            const bx = omt * omt * p0x + (1 - omt * omt) * exOx
+            const by = axisY + (elbY - axisY) * tt * tt
+            px = bx + off * 0.7 * tt              // X yayılımı büyür
+            py = by + off * (1 - tt)              // Y yayılımı söner
             dirx = 2 * omt * (exOx - p0x); diry = 2 * tt * (elbY - axisY)
             const m = Math.hypot(dirx, diry) || 1; dirx /= m; diry /= m
           } else {
-            // DİK İNİŞ → egzoz portuna; porta yaklaşınca SÖN (jet devralır → bağlantılı)
+            // DİK İNİŞ — kesit X'te yayılı, porta doğru FUNNEL ile daralır; porta yaklaşınca söner (jet devralır → bağlantılı)
             const d = clamp01((exFrac - fPhase[i]) / (exFrac - vFrac))
-            px = exOx; py = elbY + (exOy - elbY) * d
+            px = exOx + off * 0.7 * (1 - d)
+            py = elbY + (exOy - elbY) * d
             dirx = 0; diry = 1; fade = 1 - d * 0.85
           }
           const a = (0.26 + 0.5 * sig.valve) * (0.5 + 0.5 * prof) * aK * fade
@@ -408,36 +414,55 @@ export function DeviceFlowChart({
         ctx.beginPath(); ctx.moveTo(x - len * 0.42, y); ctx.lineTo(x, y); ctx.stroke()
       }
 
-      // 4) REGÜLATÖR sıkışma bölgesi: DİATOMİK moleküller (BASINÇ renginde) İKİ bağlantı aparatı ARASINDA sıkışır (Mehmet Abi:
-      //   arada KALSIN, taşmasın + daha çok kendini belli etsin). Yoğunluk/jitter/boyut/parlaklık ∝ basınç + sıkışma ışıması.
+      // 4) REGÜLATÖR ORİFİS (venturi) — moleküller DAR hücrede GİRİŞ→ÇIKIŞ süzülür; orifiste kesit DARALIR (pinch) ve HIZLANIR.
+      //   Devredeyken (sig.reg) çıkış HIZLI→SEYREK (düşük P2), giriş YAVAŞ→YOĞUN (yüksek P1) — SÜREKLİLİK (continuity) ile fark.
+      //   Reg=0'da hız düz → iki taraf eşit. Hepsi iki aparat (regX0..regX1) arası. Göze hitap eden akıcı regülasyon (Mehmet Abi).
       const regW = regX1 - regX0
-      const moleVisible = Math.round(MOLE_COUNT * (0.30 + 0.70 * sig.pressure))
-      const jitter = 0.4 + 2.2 * sig.pressure
-      // sıkışma ışıması — bölgeyi belirgin yapar (basınç yüksekken)
-      if (sig.pressure > 0.05) {
-        const cgx = regX0 + regW * 0.5, gr = ctx.createRadialGradient(cgx, axisY, 0, cgx, axisY, regW * 0.62)
-        gr.addColorStop(0, cP(0.10 + 0.20 * sig.pressure)); gr.addColorStop(1, cP(0))
-        ctx.fillStyle = gr; ctx.fillRect(regX0 - 4, top, regW + 8, pipeH)
+      const chokeF = 0.52                                  // orifis konumu (hücre içi 0..1)
+      const p1 = sig.pressure                              // GİRİŞ basıncı
+      const p2 = sig.pressure * (1 - 0.65 * sig.reg)       // ÇIKIŞ basıncı (devredeyken düşer)
+      ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over'
+      // 4a) BASINÇ GRADYANI — orifiste KESKİN düşüş (fark görünür; reg=0'da düz)
+      {
+        const g = ctx.createLinearGradient(regX0, 0, regX1, 0)
+        g.addColorStop(0, cP(0.06 + 0.22 * p1)); g.addColorStop(Math.max(0, chokeF - 0.02), cP(0.05 + 0.20 * p1))
+        g.addColorStop(chokeF, cP(0.04 + 0.12 * p2)); g.addColorStop(1, cP(0.03 + 0.06 * p2))
+        ctx.fillStyle = g; ctx.fillRect(regX0 - 3, top, regW + 6, pipeH)
       }
-      for (let i = 0; i < moleVisible; i++) {
-        const u = Math.pow(mU[i], 1 + sig.pressure * 1.3) // basınç artınca girişe doğru sıkış
-        let x = regX0 + u * regW + (Math.random() - 0.5) * jitter
-        x = Math.max(regX0 + 2, Math.min(regX1 - 2, x))   // İKİ aparat ARASINDA KAL (kesinlikle taşma yok)
-        const y = axisY + mLane[i] * pr * 0.8 + (Math.random() - 0.5) * jitter
-        const a = 0.5 + 0.5 * sig.pressure
-        const rot = mRot[i] + now * 0.001, dxm = Math.cos(rot) * 2.6, dym = Math.sin(rot) * 2.6
-        ctx.strokeStyle = cP(a * 0.7); ctx.lineWidth = 1.4
-        ctx.beginPath(); ctx.moveTo(x - dxm, y - dym); ctx.lineTo(x + dxm, y + dym); ctx.stroke()
-        ctx.fillStyle = cP(a)
-        ctx.beginPath(); ctx.arc(x - dxm, y - dym, 2.1, 0, Math.PI * 2); ctx.fill()
-        ctx.beginPath(); ctx.arc(x + dxm, y + dym, 2.1, 0, Math.PI * 2); ctx.fill()
+      // 4b) MOLEKÜL (diatomik) çizici
+      const mol = (mx: number, my: number, sz: number, ma: number, rot: number) => {
+        const dxm = Math.cos(rot) * sz, dym = Math.sin(rot) * sz
+        ctx.strokeStyle = cP(ma * 0.7); ctx.lineWidth = 1.2
+        ctx.beginPath(); ctx.moveTo(mx - dxm, my - dym); ctx.lineTo(mx + dxm, my + dym); ctx.stroke()
+        ctx.fillStyle = cP(ma)
+        ctx.beginPath(); ctx.arc(mx - dxm, my - dym, sz * 0.78, 0, Math.PI * 2); ctx.fill()
+        ctx.beginPath(); ctx.arc(mx + dxm, my + dym, sz * 0.78, 0, Math.PI * 2); ctx.fill()
+      }
+      // AKIŞ: TÜM moleküllerin fazı ilerler (giriş→çıkış); orifis SONRASI devredeyken hızlanır → çıkış SEYREK. Çizilen sayı ∝ basınç.
+      const moleN = Math.round(MOLE_COUNT * (0.18 + 0.58 * sig.pressure)) // Mehmet Abi: biraz rahat (daha az/seyrek molekül)
+      const vBase = 0.2 + 0.24 * p1                                        // daha sakin akış hızı
+      for (let i = 0; i < MOLE_COUNT; i++) {
+        const v = vBase * (mU[i] < chokeF ? 1 : (1 + 2.6 * sig.reg)) // orifis sonrası HIZLI (devredeyken) → seyrekleşir
+        let u = mU[i] + v * dt
+        if (u >= 1) u -= 1
+        mU[i] = u
+        if (i >= moleN) continue
+        const x = regX0 + u * regW
+        const pinch = 0.30 + 0.70 * Math.min(1, Math.abs(u - chokeF) / 0.40) // VENTURI: orifiste kesit DAR (hourglass)
+        const near = 1 - Math.min(1, Math.abs(u - chokeF) / 0.16)            // orifise yakınlık (squeeze vurgusu)
+        const local = u < chokeF ? p1 : p2
+        const jit = (0.18 + 0.8 * local) * pinch                            // daha az çalkantı (rahat)
+        const y = axisY + mLane[i] * pr * 0.86 * pinch + (Math.random() - 0.5) * jit
+        const sz = (1.5 + 0.8 * local) + near * 0.35                         // orifiste hafif iri (squeeze yumuşatıldı)
+        const a = Math.min(0.92, (0.28 + 0.42 * local) + near * 0.12)        // orifiste hafif parlak (yumuşatıldı)
+        mol(x, y, sz, a, mRot[i] + now * (0.0004 + 0.0006 * local))          // daha yavaş/sakin dönüş
       }
       ctx.globalCompositeOperation = 'source-over'
 
       // 5) DEVREYE GİRME halkalari — regülatör (BASINÇ renginde) / valf (turuncu-amber)
       const pulse = now * 0.006
-      drawEngage(regCx, regCy, `${pc[0]},${pc[1]},${pc[2]}`, sig.reg, pulse, markR)
-      drawEngage(valveCx, valveCy, '255,150,40', sig.valve, pulse + 1.5, markR)
+      // Regülatör DEVREDE göstergesi ARTIK kendi POWER LED'inde (aşağıda led(LED_REG)) — yüzen halka kaldırıldı (Mehmet Abi: ışık kendi yerinde).
+      drawEngage(valveCx + dw * 0.045, valveCy, '255,150,40', sig.valve, pulse + 1.5, markR) // valf halkası biraz SAĞ (flow sınırı/egzoz dokunulmadan)
 
       // 6) NEM — havada SÜSPANSE su buharı/mikro-damlacık (NEM renginde): akışLA birlikte (sol→sağ) sürüklenir, boru kesitine
       //   YAYILIR, hafif salınır. Yoğunluk + tül ∝ nem. Kullanıcı "bu akışta nem var" diye NET anlar.
@@ -500,7 +525,6 @@ export function DeviceFlowChart({
       // 8) CİHAZ LED'LERİ — modüller çalışma durumuna göre KENDİ gerçek renkleriyle yanıp söner
       //   hub: çalışıyor → YEŞİL nabız (her zaman aktif). regülatör: devredeyse (standby) yeşil. valf: izolasyonda amber.
       const blink = 0.55 + 0.45 * Math.sin(now * 0.009)       // hizli nabiz (calisma kalp atisi)
-      const slowBlink = 0.4 + 0.6 * Math.sin(now * 0.005)
       const led = (cx: number, cy: number, rgb: string, on: number, r: number) => {
         if (on < 0.05) return
         ctx.globalCompositeOperation = 'lighter'
@@ -514,7 +538,22 @@ export function DeviceFlowChart({
       const ledR = Math.max(1.5, dh * 0.011)
       // SADECE İKİ LED (Mehmet Abi kararı): ORANSAL REGÜLATÖR + VALF. Hub status satırı (PWR/MODE/SIG) ve port LED'leri KALDIRILDI.
       // REGÜLATÖR (oransal) güç/iletişim LED'i — devredeyken (standby/iso) yeşil nabız, boştayken sönük.
-      led(dx + dw * LED_REG[0], dy + dh * LED_REG[1], '65,224,138', 0.35 + 0.55 * sig.reg * slowBlink, ledR)
+      // REGÜLATÖR POWER/STATUS LED — KONUM SABİT (LED_REG); ÇOK KÜÇÜK + gerçekçi, YANIP SÖNER (Mehmet Abi).
+      {
+        const lx = dx + dw * LED_REG[0], ly = dy + dh * LED_REG[1]
+        const rr0 = Math.max(0.9, dh * 0.0055)                  // çok küçük dot (gerçek LED ölçeği)
+        const regBlink = (now % 1150) < 820 ? 1 : 0.06          // ~0.87Hz yanıp sönme (açık ~0.82s / kapalı ~0.33s)
+        const lit = (0.3 + 0.7 * sig.reg) * regBlink            // devredeyken parlak; her durumda yanıp söner
+        if (lit > 0.05) {
+          ctx.globalCompositeOperation = 'lighter'
+          const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr0 * 2.4)
+          g.addColorStop(0, `rgba(90,245,150,${0.5 * lit})`); g.addColorStop(1, 'rgba(90,245,150,0)')
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(lx, ly, rr0 * 2.4, 0, Math.PI * 2); ctx.fill()
+          ctx.globalCompositeOperation = 'source-over'
+          ctx.fillStyle = `rgba(150,255,180,${Math.min(1, 0.5 + lit)})`
+          ctx.beginPath(); ctx.arc(lx, ly, rr0, 0, Math.PI * 2); ctx.fill()
+        }
+      }
       // VALF solenoid konnektör LED'i — KIRMIZI; enerjilenince (izolasyon) soft-start ile yumuşak yanar.
       led(dx + dw * LED_VALVE[0], dy + dh * LED_VALVE[1], '255,60,48', sig.valve * (0.6 + 0.4 * blink), ledR)
 
@@ -556,6 +595,31 @@ export function DeviceFlowChart({
           ctx.fillText(r.unit, ux, cy)
         }
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+      }
+
+      // 9b) REGÜLATÖR KIRMIZI dijital ekranı CANLI — orijinal yapı KORUNUR (foto çerçeve/etiketler kalır); statik ".200" gizlenip
+      //   yerine CANLI basınç (MPa, kırmızı 7-seg, lider sıfırsız ".62" stili) yazılır. Mehmet Abi: "kendi göstergesi ama canlı".
+      {
+        const pv0 = readoutRef.current[0]
+        if (pv0) {
+          let pv = pv0.value.replace(',', '.')
+          if (pv.startsWith('0.')) pv = pv.slice(1)
+          const gx = dx + dw * REG_DISP[0], gy = dy + dh * REG_DISP[1], gw = dw * REG_DISP[2], gh = dh * REG_DISP[3]
+          ctx.fillStyle = 'rgb(50,53,59)' // ekran koyu camını eşle → statik rakamı gizle (çerçeve foto'dan kalır)
+          if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(gx, gy, gw, gh, Math.min(2, gh * 0.18)); ctx.fill() } else ctx.fillRect(gx, gy, gw, gh)
+          const fs = Math.max(7, Math.min(gh * 0.82, gw * 0.30))
+          // Regülatör TERS monteli (Mehmet Abi) → rakamlar 180° döndürülür; DAHA KOYU kırmızı.
+          ctx.save()
+          ctx.translate(gx + gw / 2, gy + gh / 2)
+          ctx.rotate(Math.PI)
+          ctx.font = `800 ${fs}px ui-monospace, Menlo, monospace`
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+          ctx.shadowColor = 'rgba(150,14,8,0.9)'; ctx.shadowBlur = fs * 0.45
+          ctx.fillStyle = 'rgb(176,22,12)'
+          ctx.fillText(pv, 0, 0)
+          ctx.shadowBlur = 0
+          ctx.restore()
+        }
       }
 
       raf = requestAnimationFrame(draw)
