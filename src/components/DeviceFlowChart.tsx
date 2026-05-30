@@ -26,12 +26,13 @@ import { METRICS, type MetricDef } from '@/data/metrics'
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
 
-// --- Yerlesim/olcek (rotuslanabilir) ---
-const DEV_FRAC = 0.86  // cihaz cizim yuksekligi / canvas yuksekligi (BUYUK gorunsun)
-const AXIS_FRAC = 0.605 // cihaz icindeki hava-eksen Y orani (alt gecis bloğu; giris/cikis portlari bu hatta)
-const PIPE_FRAC = 0.150 // boru (= giris/cikis hortum) capi / cihaz cizim yuksekligi → hortum capi boru capi ile AYNI
-const REG_FRAC: [number, number] = [0.06, 0.30] // regulator (sikisma) bolgesi: cihazin SOL modulu hizasi (x orani, cihaz icinde)
-const VALVE_FRAC = 0.84 // valf modulu x orani (cihaz icinde) → egzoz ve "devrede" halkasi burada
+// --- Olcek (rotuslanabilir). Eksen/port/boru artik FOTODAN PIKSEL TARAMASIYLA olculur (measureDevice); asagidakiler fallback. ---
+const DEV_FILL = 0.985 // cihaz, canvas'i neredeyse DOLDURUR (kirpilmis icerik; cok BUYUK gorunsun)
+const FB_AXIS = 0.62   // (fallback) hava-eksen Y orani — olcum basarisizsa
+const FB_PIPE = 0.14   // (fallback) boru capi orani
+const FB_IN = 0.04, FB_OUT = 0.96 // (fallback) giris/cikis x orani
+const REG_FRAC: [number, number] = [0.05, 0.28] // regulator (sikisma) bolgesi (kirpilmis icerikte x orani)
+const VALVE_FRAC = 0.86 // valf modulu x orani (kirpilmis icerikte)
 
 // Parcacik havuzlari
 const FLOW_COUNT = 150
@@ -94,28 +95,80 @@ export function DeviceFlowChart({
     if (!canvas || !wrap) return
     const ctx = canvas.getContext('2d')!
 
-    // Gercek cihaz fotosu → beyaz zemini saydamlastir (bir kez, offscreen'e)
+    // Gercek cihaz fotosu → beyaz zemini saydamlastir + icerigi KIRP + gercek PORT EKSENI/UCLARINI olc (bir kez, offscreen'e)
     const img = new Image()
     let deviceCanvas: HTMLCanvasElement | null = null
     let devAR = 1
+    // Olculen yerlesim (kirpilmis cihaz icinde 0..1 oranlar): axis=hava ekseni Y, inX/outX=giris/cikis ucu X, pipe=boru capi
+    const meas = { axis: FB_AXIS, pipe: FB_PIPE, inX: FB_IN, outX: FB_OUT, ok: false }
     img.onload = () => {
       const oc = document.createElement('canvas')
       oc.width = img.width; oc.height = img.height
       const octx = oc.getContext('2d')!
       octx.drawImage(img, 0, 0)
       try {
-        const d = octx.getImageData(0, 0, oc.width, oc.height)
+        const Wp = oc.width, Hp = oc.height
+        const d = octx.getImageData(0, 0, Wp, Hp)
         const a = d.data
-        for (let i = 0; i < a.length; i += 4) {
-          const r = a[i], g = a[i + 1], b = a[i + 2]
-          const mn = Math.min(r, g, b)
-          if (r > 244 && g > 244 && b > 244) a[i + 3] = 0 // ~beyaz → tam saydam
-          else if (mn > 232) a[i + 3] = Math.round(a[i + 3] * (1 - (mn - 232) / (245 - 232))) // kenar feather
+        // opak (cihaz) maskesi + satir/sutun yogunlugu
+        const colCount = new Int32Array(Wp)
+        const rowCount = new Int32Array(Hp)
+        let minX = Wp, maxX = 0, minY = Hp, maxY = 0
+        for (let y = 0; y < Hp; y++) {
+          for (let x = 0; x < Wp; x++) {
+            const i = (y * Wp + x) * 4
+            const r = a[i], g = a[i + 1], b = a[i + 2]
+            const mn = Math.min(r, g, b)
+            if (r > 244 && g > 244 && b > 244) { a[i + 3] = 0; continue } // ~beyaz → saydam
+            if (mn > 232) a[i + 3] = Math.round(a[i + 3] * (1 - (mn - 232) / (245 - 232))) // kenar feather
+            if (a[i + 3] > 40) { // opak cihaz pikseli
+              colCount[x]++; rowCount[y]++
+              if (x < minX) minX = x; if (x > maxX) maxX = x
+              if (y < minY) minY = y; if (y > maxY) maxY = y
+            }
+          }
         }
         octx.putImageData(d, 0, 0)
-      } catch { /* taint olursa fotoyu oldugu gibi kullan */ }
-      deviceCanvas = oc
-      devAR = img.width / img.height
+        if (maxX > minX && maxY > minY) {
+          // KIRP: cihazi sıkı sınırına al → buyuk gorunur
+          const cw = maxX - minX + 1, ch = maxY - minY + 1
+          const cropped = document.createElement('canvas')
+          cropped.width = cw; cropped.height = ch
+          cropped.getContext('2d')!.drawImage(oc, minX, minY, cw, ch, 0, 0, cw, ch)
+          deviceCanvas = cropped
+          devAR = cw / ch
+
+          // GIRIS/CIKIS UCLARI: cihazin en sol/sag opak sutunlari (kirpilmis icinde 0 ve ~1)
+          meas.inX = 0.012
+          meas.outX = 0.988
+          // HAVA EKSENI: alt yariyi tarayip ALT (manifold/gecis) blogunun en YOGUN tam-genislik satirini bul.
+          // Once en genis dolu sutunlarin oldugu satir araligini (alt blok) bul:
+          let bestY = minY + Math.round(ch * FB_AXIS)
+          let bestScore = -1
+          const yStart = minY + Math.round(ch * 0.40) // ust modulleri atla, alt hava blogu
+          for (let y = yStart; y <= maxY; y++) {
+            // bu satirda dolu sutun orani + sol/sag uca yakinlik (port hatti uctan uca uzar)
+            let filled = 0, leftFill = 0, rightFill = 0
+            for (let x = minX; x <= maxX; x++) if (a[(y * Wp + x) * 4 + 3] > 40) {
+              filled++
+              if (x < minX + cw * 0.12) leftFill++
+              if (x > maxX - cw * 0.12) rightFill++
+            }
+            // port hatti: hem genis dolu HEM iki uca da deger → leftFill*rightFill agirlikli
+            const score = filled * (1 + (leftFill + rightFill) / (cw * 0.24 + 1))
+            if (score > bestScore) { bestScore = score; bestY = y }
+          }
+          meas.axis = (bestY - minY) / ch
+          // BORU CAPI: eksen satirinda dikey olarak opak kalinligi olc (alt blok yuksekligi)
+          let up = 0, dn = 0
+          for (let y = bestY; y >= minY; y--) { if (a[(y * Wp + (minX + Math.round(cw * 0.5))) * 4 + 3] > 40) up++; else break }
+          for (let y = bestY; y <= maxY; y++) { if (a[(y * Wp + (minX + Math.round(cw * 0.5))) * 4 + 3] > 40) dn++; else break }
+          const thick = (up + dn) / ch
+          meas.pipe = Math.max(0.06, Math.min(0.22, thick * 0.62)) // blok yuksekliginin bir kismi = ic hava kanali
+          meas.ok = true
+        }
+      } catch { /* taint → fallback oranlar */ }
+      if (!deviceCanvas) { deviceCanvas = oc; devAR = img.width / img.height }
     }
     img.src = asset('products/ams-front.jpg')
 
@@ -190,19 +243,21 @@ export function DeviceFlowChart({
       ctx.fillStyle = dark ? 'rgba(6,10,22,0.32)' : 'rgba(225,235,247,0.40)'
       ctx.fillRect(0, 0, W, H)
 
-      // Cihaz cizim dikdortgeni (BUYUK, ortali)
-      let dh = H * DEV_FRAC, dw = dh * devAR
-      if (dw > W * 0.94) { dw = W * 0.94; dh = dw / devAR }
+      // Cihaz cizim dikdortgeni (KIRPILMIS icerik → canvas'i neredeyse DOLDURUR, cok BUYUK)
+      let dw = W * DEV_FILL, dh = dw / devAR
+      if (dh > H * DEV_FILL) { dh = H * DEV_FILL; dw = dh * devAR }
       const dx = (W - dw) / 2, dy = (H - dh) / 2
-      const axisY = dy + dh * AXIS_FRAC
-      const pipeH = dh * PIPE_FRAC
+      // OLCULEN port ekseni/uclari/capi (kirpilmis icerik oranlari)
+      const axisY = dy + dh * meas.axis
+      const pipeH = Math.max(10, dh * meas.pipe)
       const top = axisY - pipeH / 2, bot = axisY + pipeH / 2
-      // Regulator/valf hizalari (cihaz icinde)
+      const inX = dx + dw * meas.inX, outX = dx + dw * meas.outX
+      // Regulator/valf hizalari (kirpilmis icerikte)
       const regX0 = dx + dw * REG_FRAC[0], regX1 = dx + dw * REG_FRAC[1]
-      const regCx = dx + dw * 0.17, regCy = dy + dh * 0.42
-      const valveCx = dx + dw * VALVE_FRAC, valveCy = dy + dh * 0.44
-      const exOx = dx + dw * VALVE_FRAC, exOy = dy + dh * 0.66
-      const markR = Math.min(dw, dh) * 0.12
+      const regCx = dx + dw * 0.16, regCy = dy + dh * 0.40
+      const valveCx = dx + dw * VALVE_FRAC, valveCy = dy + dh * 0.42
+      const exOx = dx + dw * VALVE_FRAC, exOy = dy + dh * 0.64
+      const markR = Math.min(dw, dh) * 0.11
 
       // 1) GERÇEK CİHAZ FOTOSU — ARKA PLAN (yari saydam; akis ÜSTÜNE binip "rontgen/icinden geciyor" hissi verir)
       if (deviceCanvas) {
@@ -211,22 +266,23 @@ export function DeviceFlowChart({
         ctx.globalAlpha = 1
       }
 
-      // 2) BORU + giris/cikis hortumu (UÇTAN UCA tek surekli, AYNI cap, AYNI eksen). Dusuk alpha → cihaz okunur kalir.
+      // 2) BORU + giris/cikis hortumu (UÇTAN UCA tek surekli, AYNI cap, OLCULEN port EKSENINDE). Dusuk alpha → cihaz okunur kalir.
+      // Sol kenardan giris ucuna (inX) ve cikis ucundan (outX) sag kenara = giris/cikis hortumlari; arasi = cihaz ici hatti.
       const grad = ctx.createLinearGradient(0, top, 0, bot)
-      grad.addColorStop(0, col(0.14)); grad.addColorStop(0.5, dark ? 'rgba(8,16,28,0.06)' : 'rgba(255,255,255,0.06)'); grad.addColorStop(1, col(0.09))
+      grad.addColorStop(0, col(0.16)); grad.addColorStop(0.5, dark ? 'rgba(8,16,28,0.06)' : 'rgba(255,255,255,0.06)'); grad.addColorStop(1, col(0.10))
       ctx.fillStyle = grad; ctx.fillRect(0, top, W, pipeH)
-      ctx.strokeStyle = col(0.45); ctx.lineWidth = 1.5
+      ctx.strokeStyle = col(0.5); ctx.lineWidth = 1.5
       ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(W, top); ctx.moveTo(0, bot); ctx.lineTo(W, bot); ctx.stroke()
-      // Hortum birlesim kelepceleri (cihaz giris/cikis hizasinda)
+      // Hortum birlesim kelepceleri TAM giris/cikis port ucunda (olculen inX/outX)
       const coupler = (cx: number) => {
-        const cw = Math.max(7, pipeH * 0.14)
+        const cw = Math.max(7, pipeH * 0.16)
         const cgr = ctx.createLinearGradient(0, top, 0, bot)
-        cgr.addColorStop(0, 'rgba(196,212,230,0.9)'); cgr.addColorStop(0.5, 'rgba(96,116,140,0.9)'); cgr.addColorStop(1, 'rgba(165,183,203,0.9)')
+        cgr.addColorStop(0, 'rgba(196,212,230,0.92)'); cgr.addColorStop(0.5, 'rgba(96,116,140,0.92)'); cgr.addColorStop(1, 'rgba(165,183,203,0.92)')
         ctx.fillStyle = cgr
-        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(cx - cw / 2, top - 3, cw, pipeH + 6, 3); ctx.fill() }
-        else ctx.fillRect(cx - cw / 2, top - 3, cw, pipeH + 6)
+        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(cx - cw / 2, top - 4, cw, pipeH + 8, 3); ctx.fill() }
+        else ctx.fillRect(cx - cw / 2, top - 4, cw, pipeH + 8)
       }
-      coupler(dx + dw * 0.04); coupler(dx + dw * 0.96)
+      coupler(inX); coupler(outX)
 
       // 3) AKAN HAVA — streak (uzunluk ∝ hiz), 3 parallax katman, additive (cihazin ÜSTÜNDE → icinden geciyor hissi)
       const pr = pipeH * 0.38
