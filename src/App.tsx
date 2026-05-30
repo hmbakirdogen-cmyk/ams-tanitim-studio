@@ -12,7 +12,7 @@ import { Sidebar, type Page } from './components/Sidebar'
 import { SmcLogo } from './components/SmcLogo'
 import { IntroSplash } from './components/IntroSplash'
 import { LoginScreen } from './components/LoginScreen'
-import { InstallPrompt } from './components/InstallPrompt'
+import { MobileBlocked } from './components/MobileBlocked'
 import { AdminUsers } from './components/AdminUsers'
 import { ProfileEditor } from './components/ProfileEditor'
 import { LivePage } from './pages/LivePage'
@@ -25,6 +25,7 @@ import { RecordsPage } from './pages/RecordsPage'
 import { useLiveReadings } from './hooks/useLiveReadings'
 import { useAuth } from './auth/useAuth'
 import { useTheme } from './hooks/useTheme'
+import { isMobileDevice } from './lib/device'
 import { sound } from './lib/sound'
 
 export default function App() {
@@ -45,6 +46,10 @@ export default function App() {
     if (!next) sound.click()
   }
 
+  // MOBIL ŞİMDİLİK KAPALI: telefon/tablette uygulama yerine "bilgisayardan açın" ekranı (Mehmet Abi kararı).
+  // Geri açmak için: aşağıdaki tek satırı kaldır (mobil responsive + demo kilidi kodu yerinde duruyor).
+  if (isMobileDevice()) return <MobileBlocked />
+
   return (
     <div className="relative h-[100dvh] w-screen overflow-hidden">
       <CinematicBackground />
@@ -52,9 +57,6 @@ export default function App() {
       <AnimatePresence>
         {intro && <IntroSplash key="intro" onDone={() => setIntro(false)} />}
       </AnimatePresence>
-
-      {/* PWA kurulum daveti - giris ekraninda da gorunur (musteri ilk anda telefona kurabilir). */}
-      <InstallPrompt />
 
       {/* Giris kapisi: oturum yoksa giris ekrani */}
       {auth.ready && !auth.user && <LoginScreen auth={auth} />}
