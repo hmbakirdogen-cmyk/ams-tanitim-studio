@@ -12,7 +12,11 @@
  *           debi=metrics flow rengi, basınç=pressure rengi, nem=humidity rengi (metrics.ts'ten okunur → tek dogruluk).
  *           Sıcaklık ayrıca boru boyunca ince "ısı tülü" olarak dünya-standart renkle görünür.
  *
+ * CANLANDIRMA: Cihazın kendi dijital LCD'leri (hub: basınç/debi/sıcaklık) GERÇEK verilerle yazılır (her satır kendi renginde + birim).
+ *           Modül LED'leri çalışma durumuna göre KENDİ renkleriyle yanıp söner (hub=yeşil RUN nabız + mavi COMM; regülatör=yeşil
+ *           standby'da; valf=amber izolasyonda). Valf = SOFT-STARTER (kademeli verir/keser; ani değil) → yumuşak rampa.
  * NASIL   : Saf Canvas 2D, dt-bazlı (144Hz güvenli), sabit havuz (kare-başı tahsis yok), additive glow + motion-blur iz.
+ *           Ekran dikdörtgenleri fotodan KOYU bağlı-bileşen taramasıyla tespit (tutmazsa FB_DISPLAYS fallback).
  * YAN ETKI: Offline (foto gömülü). Üstüne PipeOverlay biner (mod + anlık değer + eşik + giriş/çıkış + "devrede" rozeti).
  * AYAR     : REG_FRAC / VALVE_FRAC / display ile bölge yerleri; port ekseni+çapı fotodan ölçülür (measure), tutmazsa fallback.
  */
@@ -27,6 +31,8 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
 const DEV_FILL = 0.985
 // Fallback port ekseni/capi/uclari (olcum tutmazsa)
 const FB_AXIS = 0.78, FB_PIPE = 0.085, FB_IN = 0.02, FB_OUT = 0.98
+// Fallback dijital ekran dikdortgenleri (tum-foto orani) — tespit tutmazsa (hub LCD + ikincil)
+const FB_DISPLAYS = [{ x: 0.455, y: 0.265, w: 0.12, h: 0.14 }, { x: 0.40, y: 0.52, w: 0.092, h: 0.055 }]
 // PDF'e gore modul bolgeleri (kirpilmis icerik x orani)
 const REG_FRAC: [number, number] = [0.12, 0.34] // standby/oransal regülatör (basınç regüle bölgesi)
 const REG_CX = 0.22                              // regülatör merkezi (devrede halkası)
@@ -75,12 +81,21 @@ export function DeviceFlowChart({
   // Anlik hedef degerler + her sensorun KENDI rengi (metrics.ts → tek dogruluk) — her render guncellenir
   const targetRef = useRef({ flow: 0, pressure: 0, temp: 0, hum: 0, mode })
   const colorRef = useRef({ flow: [46, 155, 255], pressure: [54, 224, 200], hum: [124, 224, 255] as number[] })
+  // Cihaz LCD'lerine basilacak GERÇEK rakamlar (deger + birim + renk) — PDF: hub ekrani basinc/debi/sicaklik gosterir
+  const readoutRef = useRef<{ label: string; value: string; unit: string; rgb: number[] }[]>([])
   {
     const nv = (k: string) => { const m = byKey[k]; return !m || !reading ? 0 : clamp01((m.get(reading) - m.min) / (m.max - m.min)) }
     targetRef.current = { flow: nv('flow'), pressure: nv('pressure'), temp: nv('temperature'), hum: nv('humidity'), mode }
     if (byKey.flow) colorRef.current.flow = hexRGB(byKey.flow.color)
     if (byKey.pressure) colorRef.current.pressure = hexRGB(byKey.pressure.color)
     if (byKey.humidity) colorRef.current.hum = hexRGB(byKey.humidity.color)
+    // Ekran satirlari (hub LCD): PDF sirasi basinc / debi / sicaklik
+    const fmt = (m: MetricDef | undefined) => {
+      if (!m || !reading) return null
+      const v = m.get(reading)
+      return { label: m.name, value: new Intl.NumberFormat('tr-TR', { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(v), unit: m.unitShort, rgb: hexRGB(m.color) }
+    }
+    readoutRef.current = [fmt(byKey.pressure), fmt(byKey.flow), fmt(byKey.temperature)].filter(Boolean) as { label: string; value: string; unit: string; rgb: number[] }[]
   }
   const themeRef = useRef(theme)
   themeRef.current = theme
@@ -97,6 +112,8 @@ export function DeviceFlowChart({
     let deviceCanvas: HTMLCanvasElement | null = null
     let devAR = 1
     const meas = { axis: FB_AXIS, pipe: FB_PIPE, inX: FB_IN, outX: FB_OUT }
+    // Tespit edilen dijital ekran dikdortgenleri (tum-foto orani 0..1)
+    let displays: { x: number; y: number; w: number; h: number }[] = FB_DISPLAYS
     img.onload = () => {
       devAR = img.width / img.height
       const oc = document.createElement('canvas')
@@ -153,6 +170,33 @@ export function DeviceFlowChart({
             meas.inX = (minX + cw * 0.012) / Wp
             meas.outX = (maxX - cw * 0.012) / Wp
           }
+
+          // DİJİTAL EKRAN tespiti: KOYU (display cami) dikdörtgen bölgeler. Bağlı-bileşen (4-yön) ile kümele, makul kutuları al.
+          const isDark = (p: number) => { const i = p * 4; return a[i + 3] > 60 && a[i] < 95 && a[i + 1] < 105 && a[i + 2] < 115 }
+          const lab = new Int32Array(N).fill(-1)
+          const boxes: { x0: number; y0: number; x1: number; y1: number; n: number }[] = []
+          const qs: number[] = []
+          for (let p = 0; p < N; p++) {
+            if (lab[p] !== -1 || !isDark(p)) continue
+            const id = boxes.length
+            let x0 = Wp, y0 = Hp, x1 = 0, y1 = 0, cnt = 0
+            lab[p] = id; qs.length = 0; qs.push(p)
+            while (qs.length) {
+              const q = qs.pop()!
+              const x = q % Wp, y = (q - x) / Wp
+              if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; cnt++
+              const nb = [x > 0 ? q - 1 : -1, x < Wp - 1 ? q + 1 : -1, y > 0 ? q - Wp : -1, y < Hp - 1 ? q + Wp : -1]
+              for (const r of nb) if (r >= 0 && lab[r] === -1 && isDark(r)) { lab[r] = id; qs.push(r) }
+            }
+            boxes.push({ x0, y0, x1, y1, n: cnt })
+          }
+          // Ekran adayi: alanin makul kismini dolduran, ust-orta bolgede, kare-ish dikdortgenler
+          const cand = boxes
+            .map((b) => ({ x: b.x0, y: b.y0, w: b.x1 - b.x0 + 1, h: b.y1 - b.y0 + 1, n: b.n }))
+            .filter((b) => b.w > Wp * 0.05 && b.h > Hp * 0.03 && b.w < Wp * 0.32 && b.h < Hp * 0.30 && b.n > b.w * b.h * 0.45)
+            .sort((p, q) => q.w * q.h - p.w * p.h)
+            .slice(0, 3)
+          if (cand.length) displays = cand.map((b) => ({ x: b.x / Wp, y: b.y / Hp, w: b.w / Wp, h: b.h / Hp }))
         }
       } catch { /* taint → orijinal goster, fallback oranlar */ }
     }
@@ -208,10 +252,11 @@ export function DeviceFlowChart({
       const regTarget = t.mode === 'standby' ? 1 : t.mode === 'isolation' ? 0.4 : 0
       const valveTarget = t.mode === 'isolation' ? 1 : 0
       sig.reg += (regTarget - sig.reg) * Math.min(1, dt * 2.5)
-      sig.valve += (valveTarget - sig.valve) * Math.min(1, dt * 2.5)
-      // Egzoz = valf kapaninca cikis tarafindaki basinci tahliye (Mehmet Abi fizigi): valf ne kadar kapaliysa o kadar guclu
-      const exTarget = sig.valve
-      sig.exhaust += (exTarget - sig.exhaust) * Math.min(1, dt * 2.4)
+      // SOFT-STARTER valfi: basinci KADEMELI verir/keser (ani DEĞİL) → yavaş rampa (dt*0.9)
+      sig.valve += (valveTarget - sig.valve) * Math.min(1, dt * 0.9)
+      // Egzoz = valf kapanirken cikis basincini KADEMELI tahliye (soft-start): yavasca yukselip biter
+      const exTarget = sig.valve * (1 - sig.valve * 0.15) // tam kapaninca tahliye biter (basinc tukendi)
+      sig.exhaust += (exTarget - sig.exhaust) * Math.min(1, dt * 1.1)
 
       const fc = colorRef.current.flow, pc = colorRef.current.pressure, hc = colorRef.current.hum
       const [tr, tg, tb] = tempRGB(sig.temp)
@@ -257,14 +302,15 @@ export function DeviceFlowChart({
       }
       coupler(inX); coupler(outX)
 
-      // 2b) SICAKLIK ısı tülü (dünya std renk) — boru boyunca ince, nefes alan dolgu (sicaklik her yere yansisin)
+      // 2b) SICAKLIK ısı tülü (dünya std renk) — boru boyunca dolgu; düşük debide bile sıcaklık okunur (yoğun)
       ctx.globalCompositeOperation = 'lighter'
-      const haze = (0.05 + 0.18 * sig.temp) * (0.92 + 0.08 * Math.sin(now * 0.0016))
+      const haze = (0.08 + 0.28 * sig.temp) * (0.92 + 0.08 * Math.sin(now * 0.0016))
       const hg = ctx.createLinearGradient(0, top, 0, bot)
       hg.addColorStop(0, cT(0)); hg.addColorStop(0.5, cT(haze)); hg.addColorStop(1, cT(0))
       ctx.fillStyle = hg; ctx.fillRect(0, top, W, pipeH)
 
-      // 3) AKAN HAVA — debi renginde streak (uzunluk∝hız) + sıcakta sıcaklık-renkli glow başı. İzolasyonda valf SONRASI akış söner.
+      // 3) AKAN HAVA — streak rengi SICAKLIĞA göre (dünya std mavi→kırmızı) → akışa bakınca sıcaklık net okunur.
+      //   (uzunluk∝debi hızı, parlaklık∝debi). Debi rengi boru gövdesinde kalır; havanın KENDİSİ ısındıkça kızarır.
       const pr = pipeH * 0.4
       const baseV = 0.05 + 0.95 * sig.flow
       ctx.lineCap = 'round'
@@ -279,13 +325,14 @@ export function DeviceFlowChart({
         if (cut < 0.06) continue
         const y = axisY + fLane[i] * pr * (0.6 + 0.4 * depth)
         const len = (6 + baseV * 34) * depth
-        const a = (0.10 + 0.55 * sig.flow) * (layer === 0 ? 0.45 : layer === 1 ? 0.8 : 1) * cut
-        ctx.strokeStyle = cF(a); ctx.lineWidth = (1.4 + 1.2 * depth) * (0.6 + sig.flow * 0.8)
+        const a = (0.14 + 0.6 * sig.flow) * (layer === 0 ? 0.5 : layer === 1 ? 0.82 : 1) * cut
+        ctx.strokeStyle = cT(a) // ← SICAKLIK rengi (akış ısındıkça mavi→kırmızı)
+        ctx.lineWidth = (1.4 + 1.2 * depth) * (0.6 + sig.flow * 0.8)
         ctx.beginPath(); ctx.moveTo(x - len, y); ctx.lineTo(x, y); ctx.stroke()
-        if (layer === 2 && sig.temp > 0.45) { // sicak → sicaklik renginde uc glow
-          const gl = (sig.temp - 0.45) * 9
+        if (layer === 2 && sig.temp > 0.5) { // çok sıcak → uçta ek kızıl glow
+          const gl = (sig.temp - 0.5) * 11
           const rg = ctx.createRadialGradient(x, y, 0, x, y, gl)
-          rg.addColorStop(0, cT(0.6 * a)); rg.addColorStop(1, cT(0))
+          rg.addColorStop(0, cT(0.7 * a)); rg.addColorStop(1, cT(0))
           ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(x, y, gl, 0, Math.PI * 2); ctx.fill()
         }
       }
@@ -354,6 +401,60 @@ export function DeviceFlowChart({
         ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(pX[i], pY[i], pR[i], 0, Math.PI * 2); ctx.fill()
       }
       ctx.globalCompositeOperation = 'source-over'
+
+      // 8) CİHAZ LED'LERİ — modüller çalışma durumuna göre KENDİ gerçek renkleriyle yanıp söner
+      //   hub: çalışıyor → YEŞİL nabız (her zaman aktif). regülatör: devredeyse (standby) yeşil. valf: izolasyonda amber.
+      const blink = 0.55 + 0.45 * Math.sin(now * 0.009)       // hizli nabiz (calisma kalp atisi)
+      const slowBlink = 0.4 + 0.6 * Math.sin(now * 0.005)
+      const led = (cx: number, cy: number, rgb: string, on: number, r: number) => {
+        if (on < 0.05) return
+        ctx.globalCompositeOperation = 'lighter'
+        const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 3.2)
+        g2.addColorStop(0, `rgba(${rgb},${0.9 * on})`); g2.addColorStop(0.4, `rgba(${rgb},${0.35 * on})`); g2.addColorStop(1, `rgba(${rgb},0)`)
+        ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(cx, cy, r * 3.2, 0, Math.PI * 2); ctx.fill()
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.fillStyle = `rgba(${rgb},${Math.min(1, 0.5 + on)})`
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+      }
+      const ledR = Math.max(1.6, dh * 0.012)
+      // Hub LED'leri (ekran yakınında) — çalışıyor: yeşil nabız + ikinci LED ince mavi (iletişim)
+      const hubLedX = dx + dw * 0.50, hubLedY = dy + dh * 0.21
+      led(hubLedX - dw * 0.03, hubLedY, '65,224,138', blink, ledR)               // RUN (yeşil)
+      led(hubLedX + dw * 0.0, hubLedY, '46,155,255', 0.4 + 0.5 * Math.sin(now * 0.013 + 1), ledR) // COMM (mavi)
+      // Regülatör LED'i — standby'da yeşil (devrede), normalde sönük
+      led(regCx + dw * 0.03, dy + dh * 0.30, '65,224,138', sig.reg * slowBlink, ledR)
+      // Valf LED'i — izolasyonda amber yanıp söner (soft-start: yavaş), normalde sönük
+      led(valveCx, dy + dh * 0.24, '255,150,40', sig.valve * blink, ledR)
+
+      // 9) CİHAZ LCD'leri — GERÇEK verilerle canlı (her satır kendi renginde + birim). Koyu cam + ince çerçeve.
+      const ro2 = readoutRef.current
+      const hub = displays[0]
+      if (hub && ro2.length) {
+        const rx = dx + hub.x * dw, ry = dy + hub.y * dh, rw = hub.w * dw, rh = hub.h * dh
+        // cam zemin (hafif koyulaştır → rakamlar okunur)
+        ctx.fillStyle = 'rgba(4,10,20,0.62)'
+        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, Math.min(4, rh * 0.12)); ctx.fill() } else ctx.fillRect(rx, ry, rw, rh)
+        ctx.strokeStyle = 'rgba(120,160,210,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1)
+        const rows = ro2.slice(0, 3)
+        const lh = rh / rows.length
+        ctx.textBaseline = 'middle'
+        for (let i = 0; i < rows.length; i++) {
+          const r = rows[i], cy = ry + lh * (i + 0.5)
+          const [rr, gg, bb] = r.rgb
+          const fs = Math.max(7, Math.min(lh * 0.5, rw * 0.16))
+          ctx.font = `700 ${fs}px ui-monospace, Menlo, monospace`
+          ctx.textAlign = 'right'
+          ctx.shadowColor = `rgba(${rr},${gg},${bb},0.9)`; ctx.shadowBlur = fs * 0.6
+          ctx.fillStyle = `rgb(${rr},${gg},${bb})`
+          ctx.fillText(r.value, rx + rw - rw * 0.30, cy)
+          ctx.shadowBlur = 0
+          ctx.font = `500 ${fs * 0.62}px ui-monospace, Menlo, monospace`
+          ctx.textAlign = 'left'
+          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.8)`
+          ctx.fillText(r.unit, rx + rw - rw * 0.27, cy)
+        }
+        ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+      }
 
       raf = requestAnimationFrame(draw)
     }
