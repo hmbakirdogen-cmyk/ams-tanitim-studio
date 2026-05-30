@@ -87,17 +87,6 @@ export function DeviceFlowChart({
     }
     img.src = asset('products/ams-front.jpg')
 
-    // Ön-render yumuşak ışık noktası (beyaz; renk additive tülden gelir)
-    const makeDot = () => {
-      const s = 48, c = document.createElement('canvas'); c.width = s; c.height = s
-      const g = c.getContext('2d')!
-      const grd = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2)
-      grd.addColorStop(0, 'rgba(255,255,255,0.95)'); grd.addColorStop(0.4, 'rgba(220,235,255,0.4)'); grd.addColorStop(1, 'rgba(220,235,255,0)')
-      g.fillStyle = grd; g.fillRect(0, 0, s, s)
-      return c
-    }
-    let dot = makeDot()
-
     const sig = { flow: 0, temp: 0 }
     const dPhase = Float32Array.from({ length: DOT_COUNT }, () => Math.random())
     const dLane = Float32Array.from({ length: DOT_COUNT }, () => Math.random() * 2 - 1)
@@ -111,7 +100,6 @@ export function DeviceFlowChart({
       canvas.width = Math.max(1, Math.round(W * dpr)); canvas.height = Math.max(1, Math.round(H * dpr))
       canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      dot = makeDot()
     }
     resize()
     const ro = new ResizeObserver(resize); ro.observe(wrap)
@@ -158,27 +146,27 @@ export function DeviceFlowChart({
       pg.addColorStop(0, 'rgba(150,175,210,0.30)'); pg.addColorStop(0.5, 'rgba(12,20,38,0.42)'); pg.addColorStop(1, 'rgba(6,10,22,0.34)')
       ctx.fillStyle = pg; ctx.fillRect(inX, top, span, pipeH)
 
-      // 3) AKAN IŞIK NOKTALARI — sade. hız ∝ debi, renk = sıcaklık, merkez hızlı (parabolik), additive ışıma.
+      // 3) AKAN ÇİZGİLER (izler) — sıcaklık renginde, soldan sağa. UZUNLUK ∝ debi hızı; merkez hızlı (parabolik); additive ışıma.
       const baseV = 0.05 + 0.95 * sig.flow
       ctx.globalCompositeOperation = 'lighter'
+      ctx.lineCap = 'round'
       const pr = pipeH * 0.4
       for (let i = 0; i < DOT_COUNT; i++) {
         const laneN = dLane[i]
-        const prof = 0.3 + 0.7 * (1 - laneN * laneN) // merkez hızlı, çeper yavaş
+        const prof = 0.3 + 0.7 * (1 - laneN * laneN) // merkez hızlı, çeper yavaş (no-slip)
         dPhase[i] += (baseV * dSpd[i] * prof * 0.5 + 0.005) * dt
         if (dPhase[i] > 1) dPhase[i] -= 1
         const x = inX + dPhase[i] * span
         const y = axisY + laneN * pr
-        const sz = (2.5 + dSz[i] * 3) * (0.7 + sig.flow * 0.6)
-        const al = (0.25 + 0.55 * sig.flow)
-        ctx.globalAlpha = al
-        // beyaz nokta + sıcaklık tülü (renk için): noktayı renkli göstermek için önce renkli alt-glow
-        ctx.fillStyle = `rgba(${tr},${tg},${tb},${al})`
-        ctx.beginPath(); ctx.arc(x, y, sz, 0, Math.PI * 2); ctx.fill()
-        ctx.globalAlpha = al * 0.7
-        ctx.drawImage(dot, (x - sz) | 0, (y - sz) | 0, (sz * 2) | 0, (sz * 2) | 0) // beyaz çekirdek parlaması
+        const len = (8 + baseV * 40) * dSz[i]          // hıza göre uzayan iz (debi yüksek=uzun çizgi)
+        const w = (1.6 + dSz[i] * 1.4) * (0.7 + sig.flow * 0.6)
+        const al = 0.22 + 0.55 * sig.flow
+        // çizgi: arkası sönük → önü parlak (akış yönü) sıcaklık renginde
+        const grd = ctx.createLinearGradient(x - len, y, x, y)
+        grd.addColorStop(0, `rgba(${tr},${tg},${tb},0)`); grd.addColorStop(1, `rgba(${tr},${tg},${tb},${al})`)
+        ctx.strokeStyle = grd; ctx.lineWidth = w
+        ctx.beginPath(); ctx.moveTo(x - len, y); ctx.lineTo(x, y); ctx.stroke()
       }
-      ctx.globalAlpha = 1
       ctx.globalCompositeOperation = 'source-over'
 
       raf = requestAnimationFrame(draw)
