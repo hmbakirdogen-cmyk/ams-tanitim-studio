@@ -11,6 +11,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
+  // GitHub Pages alt-yolda yayinlar (or. /ams-tanitim-studio/). CI build'de VITE_BASE verilir; yerelde '/' kalir.
+  // vite-plugin-pwa bu base'i otomatik kullanir (SW scope + varlik yollari). Offline korunur.
+  base: process.env.VITE_BASE || '/',
   plugins: [
     react(),
     tailwindcss(),

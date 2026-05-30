@@ -1,0 +1,46 @@
+# NE      : GitHub Pages'e otomatik yayin - master'a her push'ta Vite build + Pages deploy. HTTPS'li link -> telefonda PWA kurulur.
+# NEDEN   : Mehmet Abi statik host sectiti; mevcut gh girisiyle ek hesap gerekmeden, kod'a dokunmadan offline app yayinlanir.
+# NASIL   : npm ci -> npm run build (VITE_BASE alt-yol) -> dist'i Pages artifact olarak yukle -> deploy-pages. Pages kaynagi: GitHub Actions.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Build (Vite, Pages alt-yolu)
+        run: npm run build
+        env:
+          VITE_BASE: /ams-tanitim-studio/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
