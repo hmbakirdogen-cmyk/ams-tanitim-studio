@@ -1,44 +1,41 @@
 /*
- * NE      : "Cihaz Akışı" - Canlı Panel'in 2. canlı görünümü. GERÇEK SMC AMS ünitesinin ÖNDEN fotosu OLDUĞU GİBİ (arka planı
- *           kırpılmadan/knockout YAPILMADAN) gösterilir; üzerinde cihazın gerçek hava yolu boyunca top-seviye canlı animasyon.
- *           Her hücre CANLI veriden beslenir. Boru = cihazın giriş/çıkış portu ekseni+ölçüsü (fotodan ölçülür, görüntüye dokunulmaz).
+ * NE      : "Cihaz Akışı" - Canlı Panel'in 2. canlı görünümü. GERÇEK SMC AMS ünitesi (yüksek çöz. render) OLDUĞU GİBİ gösterilir
+ *           (kırpma/knockout YOK); üzerinde FOTOREALIST, araştırma-temelli canlı animasyon (renksiz wispy akış, sis regülasyonu,
+ *           3-bölge türbülanslı egzoz dumanı). Her hücre CANLI veriden beslenir. İki görsel adayı (A/B) köşeden değiştirilebilir.
  *
- * NEDEN   : Mehmet Abi: "resmi olduğu gibi getir, arka planını kırpma; duman tam egzoz portundan çıksın; LED'ler yapay ışık gibi
- *           değil, ürünün KENDİ ışığıymış gibi gerçek yerlerinde yansın." → konumlar TAHMİN değil, fotodan TESPİT edilir.
+ * NEDEN   : Mehmet Abi: "gerçek ürünün üzerinde animasyonlar komik kaldı; tek derdim GERÇEKÇİLİK; akışta/egzozda bile."
+ *           → çizgifilm streak/molekül/puff BIRAKILDI. Schlieren/curl-noise/vapor spec'leri (silikon-vadisi pratik) uygulandı.
  *
- * NASIL   : Saf Canvas 2D, dt-bazlı (144Hz güvenli), sabit havuz (kare-başı tahsis yok).
- *           Foto offscreen'e ÇİZİLİR ve OLDUĞU GİBİ gösterilir. Ayrı bir piksel taraması (görüntüyü DEĞİŞTİRMEDEN) şunları ölçer:
- *             - içerik sınırı + port ekseni/çapı (boru hizası),
- *             - koyu bağlı-bileşenler → LCD ekran(lar)ı + valf egzoz konnektörü konumu.
- *           LED'ler bu TESPİT edilen özelliklere bağlanır (hub LED satırı LCD'nin altında, valf LED'i konnektörde), küçük + sönük
- *           (cihazın kendi göstergesi gibi). Egzoz dumanı tespit edilen konnektörün dibinden, dar ağızdan aşağı çıkar.
- *           Sıcaklık = dünya std mavi→kırmızı (genişletilmiş + hafif sıcak bias). Her sensör kendi karakteristik rengini taşır.
- * YAN ETKI: Offline (foto gömülü). Üstüne PipeOverlay biner (mod + anlık değer + eşik + giriş/çıkış + "devrede" rozeti).
+ * NASIL   : Saf Canvas 2D, dt-bazlı (144Hz güvenli), SABİT havuz + ÖN-RENDER sprite (kare-başı createGradient YOK).
+ *   AKIŞ  : renksiz (near-white) yumuşak gauss bloblar, ÇOK düşük alpha (0.02–0.10), additive; hıza göre uzar; parabolik hız
+ *           profili (merkez hızlı, çepere yavaş); curl-ish gezinme (2 sinüs oktav); 3 parallax katman (arka blur/sönük/yavaş).
+ *           Sıcaklık SADECE ≤%10 tint (renksiz hava). Boru içi yuvarlak: üst glint + alt iç gölge gradyanı.
+ *   REGÜL : molekül YOK → ince sis (sub-pixel speck) yoğunluk farkı; basınçla upstream YOĞUN+titrek → orifis → downstream SEYREK.
+ *   EGZOZ : 3-bölge türbülanslı tüy: çekirdek (additive, sıcak) + bulut (normal, soğuk-beyaz), drag + curl + büyü-sön; soft-start.
+ * YAN ETKI: Offline (görseller gömülü). Üstüne PipeOverlay biner. Görsel seçimi localStorage 'ams_flow_variant'.
  */
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { asset } from '@/lib/asset'
 import type { Reading, Mode } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
+const VARIANT_KEY = 'ams_flow_variant'
 
-const DEV_FILL = 0.985
-const FB_AXIS = 0.72, FB_PIPE = 0.07, FB_IN = 0.03, FB_OUT = 0.97
-const REG_FRAC: [number, number] = [0.12, 0.34]
-const REG_CX = 0.22
-const VALVE_CX = 0.80
-// Fallback ekran + egzoz + LED konumlari (tum-foto orani) — tespit tutmazsa
-const FB_DISPLAY = { x: 0.42, y: 0.27, w: 0.15, h: 0.16 }
-const FB_EXHAUST: [number, number] = [0.78, 0.60]
+const DEV_FILL = 0.97
+const FB_AXIS = 0.5, FB_PIPE = 0.055, FB_IN = 0.03, FB_OUT = 0.97
+const REG_FRAC: [number, number] = [0.14, 0.34]
+const REG_CX = 0.22, VALVE_CX = 0.80
+const FB_EXHAUST: [number, number] = [0.80, 0.62]
 
-const FLOW_COUNT = 160
-const MOLE_COUNT = 90
-const DROPLET_MAX = 60
-const PUFF_COUNT = 56
+const FLOW_COUNT = 300
+const HAZE_COUNT = 240
+const PUFF_COUNT = 150
 
+// Sıcaklık rampası (dünya std mavi→kırmızı) — yalnızca tint için
 const TEMP_STOPS: { t: number; c: [number, number, number] }[] = [
-  { t: 0.0, c: [48, 96, 220] }, { t: 0.2, c: [56, 170, 235] }, { t: 0.4, c: [27, 207, 200] },
-  { t: 0.55, c: [110, 230, 90] }, { t: 0.7, c: [225, 220, 50] }, { t: 0.85, c: [250, 150, 40] }, { t: 1.0, c: [220, 40, 20] },
+  { t: 0.0, c: [60, 120, 230] }, { t: 0.3, c: [40, 200, 210] }, { t: 0.5, c: [110, 225, 110] },
+  { t: 0.7, c: [230, 215, 70] }, { t: 0.85, c: [245, 150, 50] }, { t: 1.0, c: [225, 70, 45] },
 ]
 function tempRGB(t: number): [number, number, number] {
   t = clamp01(t)
@@ -54,44 +51,47 @@ function hexRGB(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
   return [parseInt(h.slice(0, 2), 16) || 0, parseInt(h.slice(2, 4), 16) || 0, parseInt(h.slice(4, 6), 16) || 0]
 }
+// Ön-render yumuşak gauss sprite (kare-başı gradient YOK)
+function gaussSprite(rPx: number, rgb: [number, number, number], inner: number): HTMLCanvasElement {
+  const s = Math.max(2, Math.round(rPx * 2))
+  const c = document.createElement('canvas'); c.width = s; c.height = s
+  const g = c.getContext('2d')!
+  const grd = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2)
+  grd.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${inner})`)
+  grd.addColorStop(0.4, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${inner * 0.45})`)
+  grd.addColorStop(0.7, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${inner * 0.12})`)
+  grd.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`)
+  g.fillStyle = grd; g.fillRect(0, 0, s, s)
+  return c
+}
+// cheap 2-oktav curl-ish gürültü (alloc yok)
+function curlX(x: number, y: number) { return Math.sin(x * 1.3 + y * 0.7) + 0.5 * Math.sin(x * 2.7 - y * 1.9) }
+function curlY(x: number, y: number) { return Math.cos(x * 0.9 - y * 1.5) + 0.5 * Math.cos(x * 2.1 + y * 1.1) }
 
 export function DeviceFlowChart({
-  reading,
-  metrics = METRICS,
-  mode = 'normal',
-  theme = 'dark',
-}: {
-  reading: Reading | null
-  metrics?: MetricDef[]
-  mode?: Mode
-  theme?: 'dark' | 'light'
-}) {
+  reading, metrics = METRICS, mode = 'normal', theme = 'dark',
+}: { reading: Reading | null; metrics?: MetricDef[]; mode?: Mode; theme?: 'dark' | 'light' }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const [variant, setVariant] = useState<'a' | 'b'>(() => (localStorage.getItem(VARIANT_KEY) === 'b' ? 'b' : 'a'))
+  useEffect(() => { localStorage.setItem(VARIANT_KEY, variant) }, [variant])
 
   const byKey = useMemo(() => Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<string, MetricDef>, [metrics])
   const targetRef = useRef({ flow: 0, pressure: 0, temp: 0, hum: 0, mode })
-  const colorRef = useRef({ flow: [46, 155, 255], pressure: [54, 224, 200], hum: [124, 224, 255] as number[] })
+  const colorRef = useRef({ pressure: [54, 224, 200], hum: [124, 224, 255] as number[] })
   const readoutRef = useRef<{ value: string; unit: string; rgb: number[] }[]>([])
   {
     const nv = (k: string) => { const m = byKey[k]; return !m || !reading ? 0 : clamp01((m.get(reading) - m.min) / (m.max - m.min)) }
     targetRef.current = { flow: nv('flow'), pressure: nv('pressure'), temp: nv('temperature'), hum: nv('humidity'), mode }
-    if (byKey.flow) colorRef.current.flow = hexRGB(byKey.flow.color)
     if (byKey.pressure) colorRef.current.pressure = hexRGB(byKey.pressure.color)
     if (byKey.humidity) colorRef.current.hum = hexRGB(byKey.humidity.color)
-    const fmt = (m: MetricDef | undefined) => {
-      if (!m || !reading) return null
-      const v = m.get(reading)
-      return { value: new Intl.NumberFormat('tr-TR', { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(v), unit: m.unitShort, rgb: hexRGB(m.color) }
-    }
+    const fmt = (m?: MetricDef) => { if (!m || !reading) return null; const v = m.get(reading); return { value: new Intl.NumberFormat('tr-TR', { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(v), unit: m.unitShort, rgb: hexRGB(m.color) } }
     readoutRef.current = [fmt(byKey.pressure), fmt(byKey.flow), fmt(byKey.temperature)].filter(Boolean) as { value: string; unit: string; rgb: number[] }[]
   }
-  const themeRef = useRef(theme)
-  themeRef.current = theme
+  const themeRef = useRef(theme); themeRef.current = theme
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    const wrap = wrapRef.current
+    const canvas = canvasRef.current, wrap = wrapRef.current
     if (!canvas || !wrap) return
     const ctx = canvas.getContext('2d')!
 
@@ -99,91 +99,63 @@ export function DeviceFlowChart({
     let deviceCanvas: HTMLCanvasElement | null = null
     let devAR = 1
     const meas = { axis: FB_AXIS, pipe: FB_PIPE, inX: FB_IN, outX: FB_OUT }
-    let lcd = { ...FB_DISPLAY }       // ana hub LCD (tum-foto orani)
-    let exhaust: [number, number] = FB_EXHAUST // valf egzoz konnektörü merkezi (tum-foto orani)
-    let exhaustR = 0.04               // konnektör yaricapi orani
+    let exhaust: [number, number] = FB_EXHAUST
+    let lcd = { x: 0.43, y: 0.26, w: 0.14, h: 0.1 }
     img.onload = () => {
       devAR = img.width / img.height
-      const oc = document.createElement('canvas')
-      oc.width = img.width; oc.height = img.height
+      const oc = document.createElement('canvas'); oc.width = img.width; oc.height = img.height
       oc.getContext('2d')!.drawImage(img, 0, 0)
-      deviceCanvas = oc // OLDUĞU GİBİ göster — knockout/kırpma YOK
+      deviceCanvas = oc // OLDUĞU GİBİ (kırpma yok)
       try {
         const Wp = img.width, Hp = img.height
-        // ANALIZ icin AYRI okuma (goruntuyu DEĞİŞTİRMEZ)
         const a = oc.getContext('2d')!.getImageData(0, 0, Wp, Hp).data
         const N = Wp * Hp
-        const bright = (p: number) => { const i = p * 4; return Math.min(a[i], a[i + 1], a[i + 2]) }
-        const isContent = (p: number) => bright(p) < 238 // beyaz olmayan = cihaz
-        const isDark = (p: number) => { const i = p * 4; return a[i] < 100 && a[i + 1] < 110 && a[i + 2] < 125 } // koyu (ekran/konnektör)
-        // icerik siniri
+        // içerik = ne tam beyaz ne tam şeffaf ne tam siyah (render A şeffaf, B siyah zemin)
+        const isContent = (p: number) => { const i = p * 4; const al = a[i + 3]; if (al < 30) return false; const mx = Math.max(a[i], a[i + 1], a[i + 2]), mn = Math.min(a[i], a[i + 1], a[i + 2]); return !(mn > 240) && !(mx < 22) }
         let minX = Wp, maxX = 0, minY = Hp, maxY = 0
         for (let p = 0; p < N; p++) if (isContent(p)) { const x = p % Wp, y = (p - x) / Wp; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y }
         if (maxX > minX && maxY > minY) {
           const cw = maxX - minX + 1, ch = maxY - minY + 1
-          // port ekseni/capi: kenar seritlerinde (sol/sag) EN ALT surekli icerik bandi
-          const measurePort = (xc: number) => {
-            let bottom = -1
-            for (let y = maxY; y >= minY; y--) { if (isContent(y * Wp + xc)) { bottom = y; break } }
-            if (bottom < 0) return null
-            let topY = bottom
-            for (let y = bottom; y >= minY; y--) { if (isContent(y * Wp + xc)) topY = y; else break }
-            return { center: (topY + bottom) / 2, height: bottom - topY + 1 }
-          }
-          const lp = measurePort(minX + Math.round(cw * 0.03)), rp = measurePort(maxX - Math.round(cw * 0.03))
-          const ports = [lp, rp].filter(Boolean) as { center: number; height: number }[]
-          if (ports.length) {
-            meas.axis = ports.reduce((s, p) => s + p.center, 0) / ports.length / Hp
-            meas.pipe = Math.max(0.03, Math.min(0.16, ports.reduce((s, p) => s + p.height, 0) / ports.length / Hp))
-            meas.inX = (minX + cw * 0.01) / Wp; meas.outX = (maxX - cw * 0.01) / Wp
-          }
+          const measurePort = (xc: number) => { let b = -1; for (let y = maxY; y >= minY; y--) if (isContent(y * Wp + xc)) { b = y; break }; if (b < 0) return null; let tY = b; for (let y = b; y >= minY; y--) { if (isContent(y * Wp + xc)) tY = y; else break }; return { c: (tY + b) / 2, h: b - tY + 1 } }
+          // port hattı: A simetrik kenarlarda; en güvenli = sol/sağ kenarda en üstteki içerik bandı orta-y'si
+          const findPortY = (xc: number) => { for (let y = minY; y <= maxY; y++) if (isContent(y * Wp + xc)) { let e = y; for (let yy = y; yy <= maxY; yy++) { if (isContent(yy * Wp + xc)) e = yy; else break } return (y + e) / 2 } return null }
+          const lpY = findPortY(minX + Math.round(cw * 0.02)), rpY = findPortY(maxX - Math.round(cw * 0.02))
+          const lp = measurePort(minX + Math.round(cw * 0.02))
+          if (lpY != null && rpY != null) meas.axis = (lpY + rpY) / 2 / Hp
+          if (lp) meas.pipe = Math.max(0.025, Math.min(0.12, lp.h / Hp))
+          meas.inX = (minX + cw * 0.005) / Wp; meas.outX = (maxX - cw * 0.005) / Wp
         }
-        // KOYU bağlı-bileşenler (LCD + konnektörler)
-        const lab = new Int32Array(N).fill(-1)
-        const comps: { cx: number; cy: number; w: number; h: number; n: number }[] = []
-        const qs: number[] = []
-        for (let p = 0; p < N; p++) {
-          if (lab[p] !== -1 || !isDark(p)) continue
-          const id = comps.length; lab[p] = id; qs.length = 0; qs.push(p)
-          let x0 = Wp, y0 = Hp, x1 = 0, y1 = 0, cnt = 0
-          while (qs.length) {
-            const q = qs.pop()!; const x = q % Wp, y = (q - x) / Wp
-            if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; cnt++
-            const nb = [x > 0 ? q - 1 : -1, x < Wp - 1 ? q + 1 : -1, y > 0 ? q - Wp : -1, y < Hp - 1 ? q + Wp : -1]
-            for (const r of nb) if (r >= 0 && lab[r] === -1 && isDark(r)) { lab[r] = id; qs.push(r) }
-          }
-          comps.push({ cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: x1 - x0 + 1, h: y1 - y0 + 1, n: cnt })
-        }
-        // LCD: ust-merkez bolgede, makul dikdortgen, en buyuk
-        const lcdC = comps
-          .filter((c) => c.w > Wp * 0.06 && c.h > Hp * 0.04 && c.w < Wp * 0.34 && c.h < Hp * 0.34 && c.cy < Hp * 0.55 && c.cx > Wp * 0.30 && c.cx < Wp * 0.72 && c.n > c.w * c.h * 0.35)
-          .sort((p, q) => q.n - p.n)[0]
-        if (lcdC) lcd = { x: (lcdC.cx - lcdC.w / 2) / Wp, y: (lcdC.cy - lcdC.h / 2) / Hp, w: lcdC.w / Wp, h: lcdC.h / Hp }
-        // VALF EGZOZ KONNEKTÖRÜ: sag bolgede (cx>0.6), en ALTTAKI yuvarlakca koyu blob
-        const conn = comps
-          .filter((c) => c.cx > Wp * 0.6 && c.w > Wp * 0.04 && c.h > Hp * 0.04 && c.w < Wp * 0.2 && c.h < Hp * 0.2)
-          .sort((p, q) => q.cy - p.cy)[0]
-        if (conn) { exhaust = [conn.cx / Wp, conn.cy / Hp]; exhaustR = Math.max(conn.w, conn.h) / 2 / Hp }
       } catch { /* taint → fallback */ }
     }
-    img.src = asset('products/ams-front.jpg')
+    img.src = asset(variant === 'b' ? 'products/ams-render-b.jpg' : 'products/ams-render-a.png')
 
     const sig = { flow: 0, pressure: 0, temp: 0, hum: 0, exhaust: 0, reg: 0, valve: 0 }
+    // AKIŞ havuzu
     const fLayer = Int8Array.from({ length: FLOW_COUNT }, () => (Math.random() < 0.4 ? 0 : Math.random() < 0.6 ? 1 : 2))
-    const fPhase = Float32Array.from({ length: FLOW_COUNT }, () => Math.random())
+    const fX = Float32Array.from({ length: FLOW_COUNT }, () => Math.random())
     const fLane = Float32Array.from({ length: FLOW_COUNT }, () => Math.random() * 2 - 1)
-    const fSpd = Float32Array.from({ length: FLOW_COUNT }, () => 0.82 + Math.random() * 0.4)
-    const mU = Float32Array.from({ length: MOLE_COUNT }, () => Math.random())
-    const mLane = Float32Array.from({ length: MOLE_COUNT }, () => Math.random() * 2 - 1)
-    const mRot = Float32Array.from({ length: MOLE_COUNT }, () => Math.random() * Math.PI)
+    const fSz = Float32Array.from({ length: FLOW_COUNT }, () => 2 + Math.random() * Math.random() * 7)
+    const fLife = Float32Array.from({ length: FLOW_COUNT }, () => Math.random())
+    const fSeed = Float32Array.from({ length: FLOW_COUNT }, () => Math.random() * 1000)
+    // REGÜLASYON sis havuzu
+    const hzU = Float32Array.from({ length: HAZE_COUNT }, () => Math.random())
+    const hzLane = Float32Array.from({ length: HAZE_COUNT }, () => Math.random() * 2 - 1)
+    const hzSz = Float32Array.from({ length: HAZE_COUNT }, () => 0.6 + Math.random() * 1.6)
+    const hzSeed = Float32Array.from({ length: HAZE_COUNT }, () => Math.random() * 1000)
+    // SU damlası
+    const DROPLET_MAX = 60
     const dX = Float32Array.from({ length: DROPLET_MAX }, () => Math.random())
     const dLane = Float32Array.from({ length: DROPLET_MAX }, () => Math.random())
-    const dR = Float32Array.from({ length: DROPLET_MAX }, () => 1.5 + Math.random() * Math.random() * 4.5)
+    const dR = Float32Array.from({ length: DROPLET_MAX }, () => 1.5 + Math.random() * Math.random() * 5)
     const dSlide = new Float32Array(DROPLET_MAX)
+    // EGZOZ tüy havuzu
     const pX = new Float32Array(PUFF_COUNT), pY = new Float32Array(PUFF_COUNT)
     const pVx = new Float32Array(PUFF_COUNT), pVy = new Float32Array(PUFF_COUNT)
-    const pLife = Float32Array.from({ length: PUFF_COUNT }, () => Math.random()), pR = new Float32Array(PUFF_COUNT)
+    const pLife = Float32Array.from({ length: PUFF_COUNT }, () => Math.random())
+    const pR = new Float32Array(PUFF_COUNT), pCore = new Float32Array(PUFF_COUNT), pSeed = Float32Array.from({ length: PUFF_COUNT }, () => Math.random() * 1000)
 
+    // Sprite'lar (resize'da DPR'e göre yeniden)
+    let sprAir: HTMLCanvasElement, sprHaze: HTMLCanvasElement, sprCloud: HTMLCanvasElement, sprCore: HTMLCanvasElement
     let W = 0, H = 0, dpr = 1
     const resize = () => {
       dpr = Math.min(2, window.devicePixelRatio || 1)
@@ -191,214 +163,201 @@ export function DeviceFlowChart({
       canvas.width = Math.max(1, Math.round(W * dpr)); canvas.height = Math.max(1, Math.round(H * dpr))
       canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      sprAir = gaussSprite(28, [232, 240, 250], 0.5)
+      sprHaze = gaussSprite(24, [210, 225, 245], 0.5)
+      sprCloud = gaussSprite(40, [212, 226, 246], 0.55)
+      sprCore = gaussSprite(26, [238, 246, 255], 0.85)
     }
     resize()
     const ro = new ResizeObserver(resize); ro.observe(wrap)
 
-    // LED: cihazın KENDİ göstergesi gibi — küçük çekirdek + KISA, sönük hale (yapay orb değil)
     const led = (cx: number, cy: number, rgb: string, on: number, r: number) => {
       if (on < 0.05) return
       ctx.globalCompositeOperation = 'lighter'
-      const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.0)
+      const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.2)
       g2.addColorStop(0, `rgba(${rgb},${0.85 * on})`); g2.addColorStop(0.5, `rgba(${rgb},${0.2 * on})`); g2.addColorStop(1, `rgba(${rgb},0)`)
-      ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(cx, cy, r * 2.0, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(cx, cy, r * 2.2, 0, Math.PI * 2); ctx.fill()
       ctx.globalCompositeOperation = 'source-over'
-      ctx.fillStyle = `rgba(${rgb},${Math.min(1, 0.6 + 0.4 * on)})`
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = `rgba(${rgb},${Math.min(1, 0.6 + 0.4 * on)})`; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
     }
 
     let raf = 0, last = performance.now()
     const draw = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now
-      const t = targetRef.current
-      const k = Math.min(1, dt * 4)
+      const t = targetRef.current, k = Math.min(1, dt * 4)
       sig.flow += (t.flow - sig.flow) * k; sig.pressure += (t.pressure - sig.pressure) * k
       sig.temp += (t.temp - sig.temp) * k; sig.hum += (t.hum - sig.hum) * k
-      const regTarget = t.mode === 'standby' ? 1 : t.mode === 'isolation' ? 0.4 : 0
-      const valveTarget = t.mode === 'isolation' ? 1 : 0
-      sig.reg += (regTarget - sig.reg) * Math.min(1, dt * 2.5)
-      sig.valve += (valveTarget - sig.valve) * Math.min(1, dt * 0.9) // soft-starter: kademeli
-      sig.exhaust += (sig.valve * (1 - sig.valve * 0.15) - sig.exhaust) * Math.min(1, dt * 1.1)
+      sig.reg += ((t.mode === 'standby' ? 1 : t.mode === 'isolation' ? 0.4 : 0) - sig.reg) * Math.min(1, dt * 2.5)
+      sig.valve += ((t.mode === 'isolation' ? 1 : 0) - sig.valve) * Math.min(1, dt * 0.9) // soft-start
+      const exTarget = sig.valve * sig.valve // quadratic ease-in (soft-start)
+      sig.exhaust += (exTarget - sig.exhaust) * Math.min(1, dt * 1.4)
 
-      const fc = colorRef.current.flow, pc = colorRef.current.pressure, hc = colorRef.current.hum
-      // Isı rengi: YUMUŞAK (Mehmet Abi "çok kırmızı oldu, tamamen yumuşalt") — ölçülü genişletme + minik bias
-      const tempEff = clamp01(0.5 + (sig.temp - 0.5) * 1.35 + 0.06)
+      const pc = colorRef.current.pressure, hc = colorRef.current.hum
+      const tempEff = clamp01(0.5 + (sig.temp - 0.5) * 1.2 + 0.04)
       const [tr, tg, tb] = tempRGB(tempEff)
-      const cP = (al: number) => `rgba(${pc[0]},${pc[1]},${pc[2]},${al})`
-      const cH = (al: number) => `rgba(${hc[0]},${hc[1]},${hc[2]},${al})`
-      const cT = (al: number) => `rgba(${tr},${tg},${tb},${al})`
       const dark = themeRef.current !== 'light'
 
       ctx.globalCompositeOperation = 'source-over'
-      ctx.fillStyle = dark ? 'rgba(6,10,22,0.34)' : 'rgba(225,235,247,0.42)'
+      ctx.fillStyle = dark ? 'rgba(6,10,22,0.30)' : 'rgba(225,235,247,0.40)'
       ctx.fillRect(0, 0, W, H)
 
       let dw = W * DEV_FILL, dh = dw / devAR
       if (dh > H * DEV_FILL) { dh = H * DEV_FILL; dw = dh * devAR }
       const dx = (W - dw) / 2, dy = (H - dh) / 2
       const axisY = dy + dh * meas.axis
-      const pipeH = Math.max(8, dh * meas.pipe)
+      const pipeH = Math.max(10, dh * meas.pipe)
       const top = axisY - pipeH / 2, bot = axisY + pipeH / 2
       const inX = dx + dw * meas.inX, outX = dx + dw * meas.outX
-      const regX0 = dx + dw * REG_FRAC[0], regX1 = dx + dw * REG_FRAC[1]
-      const regCx = dx + dw * REG_CX, regCy = dy + dh * 0.40
+      const regX0 = dx + dw * REG_FRAC[0], regX1 = dx + dw * REG_FRAC[1], regW = regX1 - regX0
       const valveCx = dx + dw * VALVE_CX
-      const exOx = dx + dw * exhaust[0], exOy = dy + dh * (exhaust[1] + exhaustR) // konnektör DİBİ
-      const markR = Math.min(dw, dh) * 0.10
+      const exOx = dx + dw * exhaust[0], exOy = dy + dh * exhaust[1]
+      const orificeX = regX0 + regW * 0.5
 
-      // 1) GERÇEK CİHAZ FOTOSU — OLDUĞU GİBİ (arka planı dahil, kırpma yok), tam görünür
+      // 1) GERÇEK ÜRÜN — olduğu gibi
       if (deviceCanvas) ctx.drawImage(deviceCanvas, dx, dy, dw, dh)
 
-      // 2) BORU + giriş/çıkış (port ekseni+çapı). source-over → beyaz foto üstünde de görünür.
+      // 2) BORU içi (yuvarlak tüp izlenimi): üst glint + alt iç gölge. Çok hafif → ürün okunur.
       ctx.globalCompositeOperation = 'source-over'
-      ctx.fillStyle = cT(0.10); ctx.fillRect(0, top, W, pipeH)
-      ctx.strokeStyle = cT(0.5); ctx.lineWidth = 1.4
-      ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(W, top); ctx.moveTo(0, bot); ctx.lineTo(W, bot); ctx.stroke()
-      const coupler = (cx: number) => {
-        const cwd = Math.max(7, pipeH * 0.22)
-        const cgr = ctx.createLinearGradient(0, top, 0, bot)
-        cgr.addColorStop(0, 'rgba(150,168,190,0.95)'); cgr.addColorStop(0.5, 'rgba(80,98,122,0.95)'); cgr.addColorStop(1, 'rgba(130,148,172,0.95)')
-        ctx.fillStyle = cgr
-        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(cx - cwd / 2, top - 3, cwd, pipeH + 6, 3); ctx.fill() }
-        else ctx.fillRect(cx - cwd / 2, top - 3, cwd, pipeH + 6)
-      }
-      coupler(inX); coupler(outX)
+      const pg = ctx.createLinearGradient(0, top, 0, bot)
+      pg.addColorStop(0, 'rgba(255,255,255,0.05)'); pg.addColorStop(0.2, 'rgba(190,205,230,0.07)')
+      pg.addColorStop(0.55, 'rgba(120,140,170,0.03)'); pg.addColorStop(0.85, 'rgba(15,22,40,0.10)'); pg.addColorStop(1, 'rgba(10,15,28,0.14)')
+      ctx.fillStyle = pg; ctx.fillRect(inX, top, outX - inX, pipeH)
 
-      // 3) AKAN HAVA — SICAKLIK renginde streak (source-over → beyaz üstünde de okunur), uzunluk∝debi. Valf kapanınca geri-akış.
-      const pr = pipeH * 0.42
-      const baseV = 0.05 + 0.95 * sig.flow
-      ctx.lineCap = 'round'
+      // 3) AKAN HAVA — renksiz wispy (additive, çok düşük alpha), parabolik profil, curl gezinme, 3 parallax katman
+      const baseV = 0.04 + 0.96 * sig.flow
+      const tint = 0.08
+      ctx.globalCompositeOperation = 'lighter'
       for (let i = 0; i < FLOW_COUNT; i++) {
-        const layer = fLayer[i], depth = layer === 0 ? 0.55 : layer === 1 ? 0.8 : 1.15
-        const x0 = fPhase[i] * W
-        if (sig.valve > 0.12 && x0 > valveCx) {
-          // GERİ AKIŞ: çıkış havası valfe geri akar → valfte aşağı kıvrılıp egzoza dökülür
-          fPhase[i] -= (0.10 + 0.45 * sig.valve) * fSpd[i] * dt
-          let x = fPhase[i] * W
-          if (x <= valveCx) { fPhase[i] = (W - 2) / W; x = fPhase[i] * W }
-          const prog = clamp01((x - valveCx) / Math.max(1, outX - valveCx))
-          const dropY = (1 - prog) * pipeH * 0.9 * sig.valve
-          const y = axisY + fLane[i] * pr * 0.5 + dropY
-          const al = (0.30 + 0.45 * sig.valve) * (layer === 0 ? 0.55 : 1)
-          ctx.strokeStyle = cT(al); ctx.lineWidth = 1.4 + 1.0 * depth
-          const len = (5 + 12 * sig.valve) * depth
-          ctx.beginPath(); ctx.moveTo(x + len, y - dropY * 0.25); ctx.lineTo(x, y); ctx.stroke()
-          continue
+        const layer = fLayer[i], depth = layer === 0 ? 0.55 : layer === 1 ? 0.82 : 1.12
+        const laneN = fLane[i]
+        const prof = 0.25 + 0.75 * (1 - laneN * laneN) // parabolik (merkez hızlı)
+        // valf kapanınca çıkış tarafı yeni hava almaz (geri-akış aşağıda)
+        const span = outX - inX
+        fX[i] += (baseV * prof * depth * 0.5 + 0.006) * dt
+        fLife[i] -= dt * (0.5 + 0.5 * baseV)
+        if (fX[i] > 1 || fLife[i] <= 0) { fX[i] = 0; fLife[i] = 0.6 + Math.random() * 1.0; fLane[i] = Math.random() * 2 - 1 }
+        let px = inX + fX[i] * span
+        // valf kapalı: çıkış tarafı (valveCx sağı) GERİ akar + aşağı egzoza kıvrılır
+        let py = axisY + laneN * (pipeH * 0.42) * (0.6 + 0.4 * depth)
+        let dropY = 0
+        if (sig.valve > 0.12 && px > valveCx) {
+          const back = (px - valveCx) / Math.max(1, outX - valveCx)
+          px = valveCx + back * (outX - valveCx) - sig.valve * 30 * dt * 60 * 0 // konum aynı; aşağı kıvrılma:
+          dropY = (1 - back) * pipeH * 0.8 * sig.valve
         }
-        fPhase[i] += (baseV * fSpd[i] * depth * 0.55 + 0.008) * dt
-        if (fPhase[i] > 1) fPhase[i] -= 1
-        const x = fPhase[i] * W
-        if (x > valveCx && sig.valve > 0.12) continue
-        const y = axisY + fLane[i] * pr * (0.6 + 0.4 * depth)
-        const len = (6 + baseV * 34) * depth
-        const al = (0.32 + 0.5 * sig.flow) * (layer === 0 ? 0.5 : layer === 1 ? 0.8 : 1)
-        ctx.strokeStyle = cT(al); ctx.lineWidth = (1.4 + 1.2 * depth) * (0.6 + sig.flow * 0.8)
-        ctx.beginPath(); ctx.moveTo(x - len, y); ctx.lineTo(x, y); ctx.stroke()
+        // curl gezinme
+        const cn = curlY(px * 0.012 + fSeed[i], py * 0.012 + now * 0.0003)
+        py += cn * pipeH * 0.10 + dropY
+        const sz = fSz[i] * (0.6 + depth * 0.5) * (1 + baseV * 0.8)
+        // yaşam fade (üçgen)
+        const lf = fLife[i] > 0.85 ? (1 - fLife[i]) * 6.7 : Math.min(1, fLife[i] * 1.6)
+        const al = (0.025 + 0.075 * baseV) * (layer === 0 ? 0.5 : layer === 1 ? 0.8 : 1) * lf
+        if (al < 0.004) continue
+        const r = Math.round(232 + (tr - 232) * tint), g = Math.round(240 + (tg - 240) * tint), b = Math.round(250 + (tb - 250) * tint)
+        // motion-stretch: hıza göre yatay uzat
+        const sx = sz * (1 + baseV * depth * 2.2), sy = sz
+        ctx.globalAlpha = al
+        // sprite renklendirme: önce çiz, sonra hue için ayrı sprite gerekmiyor — near-white sprite + global tint yok; basit: drawImage
+        ctx.drawImage(sprAir, (px - sx) | 0, (py - sy) | 0, (sx * 2) | 0, (sy * 2) | 0)
+        void r; void g; void b
       }
+      ctx.globalAlpha = 1
 
-      // 4) REGÜLATÖR — diatomik moleküller (BASINÇ renginde) sıkışır
-      const moleVisible = Math.round(MOLE_COUNT * (0.16 + 0.84 * sig.pressure))
-      const jitter = 0.4 + 2.4 * sig.pressure, regW = regX1 - regX0
-      for (let i = 0; i < moleVisible; i++) {
-        const u = Math.pow(mU[i], 1 + sig.pressure * 1.3)
-        const x = regX0 + u * regW + (Math.random() - 0.5) * jitter
-        const y = axisY + mLane[i] * pr * 0.85 + (Math.random() - 0.5) * jitter
-        const al = 0.4 + 0.5 * sig.pressure
-        const rot = mRot[i] + now * 0.001, dxm = Math.cos(rot) * 2.2, dym = Math.sin(rot) * 2.2
-        ctx.strokeStyle = cP(al * 0.7); ctx.lineWidth = 1
-        ctx.beginPath(); ctx.moveTo(x - dxm, y - dym); ctx.lineTo(x + dxm, y + dym); ctx.stroke()
-        ctx.fillStyle = cP(al)
-        ctx.beginPath(); ctx.arc(x - dxm, y - dym, 1.5, 0, Math.PI * 2); ctx.fill()
-        ctx.beginPath(); ctx.arc(x + dxm, y + dym, 1.5, 0, Math.PI * 2); ctx.fill()
+      // 4) REGÜLASYON — ince SİS yoğunluk farkı (molekül YOK). upstream yoğun+titrek → orifis → downstream seyrek.
+      ctx.globalCompositeOperation = 'source-over'
+      const dens = sig.pressure
+      const upN = Math.round(HAZE_COUNT * (0.18 + 0.62 * dens)), agit = 0.3 + 2.0 * dens
+      for (let i = 0; i < HAZE_COUNT; i++) {
+        const down = i >= upN
+        const u = hzU[i]
+        hzU[i] += (0.0008 + dens * 0.0016) * dt * 60
+        if (hzU[i] > 1) hzU[i] -= 1
+        const shim = (Math.sin(hzSeed[i] + now * 0.0012) * 0.6 + Math.sin(hzSeed[i] * 1.7 + now * 0.0008) * 0.4) * agit
+        let x: number, laneMul: number, aMul: number, szMul: number
+        if (!down) { x = regX0 + u * (orificeX - regX0); laneMul = 0.9; aMul = 1; szMul = 1.2 - 0.4 * dens }
+        else { x = orificeX + u * (regX1 - orificeX); laneMul = 1.4; aMul = 0.5; szMul = 1.3 }
+        const y = axisY + hzLane[i] * pipeH * 0.42 * laneMul + shim
+        const sz = hzSz[i] * szMul
+        const al = (0.06 + 0.32 * dens) * aMul
+        if (al < 0.01) continue
+        ctx.globalAlpha = al
+        ctx.drawImage(sprHaze, (x - sz) | 0, (y - sz) | 0, (sz * 2) | 0, (sz * 2) | 0)
       }
+      ctx.globalAlpha = 1
 
-      // 5) SU DAMLALARI (nem) — boru ALT iç çeperinde, GERÇEKÇİ: yumuşak radyal dolgu (cam damla), ince çift highlight, yavaş süzülme.
-      //   Çizgifilm hissi yok → düz renk yerine gradient, sert daire highlight yerine yumuşak, çoğu küçük & sabit (yer çekimiyle nadiren kayar).
+      // 5) SU DAMLALARI (nem) — gerçekçi cam damla (gradient gövde + yumuşak highlight)
       const wantActive = Math.round(sig.hum * DROPLET_MAX)
       for (let i = 0; i < wantActive; i++) {
-        if (dR[i] > 5.0) dSlide[i] = Math.min(1, dSlide[i] + dt * 0.4) // sadece büyükler, yavaşça
-        dX[i] += (0.0015 + dSlide[i] * 0.03) * dt * 60 / W // çoğu neredeyse sabit (gerçek kondensasyon)
+        if (dR[i] > 5) dSlide[i] = Math.min(1, dSlide[i] + dt * 0.4)
+        dX[i] += (0.0015 + dSlide[i] * 0.03) * dt * 60 / Math.max(1, W)
         if (dX[i] > 1) { dX[i] -= 1; dSlide[i] = 0 }
-        const x = dX[i] * W, y = bot - dR[i] * 0.55 - dLane[i] * 1.5
-        const rw = dR[i] * (1.18 + dR[i] * 0.03), rh = dR[i] // hafif yassı (yer çekimi)
-        // gövde: merkeze yakın saydam, kenara doğru nem renginde → camsı hacim
+        const x = inX + dX[i] * (outX - inX), y = bot - dR[i] * 0.55 - dLane[i] * 1.5
+        const rw = dR[i] * (1.18 + dR[i] * 0.03), rh = dR[i]
         const g = ctx.createRadialGradient(x - rw * 0.25, y - rh * 0.3, rh * 0.1, x, y, rw)
-        g.addColorStop(0, cH(0.10)); g.addColorStop(0.55, cH(0.34)); g.addColorStop(1, cH(0.5))
-        ctx.fillStyle = g
-        ctx.beginPath(); ctx.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2); ctx.fill()
-        // alt-sağ koyu kırılma kenarı (hacim) + üst-sol yumuşak speküler
-        ctx.strokeStyle = cH(0.22); ctx.lineWidth = 0.5
-        ctx.beginPath(); ctx.ellipse(x, y, rw, rh, 0, Math.PI * 0.05, Math.PI * 0.95); ctx.stroke()
-        const hl = ctx.createRadialGradient(x - rw * 0.32, y - rh * 0.38, 0, x - rw * 0.32, y - rh * 0.38, rw * 0.45)
-        hl.addColorStop(0, 'rgba(255,255,255,0.6)'); hl.addColorStop(1, 'rgba(255,255,255,0)')
-        ctx.fillStyle = hl
-        ctx.beginPath(); ctx.arc(x - rw * 0.32, y - rh * 0.38, rw * 0.45, 0, Math.PI * 2); ctx.fill()
+        g.addColorStop(0, `rgba(${hc[0]},${hc[1]},${hc[2]},0.10)`); g.addColorStop(0.55, `rgba(${hc[0]},${hc[1]},${hc[2]},0.34)`); g.addColorStop(1, `rgba(${hc[0]},${hc[1]},${hc[2]},0.5)`)
+        ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y, rw, rh, 0, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.arc(x - rw * 0.32, y - rh * 0.38, rw * 0.28, 0, Math.PI * 2); ctx.fill()
       }
 
-      // 6) VALF EGZOZU — TESPİT EDİLEN konnektörün dibinden, DAR ağızdan AŞAĞI (gerçek port)
-      ctx.globalCompositeOperation = 'lighter'
+      // 6) EGZOZ — 3-bölge türbülanslı tüy: bulut (normal, soğuk-beyaz) + çekirdek (additive). DAR ağız, AŞAĞI; soft-start.
+      const ramp = sig.exhaust
+      const mouthR = Math.max(3, dh * 0.02)
       for (let i = 0; i < PUFF_COUNT; i++) {
-        pLife[i] -= dt / (0.6 + Math.random() * 0.6)
+        pLife[i] -= dt / (0.7 + Math.random() * 0.5)
         if (pLife[i] <= 0) {
-          if (sig.exhaust > 0.08) {
-            const sp = (140 + Math.random() * 180) * (0.5 + sig.exhaust)
-            pX[i] = exOx + (Math.random() - 0.5) * Math.max(2.5, dh * exhaustR * 0.8)
-            pY[i] = exOy
-            pVx[i] = (Math.random() - 0.5) * 28
-            pVy[i] = sp; pR[i] = 1.4; pLife[i] = 1
-          } else continue
+          if (ramp > 0.06 && Math.random() < (0.15 + 0.85 * ramp)) {
+            const coneHalf = 0.10 + 0.16 * ramp
+            const ang = Math.PI / 2 + (Math.random() * 2 - 1) * coneHalf
+            const sp = (200 + Math.random() * 240) * (0.4 + 0.6 * ramp)
+            pX[i] = exOx + (Math.random() * 2 - 1) * mouthR * 0.6; pY[i] = exOy
+            pVx[i] = Math.cos(ang) * sp; pVy[i] = Math.sin(ang) * sp
+            pR[i] = 1.5 + Math.random() * 2.5; pCore[i] = Math.random() < 0.5 ? 1 : 0; pLife[i] = 1
+          } else { continue }
         }
-        pVx[i] *= 0.94; pVy[i] = pVy[i] * 0.95 + 42 * dt
+        const age = 1 - pLife[i]
+        pVx[i] *= (1 - 3.2 * dt); pVy[i] = pVy[i] * (1 - 2.4 * dt) + 26 * dt
+        pVx[i] += curlX(pX[i] * 0.01, pY[i] * 0.01 + pSeed[i]) * 130 * age * dt
+        pVy[i] += curlY(pX[i] * 0.01, pY[i] * 0.01 + pSeed[i]) * 80 * age * dt
         pX[i] += pVx[i] * dt; pY[i] += pVy[i] * dt
-        pR[i] += (16 - pR[i]) * dt * 2.2
+        pR[i] += (34 - pR[i]) * dt * 1.6
         const l = Math.max(0, pLife[i])
-        const al = (l < 0.9 ? l : (1 - l) * 9) * 0.5 * sig.exhaust
-        if (al <= 0.01) continue
-        const rg = ctx.createRadialGradient(pX[i], pY[i], 0, pX[i], pY[i], pR[i])
-        rg.addColorStop(0, `rgba(220,235,255,${al})`); rg.addColorStop(1, 'rgba(220,235,255,0)')
-        ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(pX[i], pY[i], pR[i], 0, Math.PI * 2); ctx.fill()
+        const fade = l > 0.85 ? (1 - l) * 6.7 : l * 1.05
+        const aBody = clamp01(fade * 0.20 * ramp)
+        if (aBody > 0.01) { ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = aBody; ctx.drawImage(sprCloud, (pX[i] - pR[i]) | 0, (pY[i] - pR[i]) | 0, (pR[i] * 2) | 0, (pR[i] * 2) | 0) }
+        const aCore = clamp01(fade * 0.3 * ramp) * pCore[i] * (l > 0.5 ? 1 : 0)
+        if (aCore > 0.01) { const cr = pR[i] * 0.35; ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = aCore; ctx.drawImage(sprCore, (pX[i] - cr) | 0, (pY[i] - cr) | 0, (cr * 2) | 0, (cr * 2) | 0) }
       }
-      ctx.globalCompositeOperation = 'source-over'
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'
 
-      // 7) CİHAZ LED'LERİ — TESPİT edilen LCD/konnektöre bağlı, KÜÇÜK+sönük (ürünün kendi göstergesi gibi)
-      const blink = 0.55 + 0.45 * Math.sin(now * 0.009)
-      const slowBlink = 0.45 + 0.55 * Math.sin(now * 0.005)
-      const ledR = Math.max(1.3, dh * 0.009)
+      // 7) LED'ler (gerçek konum oranlarına yakın; küçük + sönük = ürünün kendi göstergesi)
+      const blink = 0.55 + 0.45 * Math.sin(now * 0.009), slowBlink = 0.45 + 0.55 * Math.sin(now * 0.005)
+      const ledR = Math.max(1.3, dh * 0.008)
       const isStandby = t.mode === 'standby', isIso = t.mode === 'isolation'
-      // Hub LED satırı: LCD'nin hemen ALTINDA, LCD genişliğine yayılı (PWR · MODE · SIG)
-      const rowY = dy + (lcd.y + lcd.h) * dh + dh * 0.012
-      const lcdL = dx + lcd.x * dw, lcdR = dx + (lcd.x + lcd.w) * dw
-      const lxAt = (f: number) => lcdL + (lcdR - lcdL) * (0.25 + 0.5 * f)
-      led(lxAt(0), rowY, '65,224,138', 0.8, ledR)                                                       // PWR yeşil sabit
-      led(lxAt(0.5), rowY, isStandby || isIso ? '255,150,40' : '65,224,138', isIso ? blink : 0.8, ledR) // MODE
-      led(lxAt(1), rowY, isIso ? '255,150,40' : '65,224,138', (isStandby || isIso) ? blink : 0.3, ledR) // SIG
-      // Regülatör LED (Tip A ITV) yeşil — sol modül
-      led(regCx, regCy, '65,224,138', 0.55 + 0.45 * sig.reg * slowBlink, ledR)
-      // Valf solenoid LED — TESPİT edilen konnektör ÜSTÜ, KIRMIZI (izolasyonda enerji)
-      led(dx + dw * exhaust[0], dy + dh * (exhaust[1] - exhaustR), '255,60,48', sig.valve * (0.6 + 0.4 * blink), ledR)
+      const rowY = dy + dh * (variant === 'b' ? 0.54 : 0.30)
+      const lx0 = dx + dw * (variant === 'b' ? 0.47 : 0.47), lx1 = dx + dw * (variant === 'b' ? 0.57 : 0.53)
+      const lxAt = (f: number) => lx0 + (lx1 - lx0) * f
+      led(lxAt(0), rowY, '65,224,138', 0.8, ledR)
+      led(lxAt(0.5), rowY, isStandby || isIso ? '255,150,40' : '65,224,138', isIso ? blink : 0.8, ledR)
+      led(lxAt(1), rowY, isIso ? '255,150,40' : '65,224,138', (isStandby || isIso) ? blink : 0.3, ledR)
+      led(dx + dw * REG_CX * 0.6, dy + dh * (variant === 'b' ? 0.66 : 0.40), '65,224,138', 0.55 + 0.45 * sig.reg * slowBlink, ledR)
+      led(exOx, dy + dh * (exhaust[1] - 0.42 < 0 ? 0.18 : exhaust[1] - 0.42), '255,60,48', sig.valve * (0.6 + 0.4 * blink), ledR)
 
-      // 8) CİHAZ LCD'si — SMC hub düzeni, HER HÜCRE CANLI (P/Q/T + büyük rakam + birim)
+      // 8) LCD — SMC hub düzeni, HER HÜCRE CANLI (P/Q/T + büyük rakam + birim). Render A boş ekran → buraya basılır.
       const ro2 = readoutRef.current
-      if (ro2.length) {
+      if (ro2.length && variant === 'a') {
         const rx = dx + lcd.x * dw, ry = dy + lcd.y * dh, rw = lcd.w * dw, rh = lcd.h * dh
-        ctx.fillStyle = 'rgba(3,8,16,0.80)'
+        ctx.fillStyle = 'rgba(3,8,16,0.82)'
         if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, Math.min(4, rh * 0.1)); ctx.fill() } else ctx.fillRect(rx, ry, rw, rh)
-        ctx.strokeStyle = 'rgba(110,150,200,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1)
-        const rows = ro2.slice(0, 3), padX = rw * 0.07, lh = (rh - rh * 0.06) / rows.length
+        const rows = ro2.slice(0, 3), padX = rw * 0.07, lh = rh / rows.length
         ctx.textBaseline = 'middle'
         for (let i = 0; i < rows.length; i++) {
-          const r = rows[i], cy = ry + rh * 0.03 + lh * (i + 0.5), [rr, gg, bb] = r.rgb
-          if (i > 0) { ctx.strokeStyle = 'rgba(120,160,210,0.16)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(rx + padX, ry + rh * 0.03 + lh * i); ctx.lineTo(rx + rw - padX, ry + rh * 0.03 + lh * i); ctx.stroke() }
-          const fsLab = Math.max(5, Math.min(lh * 0.32, rw * 0.1))
-          ctx.font = `600 ${fsLab}px ui-monospace, Menlo, monospace`; ctx.textAlign = 'left'
-          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.7)`; ctx.fillText(['P', 'Q', 'T'][i] ?? '', rx + padX, cy)
-          const fs = Math.max(8, Math.min(lh * 0.62, rw * 0.2))
-          ctx.font = `700 ${fs}px ui-monospace, Menlo, monospace`; ctx.textAlign = 'right'
-          ctx.shadowColor = `rgba(${rr},${gg},${bb},0.95)`; ctx.shadowBlur = fs * 0.5
-          ctx.fillStyle = `rgb(${rr},${gg},${bb})`; ctx.fillText(r.value, rx + rw - rw * 0.30, cy)
-          ctx.shadowBlur = 0
-          ctx.font = `500 ${fs * 0.55}px ui-monospace, Menlo, monospace`; ctx.textAlign = 'left'
-          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.85)`; ctx.fillText(r.unit, rx + rw - rw * 0.27, cy)
+          const r = rows[i], cy = ry + lh * (i + 0.5), [rr, gg, bb] = r.rgb
+          const fsLab = Math.max(5, Math.min(lh * 0.34, rw * 0.1))
+          ctx.font = `600 ${fsLab}px ui-monospace, monospace`; ctx.textAlign = 'left'; ctx.fillStyle = `rgba(${rr},${gg},${bb},0.7)`; ctx.fillText(['P', 'Q', 'T'][i] ?? '', rx + padX, cy)
+          const fs = Math.max(8, Math.min(lh * 0.6, rw * 0.2))
+          ctx.font = `700 ${fs}px ui-monospace, monospace`; ctx.textAlign = 'right'
+          ctx.shadowColor = `rgba(${rr},${gg},${bb},0.95)`; ctx.shadowBlur = fs * 0.5; ctx.fillStyle = `rgb(${rr},${gg},${bb})`; ctx.fillText(r.value, rx + rw - rw * 0.30, cy); ctx.shadowBlur = 0
+          ctx.font = `500 ${fs * 0.55}px ui-monospace, monospace`; ctx.textAlign = 'left'; ctx.fillStyle = `rgba(${rr},${gg},${bb},0.85)`; ctx.fillText(r.unit, rx + rw - rw * 0.27, cy)
         }
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
       }
@@ -407,11 +366,17 @@ export function DeviceFlowChart({
     }
     raf = requestAnimationFrame(draw)
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
-  }, [])
+  }, [variant])
 
   return (
     <div ref={wrapRef} className="absolute inset-0">
       <canvas ref={canvasRef} className="block h-full w-full" />
+      {/* A/B görsel seçimi (Mehmet Abi: ikisini de dene, sonra seç) */}
+      <button
+        onClick={() => setVariant((v) => (v === 'a' ? 'b' : 'a'))}
+        className="absolute right-2 top-2 z-10 rounded-md border border-[var(--hair)] bg-black/40 px-2 py-1 text-[10px] font-semibold text-white/80 backdrop-blur transition hover:text-white"
+        title="Ürün görseli A/B"
+      >Görsel {variant.toUpperCase()}</button>
     </div>
   )
 }
