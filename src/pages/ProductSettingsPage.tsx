@@ -22,6 +22,7 @@ import { useConnection, type ConnStatus } from '@/data/connection'
 import { seedDemoHistory, clearHistory, historyExtent } from '@/data/history'
 import { sound } from '@/lib/sound'
 import { fmt2, fmtInt } from '@/lib/format'
+import { isMobileDevice } from '@/lib/device'
 import {
   Gauge, Timer, Wind, ToggleRight, Info, RotateCcw, Eye, EyeOff, Boxes, Wifi, Zap, Network, Server, Plus, Radio,
   History, Trash2, Cable,
@@ -92,6 +93,7 @@ export function ProductSettingsPage() {
   }
   const clearDemo = () => { clearHistory('demo'); setDemoHist(historyExtent('demo')); sound.click() }
   const [showGuide, setShowGuide] = useState(false) // Canli cihaza baglanma kilavuzu (adim adim)
+  const mobile = isMobileDevice() // MOBIL = yalniz demo gosterimi -> canli secenek/kilavuz gizlenir
 
   // Model degisince: o modele EN MANTIKLI calisma degerleri kullanicinin karsisina cikar
   const onSelectModel = (code: string) => {
@@ -193,31 +195,44 @@ export function ProductSettingsPage() {
               <div className="text-xs text-[var(--ink-soft)]">Demo verisi mi, gerçek cihazdan canlı veri mi (OPC UA)</div>
             </div>
           </div>
-          <div className="flex gap-2">
-            {([['demo', 'Demo Verisi'], ['live', 'Canlı Cihaz']] as const).map(([m, label]) => {
-              const on = conn.mode === m
-              return (
-                <button
-                  key={m}
-                  onClick={() => setConnMode(m)}
-                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
-                  style={on ? { background: 'rgba(46,155,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : { border: '1px solid var(--hair)' }}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
+          {/* Demo/Canli secimi - SADECE PC (masaustu). Mobilde gizli: mobil = yalniz demo gosterimi. */}
+          {!mobile && (
+            <div className="flex gap-2">
+              {([['demo', 'Demo Verisi'], ['live', 'Canlı Cihaz']] as const).map(([m, label]) => {
+                const on = conn.mode === m
+                return (
+                  <button
+                    key={m}
+                    onClick={() => setConnMode(m)}
+                    className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
+                    style={on ? { background: 'rgba(46,155,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : { border: '1px solid var(--hair)' }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
-        {/* ADIM ADIM KURULUM KILAVUZU - siradan personel cihaza tek basina baglanabilsin (uyarlanabilir) */}
-        <button
-          onClick={() => setShowGuide(true)}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:brightness-110"
-          style={{ borderColor: 'rgba(46,155,255,0.4)', background: 'rgba(46,155,255,0.1)', color: 'var(--smc-bright)' }}
-        >
-          <Cable size={16} /> Canlı cihaza bağlanma kılavuzu (adım adım)
-        </button>
+        {/* PC: adim adim kurulum kilavuzu. MOBIL: demo-gosterim bilgisi (canli cihaz PC surumunde). */}
+        {!mobile ? (
+          <button
+            onClick={() => setShowGuide(true)}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:brightness-110"
+            style={{ borderColor: 'rgba(46,155,255,0.4)', background: 'rgba(46,155,255,0.1)', color: 'var(--smc-bright)' }}
+          >
+            <Cable size={16} /> Canlı cihaza bağlanma kılavuzu (adım adım)
+          </button>
+        ) : (
+          <div className="mt-4 flex items-start gap-2.5 rounded-xl border px-4 py-3 text-[13px] leading-snug" style={{ borderColor: '#FFB04D55', background: '#FFB04D12', color: 'var(--ink)' }}>
+            <Radio size={18} className="mt-0.5 shrink-0 text-[var(--c-temp)]" />
+            <div>
+              <b className="text-white">Mobil sürüm — yalnızca demo gösterimi.</b> Bu uygulama telefonda örnek/demo verileri izlemek (oynatmak) içindir.
+              Gerçek cihazdan <b className="text-white">canlı veri PC sürümünde</b> görüntülenir (cihaza kablo/ağ ile bağlı bilgisayar). Gerekirse ileride mobilden de canlı takip eklenebilir.
+            </div>
+          </div>
+        )}
 
         {conn.mode === 'live' && (
           <div className="mt-4">

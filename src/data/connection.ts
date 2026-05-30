@@ -6,6 +6,7 @@
  * YAN ETKI: Offline (yerel koprü; internet yok). Mod degisince useLiveReadings kaynagi (Demo/Canli) yeniden secer.
  */
 import { useSyncExternalStore } from 'react'
+import { isMobileDevice } from '@/lib/device'
 
 export type ConnMode = 'demo' | 'live'
 export type ConnStatus = 'demo' | 'connecting' | 'connected' | 'error'
@@ -38,15 +39,18 @@ export const DEFAULT_CONN: ConnSettings = { mode: 'demo', endpoint: 'opc.tcp://1
 const KEY = 'ams_connection_v1'
 
 function load(): ConnSettings {
+  let s: ConnSettings
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return { ...DEFAULT_CONN, nodeIds: { ...DEFAULT_NODE_IDS } }
-    const p = JSON.parse(raw) as Partial<ConnSettings>
+    const p = raw ? (JSON.parse(raw) as Partial<ConnSettings>) : {}
     // nodeIds derin birlestir (eski kayitlarda yoksa varsayilanla tamamla - geriye uyum)
-    return { ...DEFAULT_CONN, ...p, nodeIds: { ...DEFAULT_NODE_IDS, ...(p.nodeIds ?? {}) } }
+    s = { ...DEFAULT_CONN, ...p, nodeIds: { ...DEFAULT_NODE_IDS, ...(p.nodeIds ?? {}) } }
   } catch {
-    return { ...DEFAULT_CONN, nodeIds: { ...DEFAULT_NODE_IDS } }
+    s = { ...DEFAULT_CONN, nodeIds: { ...DEFAULT_NODE_IDS } }
   }
+  // MOBIL = yalniz DEMO gosterimi (canli cihaz PC surumunde). Telefon/tablette canli moda kilitlenmez.
+  if (isMobileDevice()) s.mode = 'demo'
+  return s
 }
 
 // --- Paylasilan store: ayarlar (kalici) + canli durum (runtime) ---
