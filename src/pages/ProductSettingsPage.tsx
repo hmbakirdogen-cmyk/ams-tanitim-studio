@@ -8,7 +8,9 @@
  * YAN ETKI: Model degisimi tum uygulamaya yansir (grafik olcegi/PageHeader/demoSource). Degerlerin yaninda BIRIMI (KATI kural).
  */
 import { useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { PageHeader } from '@/components/PageHeader'
+import { LiveSetupGuide } from '@/components/LiveSetupGuide'
 import { Tilt3D } from '@/components/Tilt3D'
 import { useDeviceSettings, type ValveMode } from '@/data/deviceSettings'
 import { useSensorVisibility } from '@/data/sensorVisibility'
@@ -17,11 +19,16 @@ import { useModel, AMS_MODELS, defaultsForModel, TYPE_LABEL } from '@/data/model
 import { useModules, MODULES } from '@/data/modules'
 import { useEconomy } from '@/data/economy'
 import { useConnection, type ConnStatus } from '@/data/connection'
+import { seedDemoHistory, clearHistory, historyExtent } from '@/data/history'
+import { sound } from '@/lib/sound'
 import { fmt2, fmtInt } from '@/lib/format'
 import {
   Gauge, Timer, Wind, ToggleRight, Info, RotateCcw, Eye, EyeOff, Boxes, Wifi, Zap, Network, Server, Plus, Radio,
+  History, Trash2, Cable,
   type LucideIcon,
 } from 'lucide-react'
+
+const DAY = 86400000
 
 // Baglanti durumu -> etiket + renk (kullaniciya net)
 const CONN_UI: Record<ConnStatus, { label: string; color: string }> = {
@@ -69,6 +76,22 @@ export function ProductSettingsPage() {
   // Cihaz adresi taslagi - her tusta degil, SADECE blur/Enter'da store'a yazilir (yoksa her karakter baglantiyi yeniden kurardi)
   const [epDraft, setEpDraft] = useState(conn.endpoint)
   const commitEndpoint = () => { const v = epDraft.trim(); if (v && v !== conn.endpoint) setEndpoint(v) }
+
+  // Demo gecmisi (sunum): takvimsel rapor icin gercekci 30 gunluk gecmis uret/temizle
+  const [demoHist, setDemoHist] = useState(() => historyExtent('demo'))
+  const [seeding, setSeeding] = useState(false)
+  const seedDemo = () => {
+    setSeeding(true)
+    // bir sonraki frame'de uret -> "Olusturuluyor..." gorunur (30 gun ~43k ornek senkron ama hizli)
+    requestAnimationFrame(() => {
+      seedDemoHistory(30, Date.now())
+      setDemoHist(historyExtent('demo'))
+      setSeeding(false)
+      sound.click()
+    })
+  }
+  const clearDemo = () => { clearHistory('demo'); setDemoHist(historyExtent('demo')); sound.click() }
+  const [showGuide, setShowGuide] = useState(false) // Canli cihaza baglanma kilavuzu (adim adim)
 
   // Model degisince: o modele EN MANTIKLI calisma degerleri kullanicinin karsisina cikar
   const onSelectModel = (code: string) => {
@@ -186,6 +209,16 @@ export function ProductSettingsPage() {
             })}
           </div>
         </div>
+
+        {/* ADIM ADIM KURULUM KILAVUZU - siradan personel cihaza tek basina baglanabilsin (uyarlanabilir) */}
+        <button
+          onClick={() => setShowGuide(true)}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:brightness-110"
+          style={{ borderColor: 'rgba(46,155,255,0.4)', background: 'rgba(46,155,255,0.1)', color: 'var(--smc-bright)' }}
+        >
+          <Cable size={16} /> Canlı cihaza bağlanma kılavuzu (adım adım)
+        </button>
+
         {conn.mode === 'live' && (
           <div className="mt-4">
             <label className="mb-1 block text-xs text-[var(--ink-soft)]">Cihaz adresi (OPC UA)</label>
@@ -202,6 +235,32 @@ export function ProductSettingsPage() {
             </div>
           </div>
         )}
+
+        {/* DEMO GECMISI (sunum) - takvimsel rapor icin gercekci 30 gunluk gecmis uret/temizle */}
+        <div className="mt-4 rounded-xl border border-[var(--hair)] bg-white/[0.03] p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold text-white">
+            <History size={16} className="text-[var(--smc-bright)]" /> Demo Geçmişi (Sunum)
+          </div>
+          <div className="mt-1 text-[11px] leading-snug text-[var(--ink-soft)]">
+            Sunumda <b className="text-[var(--ink)]">“geçen hafta”</b> raporu gösterebilmek için 30 günlük gerçekçi geçmiş (gün/gece + hafta sonu ritmi) üretir.
+            Kayıtlar &gt; <b className="text-[var(--ink)]">Tarihsel Rapor</b>'dan açılır. Cihaz bağlandığında canlı geçmiş ayrıca birikir.
+          </div>
+          <div className="mt-2 text-[11px] text-[var(--ink-soft)]">
+            {demoHist
+              ? <>Mevcut demo geçmişi: <b className="num text-[var(--ink)]">{fmtInt(demoHist.count)}</b> ölçüm · ~<b className="num text-[var(--ink)]">{Math.max(1, Math.round((demoHist.last - demoHist.first) / DAY))}</b> gün.</>
+              : <>Henüz demo geçmişi yok.</>}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button onClick={seedDemo} disabled={seeding} className="keep-white flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
+              <History size={15} /> {seeding ? 'Oluşturuluyor…' : 'Demo geçmişi oluştur (30 gün)'}
+            </button>
+            {demoHist && (
+              <button onClick={clearDemo} className="flex items-center gap-1.5 rounded-lg border border-[var(--hair)] px-3 py-2 text-sm font-medium text-[#ff8a8a] transition hover:bg-white/5">
+                <Trash2 size={15} /> Geçmişi temizle
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="glass flex shrink-0 items-start gap-3 rounded-2xl p-4 text-sm text-[var(--ink-soft)]">
@@ -343,6 +402,11 @@ export function ProductSettingsPage() {
           })}
         </div>
       </div>
+
+      {/* Canli cihaza baglanma kilavuzu (adim adim sihirbaz) */}
+      <AnimatePresence>
+        {showGuide && <LiveSetupGuide onClose={() => setShowGuide(false)} />}
+      </AnimatePresence>
     </div>
   )
 }

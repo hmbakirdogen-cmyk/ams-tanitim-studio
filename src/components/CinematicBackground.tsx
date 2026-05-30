@@ -8,7 +8,7 @@ export function CinematicBackground() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       {/* Temel sahne - iki katman cross-fade (gunduz/gece gecisi YUMUSAK; gradyan dogrudan transition edilemez, opacity ile karistiririz) */}
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% -10%, #0a2148 0%, #071427 45%, #04060f 100%)', opacity: 'var(--scene-dark-op, 1)', transition: 'opacity 0.5s ease' }} />
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% -10%, #08183a 0%, #050e1d 45%, #02030a 100%)', opacity: 'var(--scene-dark-op, 1)', transition: 'opacity 0.5s ease' }} />
       <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% -10%, #ffffff 0%, #e6eefa 45%, #cfe0f4 100%)', opacity: 'var(--scene-light-op, 0)', transition: 'opacity 0.5s ease' }} />
 
       {/* Aurora isik 1 - SMC mavisi */}

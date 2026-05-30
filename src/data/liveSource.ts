@@ -7,7 +7,7 @@
  * YAN ETKI: Offline (yerel kopru, internet yok). DemoDataSource ile AYNI sozlesme -> sayfalar degismeden canli veriyi cizer.
  */
 import type { DataSource, Mode, Reading } from './types'
-import { setConnStatus, type ConnStatus } from './connection'
+import { setConnStatus, type ConnStatus, type NodeIds } from './connection'
 
 const BRIDGE_URL = 'ws://localhost:4841' // personelin bilgisayarindaki yerel OPC UA koprusu
 const RECONNECT_MS = 2500
@@ -28,7 +28,7 @@ export class LiveDataSource implements DataSource {
   private reconnect: number | null = null
   private stopped = false
 
-  constructor(private endpoint: string) {}
+  constructor(private endpoint: string, private nodeIds?: NodeIds) {}
 
   // Durum yalnizca AKTIF (durdurulmamis) kaynaktan yazilir -> Demo'ya gecince geç callback ezmez
   private setStatus(s: ConnStatus): void {
@@ -55,7 +55,8 @@ export class LiveDataSource implements DataSource {
     this.ws = ws
 
     ws.onopen = () => {
-      try { ws.send(JSON.stringify({ type: 'connect', endpoint: this.endpoint })) } catch { /* yok */ }
+      // endpoint + EKRANDAN girilen node kimliklerini kopruye gonder (uyarlanabilir) -> kopru bunlari okur
+      try { ws.send(JSON.stringify({ type: 'connect', endpoint: this.endpoint, nodeIds: this.nodeIds })) } catch { /* yok */ }
     }
     ws.onmessage = (ev) => {
       if (this.stopped) return

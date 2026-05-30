@@ -6,9 +6,10 @@
  */
 import { useState, useRef, type FormEvent, type ChangeEvent } from 'react'
 import { motion } from 'framer-motion'
-import { X, UserPlus, Trash2, KeyRound, Pencil, Check, ShieldCheck, User as UserIcon, Download, Upload, ArrowLeftRight } from 'lucide-react'
+import { X, UserPlus, Trash2, KeyRound, Pencil, Check, ShieldCheck, User as UserIcon, Download, Upload, ArrowLeftRight, DatabaseBackup } from 'lucide-react'
 import { sound } from '@/lib/sound'
 import { download } from '@/data/recordings'
+import { exportAll, importAll } from '@/data/backup'
 import { Avatar } from './Avatar'
 import type { Auth } from '@/auth/useAuth'
 import type { Role } from '@/auth/users'
@@ -33,7 +34,34 @@ export function AdminUsers({ auth, onClose }: { auth: Auth; onClose: () => void 
   const [resetPw, setResetPw] = useState('')
   // Laptoplar arasi tasima
   const fileRef = useRef<HTMLInputElement>(null)
+  const fullFileRef = useRef<HTMLInputElement>(null)
   const [transferMsg, setTransferMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  // TAM YEDEK: personel + TUM veriler (kayitlar, gecmis, ayarlar, ekonomi, model, moduller, tema, baglanti)
+  const doFullExport = () => {
+    sound.click()
+    download('ams-tam-yedek.json', exportAll(Date.now()), 'application/json')
+    setTransferMsg({ ok: true, text: 'Personel + TÜM veriler (kayıtlar, geçmiş, ayarlar, ekonomi, model…) "ams-tam-yedek.json" dosyasına aktarıldı.' })
+  }
+  const onPickFullFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    e.target.value = ''
+    if (!f) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const text = String(reader.result)
+      // Tam yedek mevcut TUM veriyi degistirir -> once onay
+      if (!window.confirm('Bu bilgisayardaki TÜM veriler (personel, kayıtlar, geçmiş, ayarlar) bu yedekle DEĞİŞTİRİLECEK. Devam edilsin mi?')) return
+      try {
+        importAll(text)
+        sound.click()
+        window.location.reload() // tum store'lar yeniden okusun
+      } catch {
+        setTransferMsg({ ok: false, text: 'Dosya okunamadı ya da geçersiz yedek dosyası.' })
+      }
+    }
+    reader.readAsText(f)
+  }
 
   const doExport = () => {
     sound.click()
@@ -156,10 +184,27 @@ export function AdminUsers({ auth, onClose }: { auth: Auth; onClose: () => void 
           <button type="submit" className="keep-white mt-3 w-full rounded-lg py-2.5 text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>Ekle</button>
         </form>
 
-        {/* Laptoplar arasi tasima - HER butonun NE yaptigi acikca yazili */}
-        <div className="mt-6 rounded-2xl border border-[var(--hair)] p-4">
-          <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-white"><ArrowLeftRight size={16} className="text-[var(--smc-bright)]" /> Personeli Taşı (laptoplar arası)</div>
-          <div className="mb-3 text-xs leading-relaxed text-[var(--ink-soft)]">Her bilgisayar bağımsızdır. Listeyi bir kez kurup diğer laptoplara taşıyın — internet gerekmez.</div>
+        {/* TAM YEDEK - personel + TUM veriler (laptoplar arasi tam tasima) */}
+        <div className="mt-6 rounded-2xl border p-4" style={{ borderColor: 'rgba(46,155,255,0.4)', background: 'rgba(46,155,255,0.06)' }}>
+          <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-white"><DatabaseBackup size={16} className="text-[var(--smc-bright)]" /> Tam Yedek (personel + tüm veriler)</div>
+          <div className="mb-3 text-xs leading-relaxed text-[var(--ink-soft)]">Personel + kayıtlar + geçmiş + tüm ayarları (ekonomi, model, modüller, bağlantı, tema) tek dosyada taşır. İnternet gerekmez.</div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <button onClick={doFullExport} className="flex flex-col items-start gap-0.5 rounded-xl border border-[var(--hair)] bg-white/[0.03] p-3 text-left transition hover:bg-white/5">
+              <span className="flex items-center gap-2 text-sm font-semibold text-white"><Download size={15} className="text-[var(--smc-bright)]" /> Tam Dışa Aktar</span>
+              <span className="text-[11px] leading-snug text-[var(--ink-soft)]">Bu bilgisayardaki personel + TÜM verileri tek dosyaya kaydeder.</span>
+            </button>
+            <button onClick={() => fullFileRef.current?.click()} className="flex flex-col items-start gap-0.5 rounded-xl border border-[var(--hair)] bg-white/[0.03] p-3 text-left transition hover:bg-white/5">
+              <span className="flex items-center gap-2 text-sm font-semibold text-white"><Upload size={15} className="text-[var(--c-saving)]" /> Tam İçe Aktar</span>
+              <span className="text-[11px] leading-snug text-[var(--ink-soft)]">Dosyadaki yedekle bu bilgisayarın TÜM verisini değiştirir (önce onay ister).</span>
+            </button>
+          </div>
+          <input ref={fullFileRef} type="file" accept="application/json,.json" onChange={onPickFullFile} className="hidden" />
+        </div>
+
+        {/* SADECE PERSONEL (birlestir) - mevcut kisiler silinmeden personel ekler/gunceller */}
+        <div className="mt-4 rounded-2xl border border-[var(--hair)] p-4">
+          <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-white"><ArrowLeftRight size={16} className="text-[var(--smc-bright)]" /> Sadece Personel (birleştir)</div>
+          <div className="mb-3 text-xs leading-relaxed text-[var(--ink-soft)]">Yalnızca personel listesini taşır ve <b className="text-[var(--ink)]">birleştirir</b> (mevcut kişiler/veriler silinmez). Diğer verileri taşımak için yukarıdaki Tam Yedek'i kullanın.</div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button onClick={doExport} className="flex flex-col items-start gap-0.5 rounded-xl border border-[var(--hair)] p-3 text-left transition hover:bg-white/5">
               <span className="flex items-center gap-2 text-sm font-semibold text-white"><Download size={15} className="text-[var(--smc-bright)]" /> Dışa Aktar</span>

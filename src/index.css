@@ -13,10 +13,10 @@
   --smc-bright: #2E9BFF;     /* isiltili acik mavi (glow/vurgu) */
   --smc-deep: #003A78;       /* koyu mavi */
 
-  /* Sinematik sahne (koyu lacivert derinlik) */
-  --bg-0: #04060f;           /* en koyu zemin */
-  --bg-1: #071427;           /* lacivert */
-  --bg-2: #0a2148;           /* SMC lacivert */
+  /* Sinematik sahne (koyu lacivert derinlik) - Mehmet Abi: arka plan biraz daha koyu */
+  --bg-0: #02030a;           /* en koyu zemin */
+  --bg-1: #050e1d;           /* lacivert */
+  --bg-2: #08183a;           /* SMC lacivert */
 
   /* Metrik renkleri (acik, net - kafa karistirmayan) */
   --c-flow: #2E9BFF;         /* Debi / Hava Tuketimi */
@@ -32,11 +32,11 @@
   /* Tema yuzeyleri (Gunduz/Gece) - tek noktadan */
   --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
   --glass-shadow: 0 24px 60px -28px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08);
-  --scene: radial-gradient(120% 90% at 50% -10%, #0a2148 0%, #071427 45%, #04060f 100%);
+  --scene: radial-gradient(120% 90% at 50% -10%, #08183a 0%, #050e1d 45%, #02030a 100%);
   --scene-dark-op: 1;   /* gece: koyu sahne gorunur */
   --scene-light-op: 0;  /* gece: acik sahne gizli (cross-fade icin) */
   --aurora-op: 1;
-  --vignette: rgba(2,4,10,0.7);
+  --vignette: rgba(1,2,6,0.8);
   --grid-line: rgba(46,155,255,0.16);
 }
 

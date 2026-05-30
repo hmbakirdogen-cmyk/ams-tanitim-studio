@@ -27,13 +27,13 @@ function Smc3D({ height }: { height: number }) {
 
 // Gercek beyaz SMC logosu - ELIT bombeli (convex) cam/metal rozet; logo ISIK SACAR (glow). Olculer height'e oranli.
 function LogoImage({ height }: { height: number }) {
-  const logoH = height * 0.66
+  const logoH = height * 0.78 // marka daha IRI (rozet ayagi ~ayni -> taşmaz); Mehmet Abi: logolari buyut
   return (
     <div
       className="relative inline-flex items-center justify-center overflow-hidden"
       style={{
-        padding: `${height * 0.17}px ${height * 0.24}px`,
-        borderRadius: height * 0.26,
+        padding: `${height * 0.11}px ${height * 0.16}px`, // padding azaldi -> ayni footprint'te daha buyuk logo
+        borderRadius: height * 0.24,
         background: 'linear-gradient(157deg, #3aa0f7 0%, #0f7bd6 38%, #0067bd 64%, #013f86 100%)',
         boxShadow: [
           `0 ${height * 0.16}px ${height * 0.4}px -${height * 0.08}px rgba(2,14,36,0.78)`, // derin zemin golgesi (oturmus)

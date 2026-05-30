@@ -6,22 +6,66 @@
  */
 import { useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Save, BarChart3, FileDown, Trash2, Clock, Database } from 'lucide-react'
+import { Save, BarChart3, FileDown, Trash2, Clock, Database, History, CalendarClock } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
-import { RangeAnalysisModal } from '@/components/RangeAnalysisModal'
+import { RangeAnalysisModal, type RangePreset } from '@/components/RangeAnalysisModal'
 import { listRecordings, saveRecording, removeRecording, toCSV, download, type Recording } from '@/data/recordings'
+import { useConnection } from '@/data/connection'
+import { queryHistory, historyExtent } from '@/data/history'
 import { sound } from '@/lib/sound'
 import type { LiveState } from '@/hooks/useLiveReadings'
 import type { Reading } from '@/data/types'
 
 const fmtDate = (ms: number) => new Date(ms).toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' })
 const durationSec = (pts: Reading[]) => (pts.length > 1 ? (pts[pts.length - 1].t - pts[0].t) / 1000 : 0)
+const nf0 = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 })
+const DAY = 86400000
+
+// Tarihsel rapor icin TAKVIM on-ayarlari (mutlak ms) - gecmis deposunun kapsamina gore.
+function calendarPresets(first: number, last: number): RangePreset[] {
+  const startOfDay = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime() }
+  const today0 = startOfDay(last)
+  return [
+    { label: 'Bugün', start: today0, end: last },
+    { label: 'Dün', start: today0 - DAY, end: today0 },
+    { label: 'Son 7 gün', start: last - 7 * DAY, end: last },
+    { label: 'Tümü', start: first, end: last },
+  ]
+}
+
+type AnalyzeState = {
+  points: Reading[]
+  title: string
+  startedAt: number
+  presets?: RangePreset[]
+  initialStart?: number
+  initialEnd?: number
+}
 
 export function RecordsPage({ data }: { data: LiveState }) {
   const [name, setName] = useState('')
   const [list, setList] = useState<Recording[]>(() => listRecordings())
-  const [analyze, setAnalyze] = useState<{ points: Reading[]; title: string; startedAt: number } | null>(null)
+  const [analyze, setAnalyze] = useState<AnalyzeState | null>(null)
+  const conn = useConnection()
+  const src = conn.settings.mode // aktif kaynak (demo/canli) -> hangi gecmis kovasi
+  const hx = historyExtent(src) // kapsam: ilk/son zaman + adet (her render'da taze - data tikiyle yenilenir)
+
+  // Tarihsel rapor: tum gecmisi getir, son 24 saati secili ac, takvim on-ayarlariyla modali ac.
+  const openHistory = () => {
+    const ext = historyExtent(src)
+    if (!ext) return
+    const { points, startedAt } = queryHistory(src)
+    sound.click()
+    setAnalyze({
+      points,
+      startedAt,
+      title: `Geçmiş Veriler · ${src === 'demo' ? 'Demo' : 'Canlı Cihaz'}`,
+      presets: calendarPresets(ext.first, ext.last),
+      initialStart: Math.max(ext.first, ext.last - DAY),
+      initialEnd: ext.last,
+    })
+  }
 
   const refresh = () => setList(listRecordings())
 
@@ -51,6 +95,22 @@ export function RecordsPage({ data }: { data: LiveState }) {
           </button>
         }
       />
+
+      {/* GECMIS VERILER - tarihsel rapor (kalici depo: demo tohumu veya canli birikim) */}
+      <Tilt3D className="glass flex flex-col gap-3 rounded-2xl p-4 sm:flex-row sm:items-center" max={4}>
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--smc)]/15 text-[var(--smc-bright)]"><History size={22} /></span>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-white">Geçmiş Veriler — Tarihsel Rapor</div>
+          <div className="text-[11px] text-[var(--ink-soft)]">
+            {hx
+              ? <>Kayıtlı: <b className="num text-[var(--ink)]">{nf0.format(hx.count)}</b> ölçüm · ~<b className="num text-[var(--ink)]">{Math.max(1, Math.round((hx.last - hx.first) / DAY))}</b> gün ({src === 'demo' ? 'demo' : 'canlı'}). Takvimden gün + saat seçip rapor alın.</>
+              : <>Henüz geçmiş veri yok. Ürün Ayarları'ndan <b className="text-[var(--ink)]">demo geçmişi</b> oluşturun ya da cihaz bağlanınca birikir.</>}
+          </div>
+        </div>
+        <button onClick={openHistory} disabled={!hx} className="keep-white flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
+          <CalendarClock size={15} /> Tarihsel rapor al
+        </button>
+      </Tilt3D>
 
       {/* Su anki oturumu kaydet */}
       <Tilt3D className="glass flex items-center gap-3 rounded-2xl p-4" max={4}>
@@ -97,7 +157,7 @@ export function RecordsPage({ data }: { data: LiveState }) {
 
       <AnimatePresence>
         {analyze && (
-          <RangeAnalysisModal key="range" points={analyze.points} startedAt={analyze.startedAt} title={analyze.title} onClose={() => setAnalyze(null)} />
+          <RangeAnalysisModal key="range" points={analyze.points} startedAt={analyze.startedAt} title={analyze.title} presets={analyze.presets} initialStart={analyze.initialStart} initialEnd={analyze.initialEnd} onClose={() => setAnalyze(null)} />
         )}
       </AnimatePresence>
     </div>

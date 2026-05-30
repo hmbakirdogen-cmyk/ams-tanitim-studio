@@ -77,7 +77,7 @@ export function ProductPage() {
         <Tilt3D className="glass relative grid grid-cols-1 gap-6 overflow-hidden rounded-3xl p-8 lg:grid-cols-[1.3fr_1fr]" max={4}>
           <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--smc)' }} />
           <div style={{ transform: 'translateZ(20px)' }}>
-            <SmcLogo size={60} withText={false} />
+            <SmcLogo size={80} withText={false} />
             <h2 className="mt-5 text-4xl font-extrabold leading-tight text-white">
               Boşa giden havayı <span className="text-[var(--c-saving)] glow-text" style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)' }}>%62'ye kadar</span> azaltın
             </h2>
@@ -87,23 +87,18 @@ export function ProductPage() {
               kestirimci bakım için doğrudan veri iletişimi sunar.
             </p>
           </div>
-          {/* GERCEK SMC urun gorseli - katalog mavisi gradyan + hafif desen zemine BUYUK yerlesir (kendi hucresi, yazisiz) */}
-          <div
-            className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--hair)]"
-            style={{ background: 'linear-gradient(140deg,#eef5fd 0%,#bcd6f0 44%,#6c9fd4 100%)' }}
-          >
-            {/* katalog hissi: ince nokta deseni */}
-            <div className="pointer-events-none absolute inset-0 opacity-[0.16]" style={{ backgroundImage: 'radial-gradient(rgba(0,72,150,0.6) 1px, transparent 1px)', backgroundSize: '15px 15px' }} />
-            {/* sol-ust isik parlamasi */}
-            <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/40 blur-3xl" />
-            <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE' }}>{model.code}</span>
+          {/* GERCEK SMC urun gorseli (giris sayfasiyla AYNI) - hucreyi DOLDURUR (object-cover), belirgin/net/yuksek kalite */}
+          <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424]">
             <img
-              src="/products/ams-product.png"
-              alt="SMC Hava Yönetim Sistemi — gerçek ürün görseli"
-              className="relative z-[1] max-h-[280px] w-auto object-contain p-4 drop-shadow-[0_18px_30px_rgba(10,40,80,0.35)]"
+              src="/products/ams-diagram.jpg"
+              alt="SMC Hava Yönetim Sistemi — fabrika hattında gerçek ürün"
+              className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
             />
-            <span className="absolute bottom-3 right-3 z-10 text-[11px] font-semibold text-[#0a3a72]">
+            {/* Etiket okunabilirligi icin hafif koyu gradyan (alt + ust kose) */}
+            <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(4,12,26,0.6), transparent 42%)' }} />
+            <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>{model.code}</span>
+            <span className="absolute bottom-3 right-3 z-10 text-[11px] font-semibold text-white" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.8)' }}>
               {model.type === 'A' ? 'Elektro-pnömatik regülatör' : 'Regülatör (elle ayar)'}
             </span>
           </div>

@@ -10,6 +10,7 @@ import type { DataSource, Mode, Reading } from '@/data/types'
 import { DemoDataSource } from '@/data/demoSource'
 import { LiveDataSource } from '@/data/liveSource'
 import { useConnection, setConnStatus } from '@/data/connection'
+import { appendReading } from '@/data/history'
 
 const MAX_POINTS = 160 // grafikte tutulan son okuma sayisi (akan grafik)
 const LOG_MAX = 4500 // analiz/kayit icin daha uzun gunluk (~6 dk @80ms tik)
@@ -39,7 +40,7 @@ export function useLiveReadings(): LiveState {
     setHistory([])
     setLog([])
 
-    const src: DataSource = settings.mode === 'live' ? new LiveDataSource(settings.endpoint) : new DemoDataSource()
+    const src: DataSource = settings.mode === 'live' ? new LiveDataSource(settings.endpoint, settings.nodeIds) : new DemoDataSource()
     srcRef.current = src
     if (settings.mode === 'demo') setConnStatus('demo') // demo seciliyken durum daima 'demo' (geç live callback ezse bile normalize)
     src.start((r) => {
@@ -47,6 +48,9 @@ export function useLiveReadings(): LiveState {
         startedAtRef.current = Date.now() - r.t // t=0 duvar saatini ilk okumadan tam kur
         pinnedRef.current = true
       }
+      // KALICI GECMIS: her okumayi (demo/canli kovasina) yaz -> zamanla takvimsel rapor verisi birikir.
+      // history kendi icinde dakikaya seyreltir (en cok dakikada 1 localStorage yazimi) -> 80ms tikte perf sorunu yok.
+      appendReading(settings.mode, r, startedAtRef.current + r.t)
       setReading(r)
       setHistory((h) => {
         const next = h.length >= MAX_POINTS ? h.slice(h.length - MAX_POINTS + 1) : h.slice()
@@ -60,7 +64,8 @@ export function useLiveReadings(): LiveState {
       })
     })
     return () => src.stop()
-  }, [settings.mode, settings.endpoint])
+    // nodeIds degisince (kilavuzdan) canli kaynak yeniden kurulur -> yeni dugumlerle okur
+  }, [settings.mode, settings.endpoint, settings.nodeIds])
 
   const setMode = (m: Mode) => srcRef.current?.setMode?.(m)
   return { reading, history, log, startedAt: startedAtRef.current, setMode }

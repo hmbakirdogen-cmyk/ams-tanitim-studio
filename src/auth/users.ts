@@ -51,11 +51,20 @@ function write(users: User[]): void {
   localStorage.setItem(USERS_KEY, JSON.stringify(users))
 }
 
-// Ilk acilista yonetici tohumla (Halil Ibrahim Karakelle). Varsayilan sifre degistirilebilir.
+// Gomulu varsayilan avatar (public/users/halil.jpg). Kullanici Profilim'den istedigi an degistirebilir.
+const HALIL_PHOTO = '/users/halil.jpg'
+
+// Ilk acilista yonetici tohumla (Halil Ibrahim Karakelle) + varsayilan foto. Varsayilan sifre degistirilebilir.
 export async function ensureSeed(): Promise<void> {
-  if (read().length > 0) return
-  const hash = await hashPassword('smc')
-  write([{ id: 'karakelle', firstName: 'Halil İbrahim', lastName: 'Karakelle', role: 'admin', hash }])
+  const users = read()
+  if (users.length === 0) {
+    const hash = await hashPassword('smc')
+    write([{ id: 'karakelle', firstName: 'Halil İbrahim', lastName: 'Karakelle', role: 'admin', hash, photo: HALIL_PHOTO }])
+    return
+  }
+  // Geriye uyum: Karakelle Bey kayitliysa ve henuz fotosu yoksa varsayilan fotoyu ekle (bir kez)
+  const k = users.find((u) => u.id === 'karakelle')
+  if (k && !k.photo) { k.photo = HALIL_PHOTO; write(users) }
 }
 
 export function listUsers(): User[] {

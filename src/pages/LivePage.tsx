@@ -4,8 +4,12 @@
  * NASIL   : Hero3DChart + ChartOverlay (kendini aciklayan) + HeroKPI + farkli footprint'li MetricCard'lar; ModeStrip ile mod surulur.
  * YAN ETKI: Veri App'ten (LiveState) gelir; sayfa degisince veri akisi durmaz (hook App'te yasar).
  */
+import { useEffect, useState } from 'react'
+import { Waves, BarChart3 } from 'lucide-react'
 import { Hero3DChart } from '@/components/Hero3DChart'
 import { ChartOverlay } from '@/components/ChartOverlay'
+import { PipeFlowChart } from '@/components/PipeFlowChart'
+import { PipeOverlay } from '@/components/PipeOverlay'
 import { HeroKPI } from '@/components/HeroKPI'
 import { MetricCard } from '@/components/MetricCard'
 import { ModeStrip } from '@/components/ModeStrip'
@@ -13,7 +17,14 @@ import { PageHeader } from '@/components/PageHeader'
 import { useMetrics, type MetricDef, type MetricKey } from '@/data/metrics'
 import { savingPercent } from '@/lib/savings'
 import { useSensorVisibility } from '@/data/sensorVisibility'
+import { useDeviceSettings } from '@/data/deviceSettings'
+import { fmtInt, fmt2 } from '@/lib/format'
+import { sound } from '@/lib/sound'
 import type { LiveState } from '@/hooks/useLiveReadings'
+
+type LiveView = 'pipe' | 'classic'
+const VIEW_KEY = 'ams_live_view_v1'
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
 
 export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
   const { reading, history, setMode } = data
@@ -24,6 +35,21 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   const mode = reading?.mode ?? 'normal'
   const percent = reading ? savingPercent(reading.flow) : 0
 
+  // Grafik gorunumu: "Boru" (yeni Pnomatik Hat) <-> "Klasik" (kuyruklu 3D); secim kalici (localStorage)
+  const [view, setView] = useState<LiveView>(() => (localStorage.getItem(VIEW_KEY) === 'classic' ? 'classic' : 'pipe'))
+  useEffect(() => { localStorage.setItem(VIEW_KEY, view) }, [view])
+
+  // ESIK degerleri (Urun Ayarlari'ndan) - boru uzerinde isaret (0..1) + okunabilir etiket
+  const { settings: dev } = useDeviceSettings()
+  const thrNorm: Record<string, number | null> = {
+    flow: byKey.flow ? clamp01((dev.standbyThreshold - byKey.flow.min) / (byKey.flow.max - byKey.flow.min)) : null,
+    pressure: byKey.pressure ? clamp01((dev.standbyPressure - byKey.pressure.min) / (byKey.pressure.max - byKey.pressure.min)) : null,
+  }
+  const thrInfo: Record<string, { value: number; label: string } | undefined> = {
+    flow: byKey.flow ? { value: dev.standbyThreshold, label: `${fmtInt(dev.standbyThreshold)} ${byKey.flow.unitShort}` } : undefined,
+    pressure: byKey.pressure ? { value: dev.standbyPressure, label: `${fmt2(dev.standbyPressure)} ${byKey.pressure.unitShort}` } : undefined,
+  }
+
   // Kibar, kurumsal ama sicak karsilama - kisiye ismiyle ([Soyad] Bey)
   const hour = new Date().getHours()
   const greet = hour < 11 ? 'Günaydın' : hour < 18 ? 'İyi günler' : 'İyi akşamlar'
@@ -33,14 +59,46 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <PageHeader title="Canlı Panel" subtitle={subtitle} right={<ModeStrip active={mode} onSelect={setMode} />} />
+      <PageHeader
+        title="Canlı Panel"
+        subtitle={subtitle}
+        right={
+          <div className="flex items-center gap-2">
+            {/* Grafik gorunumu anahtari - Boru (yeni) / Klasik (eski onayli) */}
+            <div className="glass flex gap-1 rounded-2xl p-1">
+              {([['pipe', 'Boru', Waves], ['classic', 'Klasik', BarChart3]] as const).map(([id, label, Icon]) => {
+                const on = view === id
+                return (
+                  <button
+                    key={id}
+                    onClick={() => { sound.click(); setView(id) }}
+                    className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
+                    style={on ? { background: 'rgba(46,155,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : undefined}
+                  >
+                    <Icon size={14} /> {label}
+                  </button>
+                )
+              })}
+            </div>
+            <ModeStrip active={mode} onSelect={setMode} />
+          </div>
+        }
+      />
 
-      {/* UST: grafik tek satir, tam genislik */}
+      {/* UST: grafik tek satir, tam genislik - "Boru" (Pnomatik Hat) ya da "Klasik" (kuyruklu 3D) */}
       <section className="glass relative min-h-0 flex-1 overflow-hidden rounded-3xl">
         <div className="absolute inset-0">
-          <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
+          {view === 'pipe' ? (
+            <PipeFlowChart history={history} metrics={visibleMetrics} threshold={thrNorm} theme={theme} />
+          ) : (
+            <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
+          )}
         </div>
-        <ChartOverlay reading={reading} history={history} metrics={visibleMetrics} />
+        {view === 'pipe' ? (
+          <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} />
+        ) : (
+          <ChartOverlay reading={reading} history={history} metrics={visibleMetrics} />
+        )}
       </section>
 
       {/* ALT: mozaik - hicbiri ayni boyutta degil, onem hiyerarsisine gore */}

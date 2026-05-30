@@ -2,25 +2,26 @@
  * NE      : Yerel OPC UA <-> WebSocket KOPRUSU. Gercek SMC AMS cihazindan (opc.tcp) okur, tarayicidaki uygulamaya (ws) JSON aktarir.
  * NEDEN   : Tarayici dogrudan opc.tcp konusamaz. Personelin bilgisayarinda bu kopru calisir; uygulama ws://localhost:4841'e baglanir,
  *           "Canli Cihaz" modunda gercek debi/basinc/sicaklik/nem buradan gelir. (Uygulama tarafi HAZIR; bu dosya cihaz olunca calistirilir.)
- * NASIL   : ws sunucu (4841). Uygulama {type:'connect', endpoint} gonderir -> node-opcua ile cihaza baglan + 4 dugumu (NODE_IDS) izle/oku ->
- *           her okumayi {flow,pressure,temperature,humidity,mode} JSON olarak ws'e gonder. {type:'setMode'} -> cihaza yaz (istege bagli).
+ * NASIL   : ws sunucu (4841). Uygulama {type:'connect', endpoint, nodeIds} gonderir -> node-opcua ile cihaza baglan + dugumleri izle/oku ->
+ *           her okumayi {flow,pressure,temperature,humidity} JSON olarak ws'e gonder. {type:'setMode'} -> cihaza yaz (donanim gelince).
  * YAN ETKI: OFFLINE - tamamen yerel (internet yok). Kurulum tek sefer (internetli makinede): `npm i node-opcua ws`. Calistir: `node bridge/opcua-bridge.mjs`.
  *
- * !! CIHAZA GORE AYARLA: Asagidaki NODE_IDS, gercek AMS cihazinin OPC UA adres uzayindaki dugum kimlikleridir.
- *    Cihaza baglanip (UaExpert vb.) dogru NodeId'leri buraya yazin. Ornek degerler placeholder'dir.
+ * !! UYARLANABILIR: Node kimlikleri artik UYGULAMADAN (Urun Ayarlari > Canli Cihaza Baglanma Kilavuzu) gonderilir -> koddan
+ *    elle degistirmeye GEREK YOK. Uygulama gondermezse asagidaki DEFAULT_NODE_IDS (placeholder) kullanilir.
  */
 import { WebSocketServer } from 'ws'
-import { OPCUAClient, AttributeIds, TimestampsToReturn } from 'node-opcua'
+import { OPCUAClient, AttributeIds, DataType, TimestampsToReturn } from 'node-opcua'
 
 const WS_PORT = 4841
 const POLL_MS = 200 // cihaz okuma araligi (uygulamadaki akisla uyumlu)
 
-// Cihazin OPC UA dugum kimlikleri - GERCEK CIHAZA GORE GUNCELLENECEK
-const NODE_IDS = {
+// Uygulama gondermezse kullanilacak placeholder node kimlikleri (uyumluluk icin)
+const DEFAULT_NODE_IDS = {
   flow: 'ns=2;s=AMS.FlowRate',
   pressure: 'ns=2;s=AMS.Pressure',
   temperature: 'ns=2;s=AMS.Temperature',
   humidity: 'ns=2;s=AMS.Humidity',
+  mode: 'ns=2;s=AMS.Mode',
 }
 
 const wss = new WebSocketServer({ port: WS_PORT })
@@ -31,23 +32,25 @@ wss.on('connection', (socket) => {
   let client = null
   let session = null
   let timer = null
+  let nodeIds = { ...DEFAULT_NODE_IDS } // uygulamanin gonderdigi (ekrandan girilen) kimliklerle guncellenir
 
   const send = (obj) => { try { socket.send(JSON.stringify(obj)) } catch {} }
 
-  async function connectDevice(endpoint) {
+  async function connectDevice(endpoint, ids) {
     await cleanup()
+    if (ids) nodeIds = { ...DEFAULT_NODE_IDS, ...ids } // EKRANDAN gelen node kimlikleri (uyarlanabilir)
     send({ type: 'status', connected: false })
     client = OPCUAClient.create({ endpointMustExist: false })
     try {
       await client.connect(endpoint)
       session = await client.createSession()
       send({ type: 'status', connected: true })
-      console.log('[kopru] cihaza baglandi:', endpoint)
+      console.log('[kopru] cihaza baglandi:', endpoint, '| node:', nodeIds)
       // Periyodik oku (basit ve saglam; istenirse subscription'a cevrilebilir)
       timer = setInterval(async () => {
         try {
-          const ids = Object.values(NODE_IDS)
-          const res = await session.read(ids.map((nodeId) => ({ nodeId, attributeId: AttributeIds.Value })))
+          const order = [nodeIds.flow, nodeIds.pressure, nodeIds.temperature, nodeIds.humidity]
+          const res = await session.read(order.map((nodeId) => ({ nodeId, attributeId: AttributeIds.Value })))
           send({
             flow: res[0]?.value?.value ?? 0,
             pressure: res[1]?.value?.value ?? 0,
@@ -76,10 +79,20 @@ wss.on('connection', (socket) => {
   socket.on('message', async (raw) => {
     let msg
     try { msg = JSON.parse(raw.toString()) } catch { return }
-    if (msg.type === 'connect' && msg.endpoint) await connectDevice(msg.endpoint)
+    if (msg.type === 'connect' && msg.endpoint) await connectDevice(msg.endpoint, msg.nodeIds)
     else if (msg.type === 'setMode' && session) {
-      // Istege bagli: moda gore cihaza yazma (cihazin yazilabilir dugumune gore uyarlanir)
-      console.log('[kopru] setMode istegi:', msg.mode)
+      // Moda gore cihaza yazma (donanim gelince): mode dugumune string yaz. Cihaz tipine gore uyarlanabilir.
+      const MODE_CODE = { normal: 0, standby: 1, isolation: 2 }
+      try {
+        await session.write({
+          nodeId: nodeIds.mode,
+          attributeId: AttributeIds.Value,
+          value: { value: { dataType: DataType.Int16, value: MODE_CODE[msg.mode] ?? 0 } },
+        })
+        console.log('[kopru] setMode yazildi:', msg.mode)
+      } catch (e) {
+        console.error('[kopru] setMode yazma hatasi:', e.message)
+      }
     }
   })
 

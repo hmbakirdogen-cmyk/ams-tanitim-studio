@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { SmcLogo } from './SmcLogo'
+import { ProductBadge } from './ProductBadge'
 import { useConnection } from '@/data/connection'
 import { Avatar } from './Avatar'
 import type { User } from '@/auth/users'
@@ -61,7 +62,12 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
         <SmcLogo size={60} />
       </div>
 
-      <nav className="mt-8 flex flex-col gap-1.5">
+      {/* URUN KIMLIGI - her sayfada gorunur (gorsel + ad + aktif model); "ne tanittigimiz her yerde belli" */}
+      <div className="mt-3">
+        <ProductBadge />
+      </div>
+
+      <nav className="mt-7 flex flex-col gap-1.5">
         {NAV.map(({ id, label, icon: Icon }) => {
           const on = page === id
           return (

@@ -9,11 +9,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { SmcLogo } from './SmcLogo'
 import { Avatar } from './Avatar'
 import { sound } from '@/lib/sound'
+import { PRODUCT } from '@/data/product'
+import { useModel } from '@/data/model'
 import { Lock, ArrowRight, ShieldCheck, User as UserIcon, ChevronLeft } from 'lucide-react'
 import type { Auth } from '@/auth/useAuth'
 import type { User } from '@/auth/users'
 
 export function LoginScreen({ auth }: { auth: Auth }) {
+  const { model } = useModel()
   const [sel, setSel] = useState<User | null>(null)
   const [pw, setPw] = useState('')
   const [error, setError] = useState(false)
@@ -65,9 +68,12 @@ export function LoginScreen({ auth }: { auth: Auth }) {
           {/* SAG: personel girisi */}
           <div>
             <div className="flex flex-col items-center text-center">
-              <SmcLogo size={76} withText={false} slogan />
-              <h1 className="mt-4 text-2xl font-bold text-white">Hava Yönetim Sistemi</h1>
-              <p className="text-sm text-[var(--ink-soft)]">Personel Girişi</p>
+              <SmcLogo size={92} withText={false} slogan />
+              <h1 className="mt-4 text-2xl font-bold text-white">{PRODUCT.name}</h1>
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="text-sm text-[var(--ink-soft)]">{PRODUCT.brand} · Personel Girişi</span>
+                <span className="num rounded-full border border-[var(--hair)] px-2 py-0.5 text-[11px] font-semibold text-[var(--smc-bright)]">{model.code}</span>
+              </div>
             </div>
 
         <AnimatePresence mode="wait">
@@ -77,28 +83,38 @@ export function LoginScreen({ auth }: { auth: Auth }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3"
+              /* ORTALANAN, DENGELI DUZEN: sabit izgara yerine flex-wrap -> 1 kullanici ortada,
+                 cogaldikca esit-genislikli kartlar dengeli sarar (yarim-genislik sag panelde sikismaz). */
+              className="mt-8 flex flex-wrap items-stretch justify-center gap-3.5"
             >
-              {auth.users.map((u) => (
-                <motion.button
-                  key={u.id}
-                  onClick={() => pick(u)}
-                  onMouseEnter={() => sound.hover()}
-                  whileHover={{ y: -4 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="glass flex flex-col items-center gap-3 rounded-2xl p-5 transition hover:bg-white/5"
-                >
-                  <Avatar user={u} size={66} />
-                  <div>
-                    <div className="text-sm font-semibold text-white">{u.firstName} Bey</div>
-                    {u.title && <div className="mt-0.5 text-[10px] text-[var(--ink-soft)]">{u.title}</div>}
-                    <div className="mt-0.5 flex items-center justify-center gap-1 text-[11px] text-[var(--ink-soft)]">
-                      {u.role === 'admin' ? <ShieldCheck size={12} /> : <UserIcon size={12} />}
-                      {u.role === 'admin' ? 'Yönetici' : 'Personel'}
+              {auth.users.map((u) => {
+                const admin = u.role === 'admin'
+                return (
+                  <motion.button
+                    key={u.id}
+                    onClick={() => pick(u)}
+                    onMouseEnter={() => sound.hover()}
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.97 }}
+                    className="glass flex w-[168px] flex-col items-center gap-3 rounded-2xl px-4 py-6 text-center transition hover:bg-white/5"
+                    /* Yonetici karti hafif SMC-mavisi cerceve + glow ile one cikar (kibar vurgu) */
+                    style={admin ? { boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.45), 0 0 30px -10px rgba(46,155,255,0.65)' } : undefined}
+                  >
+                    <Avatar user={u} size={84} />
+                    <div className="min-w-0">
+                      <div className="text-[15px] font-semibold leading-tight text-white">{u.firstName} Bey</div>
+                      {u.title && <div className="mt-1 line-clamp-2 text-[11px] leading-snug text-[var(--ink-soft)]">{u.title}</div>}
                     </div>
-                  </div>
-                </motion.button>
-              ))}
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium"
+                      style={admin ? { background: 'rgba(46,155,255,0.16)', color: '#2E9BFF' } : { background: 'rgba(126,170,230,0.12)', color: 'var(--ink-soft)' }}
+                    >
+                      {admin ? <ShieldCheck size={12} /> : <UserIcon size={12} />}
+                      {admin ? 'Yönetici' : 'Personel'}
+                    </span>
+                  </motion.button>
+                )
+              })}
             </motion.div>
           ) : (
             <motion.form

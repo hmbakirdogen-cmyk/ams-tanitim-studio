@@ -13,7 +13,11 @@ import { Sparkline } from './Sparkline'
 import { ReportView } from './ReportView'
 import { useMetrics } from '@/data/metrics'
 import { toLocalInputValue, fromLocalInputValue } from '@/lib/datetime'
+import { downsample } from '@/lib/series'
 import type { Reading } from '@/data/types'
+
+// Hazir aralik dugmesi (mutlak ms). Canli oturum varsayilanini kullanir; tarihsel rapor takvim presetleri verir.
+export interface RangePreset { label: string; start: number; end: number }
 
 const fmt = (v: number, d: number) =>
   new Intl.NumberFormat('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
@@ -31,14 +35,31 @@ function stats(series: number[]) {
   return { min, max, avg: sum / series.length }
 }
 
-export function RangeAnalysisModal({ points, startedAt, title, onClose }: { points: Reading[]; startedAt: number; title: string; onClose: () => void }) {
+export function RangeAnalysisModal({
+  points,
+  startedAt,
+  title,
+  onClose,
+  presets,
+  initialStart,
+  initialEnd,
+}: {
+  points: Reading[]
+  startedAt: number
+  title: string
+  onClose: () => void
+  presets?: RangePreset[] // verilmezse canli oturum varsayilanlari (Tumu/Son Yari/Son Ceyrek)
+  initialStart?: number // acilis secimi (verilmezse tum aralik) - tarihsel raporda or. son 24 saat
+  initialEnd?: number
+}) {
   const metrics = useMetrics()
   const n = points.length
   const firstAbs = n ? startedAt + points[0].t : startedAt
   const lastAbs = n ? startedAt + points[n - 1].t : startedAt
+  const clampAbs = (ms: number) => Math.max(firstAbs, Math.min(ms, lastAbs))
 
-  const [startMs, setStartMs] = useState(firstAbs)
-  const [endMs, setEndMs] = useState(lastAbs)
+  const [startMs, setStartMs] = useState(() => clampAbs(initialStart ?? firstAbs))
+  const [endMs, setEndMs] = useState(() => clampAbs(initialEnd ?? lastAbs))
   const [report, setReport] = useState<{ at: number } | null>(null)
 
   // Secili tarih/saat araligindaki noktalar.
@@ -54,7 +75,7 @@ export function RangeAnalysisModal({ points, startedAt, title, onClose }: { poin
   const clampEnd = (ms: number) => setEndMs(Math.min(lastAbs, Math.max(ms, startMs + 1000)))
 
   const span = lastAbs - firstAbs
-  const PRESETS: { label: string; start: number; end: number }[] = [
+  const PRESETS: RangePreset[] = presets ?? [
     { label: 'Tümü', start: firstAbs, end: lastAbs },
     { label: 'Son Yarı', start: firstAbs + span * 0.5, end: lastAbs },
     { label: 'Son Çeyrek', start: firstAbs + span * 0.75, end: lastAbs },
@@ -87,7 +108,7 @@ export function RangeAnalysisModal({ points, startedAt, title, onClose }: { poin
             {PRESETS.map((p) => (
               <button
                 key={p.label}
-                onClick={() => { setStartMs(p.start); setEndMs(p.end) }}
+                onClick={() => { setStartMs(clampAbs(Math.min(p.start, p.end - 1000))); setEndMs(clampAbs(p.end)) }}
                 className="rounded-lg border border-[var(--hair)] px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"
               >
                 {p.label}
@@ -147,7 +168,7 @@ export function RangeAnalysisModal({ points, startedAt, title, onClose }: { poin
                   <span className="text-sm font-semibold text-white">{m.name}</span>
                   <span className="ml-auto text-[11px] text-[var(--ink-soft)]">{m.unitShort}</span>
                 </div>
-                <Sparkline values={series} color={m.color} min={m.min} max={m.max} height={48} />
+                <Sparkline values={downsample(series)} color={m.color} min={m.min} max={m.max} height={48} />
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   {([['En düşük', s.min], ['Ortalama', s.avg], ['En yüksek', s.max]] as const).map(([label, val]) => (
                     <div key={label}>

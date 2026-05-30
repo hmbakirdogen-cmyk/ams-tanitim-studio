@@ -10,20 +10,42 @@ import { useSyncExternalStore } from 'react'
 export type ConnMode = 'demo' | 'live'
 export type ConnStatus = 'demo' | 'connecting' | 'connected' | 'error'
 
+// Cihazin OPC UA dugum kimlikleri - UYARLANABILIR: koddan degil EKRANDAN girilir, kopruye 'connect' ile gider.
+export interface NodeIds {
+  flow: string
+  pressure: string
+  temperature: string
+  humidity: string
+  mode: string // mod yazma (donanim gelince)
+}
+
 export interface ConnSettings {
   mode: ConnMode
   endpoint: string // cihaz OPC UA adresi, or. opc.tcp://192.168.1.50:4840
+  nodeIds: NodeIds // cihaza gore (UaExpert'ten okunup ekrandan girilir)
 }
 
-export const DEFAULT_CONN: ConnSettings = { mode: 'demo', endpoint: 'opc.tcp://192.168.1.50:4840' }
+// Placeholder node kimlikleri - kullanici kendi cihazina gore Kurulum Kilavuzu'ndan degistirir
+export const DEFAULT_NODE_IDS: NodeIds = {
+  flow: 'ns=2;s=AMS.FlowRate',
+  pressure: 'ns=2;s=AMS.Pressure',
+  temperature: 'ns=2;s=AMS.Temperature',
+  humidity: 'ns=2;s=AMS.Humidity',
+  mode: 'ns=2;s=AMS.Mode',
+}
+
+export const DEFAULT_CONN: ConnSettings = { mode: 'demo', endpoint: 'opc.tcp://192.168.1.50:4840', nodeIds: { ...DEFAULT_NODE_IDS } }
 const KEY = 'ams_connection_v1'
 
 function load(): ConnSettings {
   try {
     const raw = localStorage.getItem(KEY)
-    return raw ? { ...DEFAULT_CONN, ...(JSON.parse(raw) as Partial<ConnSettings>) } : { ...DEFAULT_CONN }
+    if (!raw) return { ...DEFAULT_CONN, nodeIds: { ...DEFAULT_NODE_IDS } }
+    const p = JSON.parse(raw) as Partial<ConnSettings>
+    // nodeIds derin birlestir (eski kayitlarda yoksa varsayilanla tamamla - geriye uyum)
+    return { ...DEFAULT_CONN, ...p, nodeIds: { ...DEFAULT_NODE_IDS, ...(p.nodeIds ?? {}) } }
   } catch {
-    return { ...DEFAULT_CONN }
+    return { ...DEFAULT_CONN, nodeIds: { ...DEFAULT_NODE_IDS } }
   }
 }
 
@@ -58,6 +80,12 @@ export function setConnEndpoint(endpoint: string): void {
   try { localStorage.setItem(KEY, JSON.stringify(settings)) } catch { /* offline */ }
   notify()
 }
+// Node kimliklerini (cihaza gore) guncelle - Kurulum Kilavuzu'ndan
+export function setNodeIds(patch: Partial<NodeIds>): void {
+  settings = { ...settings, nodeIds: { ...settings.nodeIds, ...patch } }
+  try { localStorage.setItem(KEY, JSON.stringify(settings)) } catch { /* offline */ }
+  notify()
+}
 // Canli kaynak (LiveDataSource) baglanti durumunu buradan gunceller
 export function setConnStatus(s: ConnStatus): void {
   if (s === status) return
@@ -71,5 +99,5 @@ export function useConnection() {
     () => snap,
     () => snap,
   )
-  return { settings: s.settings, status: s.status, setMode: setConnMode, setEndpoint: setConnEndpoint }
+  return { settings: s.settings, status: s.status, setMode: setConnMode, setEndpoint: setConnEndpoint, setNodeIds }
 }

@@ -11,7 +11,7 @@ export function IntroSplash({ onDone }: { onDone: () => void }) {
   return (
     <motion.div
       className="force-dark-surface fixed inset-0 z-50 grid place-items-center"
-      style={{ background: 'radial-gradient(circle at 50% 38%, #0a2148, #04060f 70%)' }}
+      style={{ background: 'radial-gradient(circle at 50% 38%, #08183a, #02030a 70%)' }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.6 } }}
     >
@@ -21,7 +21,7 @@ export function IntroSplash({ onDone }: { onDone: () => void }) {
           animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
           transition={{ duration: 1, ease: 'easeOut' }}
         >
-          <SmcLogo size={128} withText={false} />
+          <SmcLogo size={150} withText={false} />
         </motion.div>
 
         <motion.div

@@ -10,6 +10,7 @@ import { CinematicBackground } from './components/CinematicBackground'
 import { Sidebar, type Page } from './components/Sidebar'
 import { IntroSplash } from './components/IntroSplash'
 import { LoginScreen } from './components/LoginScreen'
+import { InstallPrompt } from './components/InstallPrompt'
 import { AdminUsers } from './components/AdminUsers'
 import { ProfileEditor } from './components/ProfileEditor'
 import { LivePage } from './pages/LivePage'
@@ -48,6 +49,9 @@ export default function App() {
       <AnimatePresence>
         {intro && <IntroSplash key="intro" onDone={() => setIntro(false)} />}
       </AnimatePresence>
+
+      {/* PWA kurulum daveti - giris ekraninda da gorunur (musteri ilk anda telefona kurabilir). */}
+      <InstallPrompt />
 
       {/* Giris kapisi: oturum yoksa giris ekrani */}
       {auth.ready && !auth.user && <LoginScreen auth={auth} />}

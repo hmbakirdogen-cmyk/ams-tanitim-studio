@@ -16,7 +16,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['smc-logo.svg', 'icon.svg'],
+      includeAssets: ['smc-logo.svg', 'icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'SMC Hava Yönetim Sistemi',
         short_name: 'AMS Stüdyo',
@@ -26,9 +26,14 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'any',
         lang: 'tr',
+        // PNG ikon seti: iOS apple-touch ayrica index.html'de baglanir.
+        // "any" (yuvarlak kose) + "maskable" (Android adaptive) ayri PNG'ler;
+        // SVG en sona fallback olarak kalir (vektor olcekleme).
         icons: [
+          { src: 'pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-          { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
         ],
       },
       workbox: {

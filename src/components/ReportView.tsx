@@ -9,6 +9,7 @@
 import { motion } from 'framer-motion'
 import { X, Printer, FileDown, Clock, Layers, PiggyBank, Database } from 'lucide-react'
 import { Sparkline } from './Sparkline'
+import { downsample } from '@/lib/series'
 import { useMetrics } from '@/data/metrics'
 import { useEconomy } from '@/data/economy'
 import { useModel } from '@/data/model'
@@ -68,11 +69,13 @@ export function ReportView({
   points.forEach((r) => (modeCount[r.mode] += 1))
   const total = n || 1
 
-  // Secili aralikta tasarruf (mevcut paternle)
+  // Secili aralikta tasarruf (mevcut paternle).
+  // dt esigi: canli tik ~0,08 sn; KALICI GECMIS ise dakikalik (dt=60 sn). Esik 120 sn -> hem canli hem dakikalik
+  // ardisik ornekler SAYILIR; ama uygulama kapaliyken olusan BUYUK bosluklar (saatler/gunler) sayilmaz (yanlis tasarruf olmaz).
   let liters = 0
   for (let i = 1; i < n; i++) {
     const dt = (points[i].t - points[i - 1].t) / 1000
-    if (dt > 0 && dt < 5) liters += tickLitersSaved(points[i].flow, dt, economy.baselineFlow)
+    if (dt > 0 && dt < 120) liters += tickLitersSaved(points[i].flow, dt, economy.baselineFlow)
   }
   const sv = litersToSavings(liters, economy)
 
@@ -185,7 +188,7 @@ export function ReportView({
                       <span className="text-sm font-semibold text-slate-900">{m.name}</span>
                       <span className="ml-auto text-[11px] text-slate-400">{m.unit}</span>
                     </div>
-                    <Sparkline values={series} color={m.color} min={m.min} max={m.max} height={44} />
+                    <Sparkline values={downsample(series)} color={m.color} min={m.min} max={m.max} height={44} />
                     <div className="mt-2 grid grid-cols-3 gap-2">
                       {([['En düşük', s.min], ['Ortalama', s.avg], ['En yüksek', s.max]] as const).map(([label, val]) => (
                         <div key={label}>
