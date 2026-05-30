@@ -33,10 +33,15 @@ const DEV_FILL = 0.985
 const FB_AXIS = 0.78, FB_PIPE = 0.085, FB_IN = 0.02, FB_OUT = 0.98
 // Fallback dijital ekran dikdortgenleri (tum-foto orani) — tespit tutmazsa (hub LCD + ikincil)
 const FB_DISPLAYS = [{ x: 0.455, y: 0.265, w: 0.12, h: 0.14 }, { x: 0.40, y: 0.52, w: 0.092, h: 0.055 }]
-// PDF'e gore modul bolgeleri (kirpilmis icerik x orani)
+// PDF'e gore modul bolgeleri (tum-foto x/y orani)
 const REG_FRAC: [number, number] = [0.12, 0.34] // standby/oransal regülatör (basınç regüle bölgesi)
 const REG_CX = 0.22                              // regülatör merkezi (devrede halkası)
-const VALVE_CX = 0.80                            // tahliye valfi merkezi (devrede halkası + egzoz kaynağı)
+const VALVE_CX = 0.82                            // tahliye valfi merkezi (devrede halkası)
+const EXHAUST_CX = 0.86, EXHAUST_CY = 0.78       // egzoz PORTU (valf modülü alt-orta; duman tam buradan çıkar)
+// PDF LED konumlari (tum-foto orani; araştırma OMA1007/EXA1/VP): hub LCD altı 5'li satır + port LED + valf konnektör kırmızı + regülatör 2 yeşil
+const LED_HUB_ROW_Y = 0.50, LED_HUB_X0 = 0.45, LED_HUB_X1 = 0.57 // hub status LED satırı (LCD altı)
+const LED_VALVE: [number, number] = [0.84, 0.12]  // valf solenoid konnektör LED (üst) — KIRMIZI
+const LED_REG: [number, number] = [0.13, 0.40]    // regülatör (Tip A ITV) güç/iletişim LED — YEŞİL
 
 const FLOW_COUNT = 160
 const MOLE_COUNT = 90
@@ -259,7 +264,9 @@ export function DeviceFlowChart({
       sig.exhaust += (exTarget - sig.exhaust) * Math.min(1, dt * 1.1)
 
       const fc = colorRef.current.flow, pc = colorRef.current.pressure, hc = colorRef.current.hum
-      const [tr, tg, tb] = tempRGB(sig.temp)
+      // ISI RANGE GENİŞLETME: dar sensör bandını orta etrafında AÇ → soğukta daha mavi, sıcakta daha kırmızı (fark net)
+      const tempEff = clamp01(0.5 + (sig.temp - 0.5) * 1.7)
+      const [tr, tg, tb] = tempRGB(tempEff)
       const cF = (a: number) => `rgba(${fc[0]},${fc[1]},${fc[2]},${a})` // debi rengi
       const cP = (a: number) => `rgba(${pc[0]},${pc[1]},${pc[2]},${a})` // basinc rengi
       const cH = (a: number) => `rgba(${hc[0]},${hc[1]},${hc[2]},${a})` // nem rengi
@@ -280,11 +287,12 @@ export function DeviceFlowChart({
       const regX0 = dx + dw * REG_FRAC[0], regX1 = dx + dw * REG_FRAC[1]
       const regCx = dx + dw * REG_CX, regCy = dy + dh * 0.40
       const valveCx = dx + dw * VALVE_CX, valveCy = dy + dh * 0.42
-      const exOx = dx + dw * VALVE_CX, exOy = bot // egzoz boru ALT kenarindan asagi
+      // EGZOZ PORTU: valf modülünün ALT-orta noktası (PDF: tahliye aşağı, susturucu valfin altında). Duman TAM buradan çıkar.
+      const exOx = dx + dw * EXHAUST_CX, exOy = dy + dh * EXHAUST_CY
       const markR = Math.min(dw, dh) * 0.11
 
-      // 1) GERÇEK CİHAZ FOTOSU — arka plan
-      if (deviceCanvas) { ctx.globalAlpha = dark ? 0.82 : 0.92; ctx.drawImage(deviceCanvas, dx, dy, dw, dh); ctx.globalAlpha = 1 }
+      // 1) GERÇEK CİHAZ FOTOSU — ARKA PLAN, TAM görünür (atlanmaz). Tüm animasyon bunun üstüne biner.
+      if (deviceCanvas) { ctx.globalAlpha = 1; ctx.drawImage(deviceCanvas, dx, dy, dw, dh) }
 
       // 2) BORU + giris/cikis hortumu (UÇTAN UCA, port ile AYNI EKSEN+ÇAP). Debi renginde hafif kenar.
       const grad = ctx.createLinearGradient(0, top, 0, bot)
@@ -314,43 +322,38 @@ export function DeviceFlowChart({
       //   VALF KAPANINCA (izolasyon): valf SONRASI (çıkış/ön) hava GERİ akar (sağdan→valfe) ve valfte AŞAĞI egzoza dökülür.
       const pr = pipeH * 0.4
       const baseV = 0.05 + 0.95 * sig.flow
-      const valvePhase = (valveCx - 0) / W // valf x'inin faz karsiligi (0..1)
       ctx.lineCap = 'round'
       for (let i = 0; i < FLOW_COUNT; i++) {
         const layer = fLayer[i], depth = layer === 0 ? 0.55 : layer === 1 ? 0.8 : 1.15
         const x0 = fPhase[i] * W
-        const afterValve = x0 > valveCx
-        if (afterValve && sig.valve > 0.1) {
-          // GERİ AKIŞ: çıkış tarafındaki hava valfe doğru geri çekilir (sola), valfe varınca egzoza düşer
-          fPhase[i] -= (0.18 + 0.5 * sig.valve) * fSpd[i] * dt
-          if (fPhase[i] <= valvePhase) {
-            // valfe ulaştı → aşağı egzoza "dök" (bu parçacığı çıkış ucuna geri ışınla, geri-akış sürsün)
-            fPhase[i] = 0.992
-          }
-          const x = fPhase[i] * W
-          const prog = clamp01((x - valveCx) / Math.max(1, W - valveCx)) // valfe yakinlik (0=valf,1=cikis)
-          // valfe yaklaştıkça aşağı kıvrıl (egzoza dökülme hissi)
-          const dropY = (1 - prog) * pipeH * 1.1 * sig.valve
+        // GERİ AKIŞ (izolasyon): SADECE valf SAĞINDAKI (çıkış tarafı) parçacıklar valfe doğru geri akar; valfe varınca egzoza düşer.
+        if (sig.valve > 0.12 && x0 > valveCx) {
+          fPhase[i] -= (0.10 + 0.45 * sig.valve) * fSpd[i] * dt
+          let x = fPhase[i] * W
+          if (x <= valveCx) { fPhase[i] = (W - 2) / W; x = fPhase[i] * W } // valfe ulaştı → çıkış ucuna geri ışınla (döngü sürsün)
+          const prog = clamp01((x - valveCx) / Math.max(1, outX - valveCx)) // 0=valf .. 1=çıkış
+          const dropY = (1 - prog) * pipeH * 0.9 * sig.valve // valfe yaklaştıkça aşağı kıvrıl (egzoza dökülür)
           const y = axisY + fLane[i] * pr * 0.5 + dropY
-          const a = (0.22 + 0.4 * sig.valve) * (layer === 0 ? 0.5 : layer === 1 ? 0.85 : 1)
-          const len = (5 + 14 * sig.valve) * depth
-          ctx.strokeStyle = cT(a)
-          ctx.lineWidth = (1.4 + 1.0 * depth)
-          ctx.beginPath(); ctx.moveTo(x + len, y - dropY * 0.3); ctx.lineTo(x, y); ctx.stroke() // kuyruk sağda (geri geliyor)
+          const a = (0.24 + 0.45 * sig.valve) * (layer === 0 ? 0.5 : layer === 1 ? 0.85 : 1)
+          const len = (5 + 12 * sig.valve) * depth
+          ctx.strokeStyle = cT(a); ctx.lineWidth = 1.4 + 1.0 * depth
+          ctx.beginPath(); ctx.moveTo(x + len, y - dropY * 0.25); ctx.lineTo(x, y); ctx.stroke() // kuyruk sağda → sola (geri)
           continue
         }
-        // NORMAL ileri akış
+        // NORMAL ileri akış (valf solu daima; valf sağı sadece valf açıkken)
         fPhase[i] += (baseV * fSpd[i] * depth * 0.55 + 0.008) * dt
         if (fPhase[i] > 1) fPhase[i] -= 1
         const x = fPhase[i] * W
+        // valf kapanırken çıkış tarafı yeni ileri-akış almaz (geri-akışa bırak) — yumuşak kesme
+        if (x > valveCx && sig.valve > 0.12) continue
         const y = axisY + fLane[i] * pr * (0.6 + 0.4 * depth)
         const len = (6 + baseV * 34) * depth
         const a = (0.14 + 0.6 * sig.flow) * (layer === 0 ? 0.5 : layer === 1 ? 0.82 : 1)
         ctx.strokeStyle = cT(a) // ← SICAKLIK rengi (akış ısındıkça mavi→kırmızı)
         ctx.lineWidth = (1.4 + 1.2 * depth) * (0.6 + sig.flow * 0.8)
         ctx.beginPath(); ctx.moveTo(x - len, y); ctx.lineTo(x, y); ctx.stroke()
-        if (layer === 2 && sig.temp > 0.5) { // çok sıcak → uçta ek kızıl glow
-          const gl = (sig.temp - 0.5) * 11
+        if (layer === 2 && tempEff > 0.55) { // çok sıcak → uçta ek kızıl glow
+          const gl = (tempEff - 0.55) * 12
           const rg = ctx.createRadialGradient(x, y, 0, x, y, gl)
           rg.addColorStop(0, cT(0.7 * a)); rg.addColorStop(1, cT(0))
           ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(x, y, gl, 0, Math.PI * 2); ctx.fill()
@@ -403,11 +406,11 @@ export function DeviceFlowChart({
         if (pLife[i] <= 0) {
           if (sig.exhaust > 0.08) {
             const sp = (150 + Math.random() * 190) * (0.5 + sig.exhaust)
-            pX[i] = exOx + (Math.random() - 0.5) * pipeH * 0.5
+            pX[i] = exOx + (Math.random() - 0.5) * Math.max(3, dh * 0.018) // DAR ağız → tam port içinden çıkar
             pY[i] = exOy
-            pVx[i] = (Math.random() - 0.5) * 70
+            pVx[i] = (Math.random() - 0.5) * 36 // dar koni
             pVy[i] = sp // asagi
-            pR[i] = 2; pLife[i] = 1
+            pR[i] = 1.5; pLife[i] = 1
           } else continue
         }
         pVx[i] *= 0.94; pVy[i] = pVy[i] * 0.95 + 40 * dt
@@ -436,41 +439,63 @@ export function DeviceFlowChart({
         ctx.fillStyle = `rgba(${rgb},${Math.min(1, 0.5 + on)})`
         ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
       }
-      const ledR = Math.max(1.6, dh * 0.012)
-      // Hub LED'leri (ekran yakınında) — çalışıyor: yeşil nabız + ikinci LED ince mavi (iletişim)
-      const hubLedX = dx + dw * 0.50, hubLedY = dy + dh * 0.21
-      led(hubLedX - dw * 0.03, hubLedY, '65,224,138', blink, ledR)               // RUN (yeşil)
-      led(hubLedX + dw * 0.0, hubLedY, '46,155,255', 0.4 + 0.5 * Math.sin(now * 0.013 + 1), ledR) // COMM (mavi)
-      // Regülatör LED'i — standby'da yeşil (devrede), normalde sönük
-      led(regCx + dw * 0.03, dy + dh * 0.30, '65,224,138', sig.reg * slowBlink, ledR)
-      // Valf LED'i — izolasyonda amber yanıp söner (soft-start: yavaş), normalde sönük
-      led(valveCx, dy + dh * 0.24, '255,150,40', sig.valve * blink, ledR)
+      const ledR = Math.max(1.5, dh * 0.011)
+      // HUB status LED satırı (PDF: LCD'nin ALTINDA, sol→sağ: PWR · MODE · SIG). Gerçek renk/anlam:
+      //   PWR yeşil (güç OK, sabit) · MODE: normal=yeşil, standby=turuncu, izolasyon=turuncu yanıp-sön · SIG: aktif modda yanar
+      const rowY = dy + dh * LED_HUB_ROW_Y
+      const lx0 = dx + dw * LED_HUB_X0, lx1 = dx + dw * LED_HUB_X1
+      const lxAt = (f: number) => lx0 + (lx1 - lx0) * f
+      const isStandby = t.mode === 'standby', isIso = t.mode === 'isolation'
+      led(lxAt(0), rowY, '65,224,138', 0.85, ledR)                                              // PWR (yeşil sabit = güç OK)
+      led(lxAt(0.5), rowY, isStandby || isIso ? '255,150,40' : '65,224,138', isIso ? blink : 0.85, ledR) // MODE
+      led(lxAt(1), rowY, isIso ? '255,150,40' : '65,224,138', (isStandby || isIso) ? blink : 0.3, ledR)   // SIG
+      // HUB port-link LED'leri (alt Ethernet portları) — yeşil, debi varsa aktivite (flaş)
+      const portY = dy + dh * 0.70
+      led(dx + dw * 0.47, portY, '65,224,138', 0.5 + 0.4 * sig.flow * blink, ledR * 0.85)        // L/A PORT1
+      led(dx + dw * 0.53, portY, '65,224,138', 0.5 + 0.4 * sig.flow * slowBlink, ledR * 0.85)    // L/A PORT2
+      // REGÜLATÖR (Tip A ITV) LED'i — güç yeşil sabit + standby'da iletişim/aktif yeşil nabız
+      led(dx + dw * LED_REG[0], dy + dh * LED_REG[1], '65,224,138', 0.6 + 0.4 * sig.reg * slowBlink, ledR)
+      // VALF solenoid konnektör LED'i — KIRMIZI (enerjilenince=izolasyon); soft-start ile yumuşak yanar
+      led(dx + dw * LED_VALVE[0], dy + dh * LED_VALVE[1], '255,60,48', sig.valve * (0.6 + 0.4 * blink), ledR)
 
-      // 9) CİHAZ LCD'leri — GERÇEK verilerle canlı (her satır kendi renginde + birim). Koyu cam + ince çerçeve.
+      // 9) CİHAZ LCD'si (debimetre/hub ekranı) — SMC EXA1 düzenine BİREBİR yakın, HER HÜCRE CANLI VERİ.
+      //   Gerçek ekran: koyu zemin, sol küçük etiket, sağda büyük rakam + birim; satırlar: Basınç(MPa) · Debi(L/min) · Sıcaklık(°C).
       const ro2 = readoutRef.current
       const hub = displays[0]
       if (hub && ro2.length) {
         const rx = dx + hub.x * dw, ry = dy + hub.y * dh, rw = hub.w * dw, rh = hub.h * dh
-        // cam zemin (hafif koyulaştır → rakamlar okunur)
-        ctx.fillStyle = 'rgba(4,10,20,0.62)'
-        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, Math.min(4, rh * 0.12)); ctx.fill() } else ctx.fillRect(rx, ry, rw, rh)
-        ctx.strokeStyle = 'rgba(120,160,210,0.5)'; ctx.lineWidth = 1; ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1)
+        const rad = Math.min(4, rh * 0.1)
+        // koyu LCD cam (gerçek ekran gibi) + ince çerçeve
+        ctx.fillStyle = 'rgba(3,8,16,0.80)'
+        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, rad); ctx.fill() } else ctx.fillRect(rx, ry, rw, rh)
+        ctx.strokeStyle = 'rgba(110,150,200,0.55)'; ctx.lineWidth = 1; ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1)
         const rows = ro2.slice(0, 3)
-        const lh = rh / rows.length
+        const padX = rw * 0.07
+        const lh = (rh - rh * 0.06) / rows.length
         ctx.textBaseline = 'middle'
         for (let i = 0; i < rows.length; i++) {
-          const r = rows[i], cy = ry + lh * (i + 0.5)
+          const r = rows[i], cy = ry + rh * 0.03 + lh * (i + 0.5)
           const [rr, gg, bb] = r.rgb
-          const fs = Math.max(7, Math.min(lh * 0.5, rw * 0.16))
+          // ayraç çizgi (satırlar arası, gerçek segment ekran hissi)
+          if (i > 0) { ctx.strokeStyle = 'rgba(120,160,210,0.18)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(rx + padX, ry + rh * 0.03 + lh * i); ctx.lineTo(rx + rw - padX, ry + rh * 0.03 + lh * i); ctx.stroke() }
+          // sol küçük etiket (kısaltma: P / Q / T) — kendi renginde soluk
+          const fsLab = Math.max(5, Math.min(lh * 0.32, rw * 0.1))
+          ctx.font = `600 ${fsLab}px ui-monospace, Menlo, monospace`
+          ctx.textAlign = 'left'
+          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.7)`
+          ctx.fillText(['P', 'Q', 'T'][i] ?? '', rx + padX, cy)
+          // büyük CANLI rakam (kendi renginde, hafif glow = segment ışıması)
+          const fs = Math.max(8, Math.min(lh * 0.62, rw * 0.2))
           ctx.font = `700 ${fs}px ui-monospace, Menlo, monospace`
           ctx.textAlign = 'right'
-          ctx.shadowColor = `rgba(${rr},${gg},${bb},0.9)`; ctx.shadowBlur = fs * 0.6
+          ctx.shadowColor = `rgba(${rr},${gg},${bb},0.95)`; ctx.shadowBlur = fs * 0.55
           ctx.fillStyle = `rgb(${rr},${gg},${bb})`
           ctx.fillText(r.value, rx + rw - rw * 0.30, cy)
           ctx.shadowBlur = 0
-          ctx.font = `500 ${fs * 0.62}px ui-monospace, Menlo, monospace`
+          // birim (küçük, sağda)
+          ctx.font = `500 ${fs * 0.55}px ui-monospace, Menlo, monospace`
           ctx.textAlign = 'left'
-          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.8)`
+          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.85)`
           ctx.fillText(r.unit, rx + rw - rw * 0.27, cy)
         }
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
