@@ -163,7 +163,7 @@ export function DeviceFlowChart({
       canvas.width = Math.max(1, Math.round(W * dpr)); canvas.height = Math.max(1, Math.round(H * dpr))
       canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      sprAir = gaussSprite(28, [232, 240, 250], 0.5)
+      sprAir = gaussSprite(28, [200, 222, 250], 0.7)
       sprHaze = gaussSprite(24, [210, 225, 245], 0.5)
       sprCloud = gaussSprite(40, [212, 226, 246], 0.55)
       sprCore = gaussSprite(26, [238, 246, 255], 0.85)
@@ -216,50 +216,56 @@ export function DeviceFlowChart({
       // 1) GERÇEK ÜRÜN — olduğu gibi
       if (deviceCanvas) ctx.drawImage(deviceCanvas, dx, dy, dw, dh)
 
-      // 2) BORU içi (yuvarlak tüp izlenimi): üst glint + alt iç gölge. Çok hafif → ürün okunur.
+      // 2) BORU içi = KOYU CAM TÜP (belirgin koyulaştır) → açık/beyaz ürünün üstünde içindeki ışıklı akış KONTRAST yapar, görünür olur.
+      //    Üstte ince glint (cam parlaması) + içi koyu + alt iç gölge (yuvarlak tüp hissi).
       ctx.globalCompositeOperation = 'source-over'
       const pg = ctx.createLinearGradient(0, top, 0, bot)
-      pg.addColorStop(0, 'rgba(255,255,255,0.05)'); pg.addColorStop(0.2, 'rgba(190,205,230,0.07)')
-      pg.addColorStop(0.55, 'rgba(120,140,170,0.03)'); pg.addColorStop(0.85, 'rgba(15,22,40,0.10)'); pg.addColorStop(1, 'rgba(10,15,28,0.14)')
+      pg.addColorStop(0, 'rgba(180,200,228,0.45)')   // üst glint (cam)
+      pg.addColorStop(0.14, 'rgba(20,30,52,0.62)')
+      pg.addColorStop(0.5, 'rgba(8,14,30,0.70)')     // koyu cam içi
+      pg.addColorStop(0.86, 'rgba(6,10,22,0.66)')
+      pg.addColorStop(1, 'rgba(2,5,14,0.5)')          // alt iç gölge
       ctx.fillStyle = pg; ctx.fillRect(inX, top, outX - inX, pipeH)
+      // tüp kenar çizgileri (üst/alt) — cam hattı belli olsun
+      ctx.strokeStyle = 'rgba(150,180,220,0.4)'; ctx.lineWidth = 1
+      ctx.beginPath(); ctx.moveTo(inX, top); ctx.lineTo(outX, top); ctx.moveTo(inX, bot); ctx.lineTo(outX, bot); ctx.stroke()
+      // SICAKLIK ısı tülü (dünya std renk) — tüp boyu, additive → akan hava bu renge boyanır (sıcaklık her yere yansır)
+      ctx.globalCompositeOperation = 'lighter'
+      const haze = 0.10 + 0.30 * tempEff
+      const hg = ctx.createLinearGradient(0, top, 0, bot)
+      hg.addColorStop(0, `rgba(${tr},${tg},${tb},0)`); hg.addColorStop(0.5, `rgba(${tr},${tg},${tb},${haze})`); hg.addColorStop(1, `rgba(${tr},${tg},${tb},0)`)
+      ctx.fillStyle = hg; ctx.fillRect(inX, top, outX - inX, pipeH)
+      ctx.globalCompositeOperation = 'source-over'
 
-      // 3) AKAN HAVA — renksiz wispy (additive, çok düşük alpha), parabolik profil, curl gezinme, 3 parallax katman
+      // 3) AKAN HAVA — SICAKLIK renginde, GÖRÜNÜR ışıklı akış (koyu tüp içinde additive parlar). Parabolik profil + curl + parallax.
       const baseV = 0.04 + 0.96 * sig.flow
-      const tint = 0.08
       ctx.globalCompositeOperation = 'lighter'
       for (let i = 0; i < FLOW_COUNT; i++) {
         const layer = fLayer[i], depth = layer === 0 ? 0.55 : layer === 1 ? 0.82 : 1.12
         const laneN = fLane[i]
-        const prof = 0.25 + 0.75 * (1 - laneN * laneN) // parabolik (merkez hızlı)
-        // valf kapanınca çıkış tarafı yeni hava almaz (geri-akış aşağıda)
+        const prof = 0.25 + 0.75 * (1 - laneN * laneN) // parabolik (merkez hızlı, cidar yavaş = no-slip)
         const span = outX - inX
         fX[i] += (baseV * prof * depth * 0.5 + 0.006) * dt
         fLife[i] -= dt * (0.5 + 0.5 * baseV)
         if (fX[i] > 1 || fLife[i] <= 0) { fX[i] = 0; fLife[i] = 0.6 + Math.random() * 1.0; fLane[i] = Math.random() * 2 - 1 }
         let px = inX + fX[i] * span
-        // valf kapalı: çıkış tarafı (valveCx sağı) GERİ akar + aşağı egzoza kıvrılır
         let py = axisY + laneN * (pipeH * 0.42) * (0.6 + 0.4 * depth)
         let dropY = 0
         if (sig.valve > 0.12 && px > valveCx) {
           const back = (px - valveCx) / Math.max(1, outX - valveCx)
-          px = valveCx + back * (outX - valveCx) - sig.valve * 30 * dt * 60 * 0 // konum aynı; aşağı kıvrılma:
-          dropY = (1 - back) * pipeH * 0.8 * sig.valve
+          dropY = (1 - back) * pipeH * 0.8 * sig.valve // valf kapalı: çıkış tarafı aşağı egzoza kıvrılır
         }
-        // curl gezinme
         const cn = curlY(px * 0.012 + fSeed[i], py * 0.012 + now * 0.0003)
         py += cn * pipeH * 0.10 + dropY
         const sz = fSz[i] * (0.6 + depth * 0.5) * (1 + baseV * 0.8)
-        // yaşam fade (üçgen)
         const lf = fLife[i] > 0.85 ? (1 - fLife[i]) * 6.7 : Math.min(1, fLife[i] * 1.6)
-        const al = (0.025 + 0.075 * baseV) * (layer === 0 ? 0.5 : layer === 1 ? 0.8 : 1) * lf
-        if (al < 0.004) continue
-        const r = Math.round(232 + (tr - 232) * tint), g = Math.round(240 + (tg - 240) * tint), b = Math.round(250 + (tb - 250) * tint)
-        // motion-stretch: hıza göre yatay uzat
-        const sx = sz * (1 + baseV * depth * 2.2), sy = sz
+        // GÖRÜNÜR alpha (koyu tüp içinde): merkez katman parlak, arka katman sönük
+        const al = (0.16 + 0.42 * baseV) * (layer === 0 ? 0.45 : layer === 1 ? 0.78 : 1) * lf
+        if (al < 0.01) continue
+        // motion-stretch: hıza göre yatay uzayan ışıklı iz (hıza göre uzunluk = gerçekçilik)
+        const sx = sz * (1 + baseV * depth * 2.4), sy = sz
         ctx.globalAlpha = al
-        // sprite renklendirme: önce çiz, sonra hue için ayrı sprite gerekmiyor — near-white sprite + global tint yok; basit: drawImage
         ctx.drawImage(sprAir, (px - sx) | 0, (py - sy) | 0, (sx * 2) | 0, (sy * 2) | 0)
-        void r; void g; void b
       }
       ctx.globalAlpha = 1
 
