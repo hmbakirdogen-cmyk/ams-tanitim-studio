@@ -14,19 +14,19 @@
  *   EGZOZ : 3-bölge türbülanslı tüy: çekirdek (additive, sıcak) + bulut (normal, soğuk-beyaz), drag + curl + büyü-sön; soft-start.
  * YAN ETKI: Offline (görseller gömülü). Üstüne PipeOverlay biner. Görsel seçimi localStorage 'ams_flow_variant'.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { asset } from '@/lib/asset'
 import type { Reading, Mode } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
-const VARIANT_KEY = 'ams_flow_variant'
 
-const DEV_FILL = 0.97
-const FB_AXIS = 0.5, FB_PIPE = 0.055, FB_IN = 0.03, FB_OUT = 0.97
-const REG_FRAC: [number, number] = [0.14, 0.34]
+// ams-front.jpg (önceki onaylı görünüm): cihaz BOYDAN BOYA dolar
+const DEV_FILL = 0.985
+const FB_AXIS = 0.72, FB_PIPE = 0.07, FB_IN = 0.03, FB_OUT = 0.97
+const REG_FRAC: [number, number] = [0.12, 0.34]
 const REG_CX = 0.22, VALVE_CX = 0.80
-const FB_EXHAUST: [number, number] = [0.80, 0.62]
+const FB_EXHAUST: [number, number] = [0.78, 0.58]
 
 const FLOW_COUNT = 300
 const HAZE_COUNT = 240
@@ -73,8 +73,6 @@ export function DeviceFlowChart({
 }: { reading: Reading | null; metrics?: MetricDef[]; mode?: Mode; theme?: 'dark' | 'light' }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
-  const [variant, setVariant] = useState<'a' | 'b'>(() => (localStorage.getItem(VARIANT_KEY) === 'b' ? 'b' : 'a'))
-  useEffect(() => { localStorage.setItem(VARIANT_KEY, variant) }, [variant])
 
   const byKey = useMemo(() => Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<string, MetricDef>, [metrics])
   const targetRef = useRef({ flow: 0, pressure: 0, temp: 0, hum: 0, mode })
@@ -127,7 +125,7 @@ export function DeviceFlowChart({
         }
       } catch { /* taint → fallback */ }
     }
-    img.src = asset(variant === 'b' ? 'products/ams-render-b.jpg' : 'products/ams-render-a.png')
+    img.src = asset('products/ams-front.jpg')
 
     const sig = { flow: 0, pressure: 0, temp: 0, hum: 0, exhaust: 0, reg: 0, valve: 0 }
     // AKIŞ havuzu
@@ -360,18 +358,18 @@ export function DeviceFlowChart({
       const blink = 0.55 + 0.45 * Math.sin(now * 0.009), slowBlink = 0.45 + 0.55 * Math.sin(now * 0.005)
       const ledR = Math.max(1.3, dh * 0.008)
       const isStandby = t.mode === 'standby', isIso = t.mode === 'isolation'
-      const rowY = dy + dh * (variant === 'b' ? 0.54 : 0.30)
-      const lx0 = dx + dw * (variant === 'b' ? 0.47 : 0.47), lx1 = dx + dw * (variant === 'b' ? 0.57 : 0.53)
+      const rowY = dy + dh * 0.54
+      const lx0 = dx + dw * 0.47, lx1 = dx + dw * 0.57
       const lxAt = (f: number) => lx0 + (lx1 - lx0) * f
       led(lxAt(0), rowY, '65,224,138', 0.8, ledR)
       led(lxAt(0.5), rowY, isStandby || isIso ? '255,150,40' : '65,224,138', isIso ? blink : 0.8, ledR)
       led(lxAt(1), rowY, isIso ? '255,150,40' : '65,224,138', (isStandby || isIso) ? blink : 0.3, ledR)
-      led(dx + dw * REG_CX * 0.6, dy + dh * (variant === 'b' ? 0.66 : 0.40), '65,224,138', 0.55 + 0.45 * sig.reg * slowBlink, ledR)
+      led(dx + dw * REG_CX * 0.6, dy + dh * 0.40, '65,224,138', 0.55 + 0.45 * sig.reg * slowBlink, ledR)
       led(exOx, dy + dh * (exhaust[1] - 0.42 < 0 ? 0.18 : exhaust[1] - 0.42), '255,60,48', sig.valve * (0.6 + 0.4 * blink), ledR)
 
       // 8) LCD — SMC hub düzeni, HER HÜCRE CANLI (P/Q/T + büyük rakam + birim). Render A boş ekran → buraya basılır.
       const ro2 = readoutRef.current
-      if (ro2.length && variant === 'a') {
+      if (ro2.length) {
         const rx = dx + lcd.x * dw, ry = dy + lcd.y * dh, rw = lcd.w * dw, rh = lcd.h * dh
         ctx.fillStyle = 'rgba(3,8,16,0.82)'
         if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, Math.min(4, rh * 0.1)); ctx.fill() } else ctx.fillRect(rx, ry, rw, rh)
@@ -393,21 +391,11 @@ export function DeviceFlowChart({
     }
     raf = requestAnimationFrame(draw)
     return () => { cancelAnimationFrame(raf); ro.disconnect() }
-  }, [variant])
+  }, [])
 
   return (
     <div ref={wrapRef} className="absolute inset-0">
       <canvas ref={canvasRef} className="block h-full w-full" />
-      {/* A/B görsel seçimi (Mehmet Abi: ekranda hangisi açık net yazsın, tıkla-değiştir) */}
-      <button
-        onClick={() => setVariant((v) => (v === 'a' ? 'b' : 'a'))}
-        className="absolute right-3 top-3 z-10 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold backdrop-blur transition"
-        style={{ borderColor: 'var(--smc-bright)', background: 'rgba(0,114,206,0.22)', color: '#fff', boxShadow: '0 0 18px -6px var(--smc-bright)' }}
-        title="Tıkla → diğer ürün görseline geç"
-      >
-        <span className="grid h-5 w-5 place-items-center rounded-full text-[11px] font-bold" style={{ background: 'var(--smc-bright)', color: '#04122a' }}>{variant.toUpperCase()}</span>
-        Şu an: Görsel {variant.toUpperCase()} · değiştir →
-      </button>
     </div>
   )
 }
