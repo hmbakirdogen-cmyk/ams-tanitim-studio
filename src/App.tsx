@@ -35,7 +35,7 @@ export default function App() {
   const auth = useAuth()
   const { theme, toggle: toggleTheme } = useTheme()
   const [page, setPage] = useState<Page>('live')
-  const [muted, setMuted] = useState(true)
+  const [muted, setMuted] = useState(false)   // Mehmet Abi: ses VARSAYILAN AÇIK (load'da çalmaz; ilk kullanıcı hareketinde AudioContext açılır)
   const [intro, setIntro] = useState(true)
   const [showUsers, setShowUsers] = useState(false)
   const [showProfile, setShowProfile] = useState(false)

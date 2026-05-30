@@ -70,10 +70,9 @@ export function LoginScreen({ auth }: { auth: Auth }) {
             <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS {t('Hava Yönetim Sistemi')}</span>
             {/* ORIJINAL fabrika görseli (kendi arka planıyla) - object-cover ile hücreye, ürün ortalı */}
             <img
-              src={asset('products/ams-diagram.jpg')}
-              alt="SMC AMS — Hava Yönetim Sistemi (fabrika hattında gerçek ürün)"
-              className="absolute inset-0 h-full w-full object-cover"
-              style={{ objectPosition: '50% 42%' }}
+              src={asset('products/ams-overview.jpg')}
+              alt="SMC AMS — Hava Yönetim Sistemi (resmi SMC tanıtım görseli)"
+              className="absolute inset-0 h-full w-full object-contain p-1"
               loading="lazy"
             />
           </div>

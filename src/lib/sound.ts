@@ -2,14 +2,14 @@
  * NE      : Premium ses motoru - Web Audio API ile SENTEZLENMIS (sample dosyasi yok) zarif efektler.
  * NEDEN   : Mehmet Bey: "saçmalamayacak çok etkileyecek ses efektleri" - ucuz/pikselli sample yerine temiz, kontrol edilebilir ton.
  * NASIL   : Tek AudioContext; osilator + zarf (gain envelope) ile blip/akor; hover/click/mod-gecis sesleri.
- * YAN ETKI: Varsayilan KAPALI (tarayici autoplay + saygi); setMuted(false) ilk kullanici hareketinde acar. Mute her an saygili.
+ * YAN ETKI: Varsayilan ACIK (Mehmet Abi); AudioContext ilk kullanici hareketinde resume olur (load'da kendiliginden ses YOK). Mute her an saygili.
  */
 type ModeKind = 'normal' | 'standby' | 'isolation'
 
 class SoundEngine {
   private ctx: AudioContext | null = null
   private master: GainNode | null = null
-  muted = true
+  muted = false   // Mehmet Abi: VARSAYILAN ACIK (ilk kullanici hareketinde AudioContext resume; load'da kendiliginden calmaz)
 
   private ensure(): AudioContext {
     if (!this.ctx) {

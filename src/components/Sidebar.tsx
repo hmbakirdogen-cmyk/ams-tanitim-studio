@@ -76,19 +76,37 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
         <ProductBadge />
       </div>
 
-      {/* DIL ANAHTARI - TR (asil 3B dalgalanan) / EN / JA */}
-      <div className="mt-3 flex justify-start">
+      {/* DIL + global kontroller (ses/tema): tek satır — küçük ikon butonlar, boşa yer kaplamasın (Mehmet Abi) */}
+      <div className="mt-3 flex items-center justify-between gap-2">
         <LangSwitcher />
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onToggleSound}
+            aria-label={muted ? t('Sesi Aç') : t('Ses Açık')}
+            title={muted ? t('Sesi Aç') : t('Ses Açık')}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--hair)] text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
+          >
+            {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+          </button>
+          <button
+            onClick={onToggleTheme}
+            aria-label={theme === 'dark' ? t('Gündüz') : t('Gece')}
+            title={theme === 'dark' ? t('Gündüz') : t('Gece')}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--hair)] text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
+          >
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
+        </div>
       </div>
 
-      <nav className="mt-6 flex flex-col gap-1.5">
+      <nav className="mt-5 flex flex-col gap-1">
         {NAV.map(({ id, label, icon: Icon }) => {
           const on = page === id
           return (
             <button
               key={id}
               onClick={() => onPage(id)}
-              className={`flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition ${
+              className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
                 on ? 'text-white' : 'text-[var(--ink-soft)] hover:bg-white/5 hover:text-[var(--ink)]'
               }`}
               style={
@@ -107,7 +125,7 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
         })}
       </nav>
 
-      <div className="mt-auto space-y-3 pt-6">
+      <div className="mt-auto space-y-2.5 pt-4">
         {/* Giris yapan kullanici - karta tiklayinca Profilim acilir */}
         <button
           onClick={onProfile}
@@ -145,22 +163,7 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
           <span className="num ml-auto text-xs font-medium text-[var(--ink-soft)]">{time}</span>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={onToggleSound}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--hair)] px-2 py-2.5 text-xs font-medium text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
-          >
-            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            {muted ? t('Sesi Aç') : t('Ses Açık')}
-          </button>
-          <button
-            onClick={onToggleTheme}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--hair)] px-2 py-2.5 text-xs font-medium text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
-          >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            {theme === 'dark' ? t('Gündüz') : t('Gece')}
-          </button>
-        </div>
+        {/* ses + tema kontrolleri yukarı (dil satırına) taşındı — sidebar yer tasarrufu, scroll'a gerek kalmasın (Mehmet Abi) */}
 
         {/* İMZA - her sayfada görünür (Sidebar tüm sayfalarda mount). Hep İngilizce. */}
         <div className="border-t border-[var(--hair)] pt-2.5">
