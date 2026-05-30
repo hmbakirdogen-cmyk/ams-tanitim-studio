@@ -141,33 +141,31 @@ export function DeviceFlowChart({
       edge(0, 0, 0, fadeW, 0, 0, W, fadeW)
       edge(0, H, 0, H - fadeW, 0, H - fadeW, W, fadeW)
 
-      // 2) BORU içi — hafif koyu cam (açık ürün üstünde noktalar görünür)
-      const pg = ctx.createLinearGradient(0, top, 0, bot)
-      pg.addColorStop(0, 'rgba(150,175,210,0.30)'); pg.addColorStop(0.5, 'rgba(12,20,38,0.42)'); pg.addColorStop(1, 'rgba(6,10,22,0.34)')
-      ctx.fillStyle = pg; ctx.fillRect(inX, top, span, pipeH)
+      // AKIŞ ALANI = grafik penceresinin TAMAMI (dar boruya hapsedilmez). Cihazın etrafında, satır boyunca akar.
+      const flowTop = dy + dh * 0.04, flowBot = dy + dh * 0.96
+      const flowMidY = (flowTop + flowBot) / 2, flowHalf = (flowBot - flowTop) / 2
 
-      // 3) AKAN ÇİZGİLER (izler) — sıcaklık renginde, soldan sağa. UZUNLUK ∝ debi hızı; merkez hızlı (parabolik); additive ışıma.
+      // 3) AKAN ÇİZGİLER (izler) — sıcaklık renginde, soldan sağa, TÜM SATIR boyunca. UZUNLUK ∝ debi hızı; additive ışıma.
       const baseV = 0.05 + 0.95 * sig.flow
       ctx.globalCompositeOperation = 'lighter'
       ctx.lineCap = 'round'
-      const pr = pipeH * 0.4
       for (let i = 0; i < DOT_COUNT; i++) {
         const laneN = dLane[i]
-        const prof = 0.3 + 0.7 * (1 - laneN * laneN) // merkez hızlı, çeper yavaş (no-slip)
+        const prof = 0.45 + 0.55 * (1 - laneN * laneN) // ortaya doğru biraz daha hızlı, ama her satırda akar
         dPhase[i] += (baseV * dSpd[i] * prof * 0.5 + 0.005) * dt
         if (dPhase[i] > 1) dPhase[i] -= 1
-        const x = inX + dPhase[i] * span
-        const y = axisY + laneN * pr
-        const len = (8 + baseV * 40) * dSz[i]          // hıza göre uzayan iz (debi yüksek=uzun çizgi)
-        const w = (1.6 + dSz[i] * 1.4) * (0.7 + sig.flow * 0.6)
-        const al = 0.22 + 0.55 * sig.flow
-        // çizgi: arkası sönük → önü parlak (akış yönü) sıcaklık renginde
+        const x = dx + dPhase[i] * dw                  // cihaz genişliği boyunca (tüm satır)
+        const y = flowMidY + laneN * flowHalf          // tüm grafik yüksekliğine yayılı
+        const len = (8 + baseV * 40) * dSz[i]
+        const w = (1.4 + dSz[i] * 1.2) * (0.7 + sig.flow * 0.6)
+        const al = 0.20 + 0.5 * sig.flow
         const grd = ctx.createLinearGradient(x - len, y, x, y)
         grd.addColorStop(0, `rgba(${tr},${tg},${tb},0)`); grd.addColorStop(1, `rgba(${tr},${tg},${tb},${al})`)
         ctx.strokeStyle = grd; ctx.lineWidth = w
         ctx.beginPath(); ctx.moveTo(x - len, y); ctx.lineTo(x, y); ctx.stroke()
       }
       ctx.globalCompositeOperation = 'source-over'
+      void top; void bot; void inX; void outX; void span; void pipeH
 
       raf = requestAnimationFrame(draw)
     }
