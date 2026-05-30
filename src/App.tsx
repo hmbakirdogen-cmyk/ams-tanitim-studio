@@ -6,8 +6,10 @@
  */
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { Menu } from 'lucide-react'
 import { CinematicBackground } from './components/CinematicBackground'
 import { Sidebar, type Page } from './components/Sidebar'
+import { SmcLogo } from './components/SmcLogo'
 import { IntroSplash } from './components/IntroSplash'
 import { LoginScreen } from './components/LoginScreen'
 import { InstallPrompt } from './components/InstallPrompt'
@@ -34,6 +36,7 @@ export default function App() {
   const [intro, setIntro] = useState(true)
   const [showUsers, setShowUsers] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
+  const [navOpen, setNavOpen] = useState(false) // mobil kenar menu cekmecesi
 
   const toggleSound = () => {
     const next = !muted
@@ -43,7 +46,7 @@ export default function App() {
   }
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden">
+    <div className="relative h-[100dvh] w-screen overflow-hidden">
       <CinematicBackground />
 
       <AnimatePresence>
@@ -58,21 +61,38 @@ export default function App() {
 
       {/* Oturum acik: uygulama kabugu */}
       {auth.ready && auth.user && (
-        <div className="flex h-full w-full">
+        <div className="flex h-full w-full flex-col md:flex-row">
+          {/* MOBIL üst çubuk: menü düğmesi + logo (md'de gizli) */}
+          <div className="flex shrink-0 items-center gap-3 px-4 py-2.5 md:hidden">
+            <button
+              onClick={() => { sound.click(); setNavOpen(true) }}
+              aria-label="Menü"
+              className="glass grid h-10 w-10 place-items-center rounded-xl text-[var(--ink)]"
+            >
+              <Menu size={20} />
+            </button>
+            <SmcLogo size={30} withText={false} />
+            <span className="text-sm font-semibold text-white">Hava Yönetim Sistemi</span>
+          </div>
+
           <Sidebar
             page={page}
-            onPage={(p) => { sound.click(); setPage(p) }}
+            navOpen={navOpen}
+            onPage={(p) => { sound.click(); setPage(p); setNavOpen(false) }}
             muted={muted}
             onToggleSound={toggleSound}
             user={auth.user}
             onLogout={() => { sound.click(); auth.logout() }}
-            onManageUsers={() => setShowUsers(true)}
-            onProfile={() => setShowProfile(true)}
+            onManageUsers={() => { setShowUsers(true); setNavOpen(false) }}
+            onProfile={() => { setShowProfile(true); setNavOpen(false) }}
             theme={theme}
             onToggleTheme={toggleTheme}
           />
 
-          <main className="relative min-w-0 flex-1 overflow-hidden p-5">
+          {/* Mobil çekmece arka planı (dokununca kapanır) */}
+          {navOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setNavOpen(false)} />}
+
+          <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden p-3 md:p-5">
             <AnimatePresence mode="wait">
               <motion.div
                 key={page}

@@ -40,9 +40,10 @@ interface SidebarProps {
   onProfile: () => void
   theme: Theme
   onToggleTheme: () => void
+  navOpen?: boolean // mobilde cekmece acik mi (masaustunde her zaman gorunur)
 }
 
-export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, onManageUsers, onProfile, theme, onToggleTheme }: SidebarProps) {
+export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, onManageUsers, onProfile, theme, onToggleTheme, navOpen = false }: SidebarProps) {
   const [now, setNow] = useState<Date>(() => new Date())
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 1000)
@@ -57,7 +58,10 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
   const connLabel = !live ? 'DEMO VERİSİ' : connStatus === 'connected' ? 'CANLI · BAĞLI' : connStatus === 'error' ? 'CANLI · YOK' : 'CANLI · …'
 
   return (
-    <aside className="glass z-10 m-5 mr-0 flex w-[260px] shrink-0 flex-col rounded-3xl p-5">
+    <aside
+      /* MOBIL: soldan acilir cekmece (fixed, kayar). MASAUSTU (md): statik kenar - birebir eski hal. */
+      className={`glass fixed inset-y-0 left-0 z-40 m-2 flex w-[260px] shrink-0 flex-col overflow-y-auto rounded-3xl p-5 transition-transform duration-300 md:static md:z-10 md:m-5 md:mr-0 md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}
+    >
       <div className="px-1">
         <SmcLogo size={60} />
       </div>

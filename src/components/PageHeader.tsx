@@ -21,7 +21,7 @@ export function PageHeader({
   // Ust etikette SECILI modelin TAM kodu (Urun Ayarlari'ndan degisince her sayfada aninda guncellenir)
   const { model } = useModel()
   return (
-    <header className="flex shrink-0 items-end justify-between gap-4">
+    <header className="flex shrink-0 flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
       <div>
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-[var(--ink-soft)]">
@@ -30,7 +30,7 @@ export function PageHeader({
           {/* Veri kaynagi - bir bakista DEMO mu CANLI mi (her sayfada) */}
           <DataModeBadge />
         </div>
-        <h1 className="text-3xl font-bold leading-tight text-white">{title}</h1>
+        <h1 className="text-2xl font-bold leading-tight text-white sm:text-3xl">{title}</h1>
         {subtitle && <p className="mt-0.5 text-sm text-[var(--ink-soft)]">{subtitle}</p>}
       </div>
       {right}

@@ -63,7 +63,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
         title="Canlı Panel"
         subtitle={subtitle}
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Grafik gorunumu anahtari - Boru (yeni) / Klasik (eski onayli) */}
             <div className="glass flex gap-1 rounded-2xl p-1">
               {([['pipe', 'Boru', Waves], ['classic', 'Klasik', BarChart3]] as const).map(([id, label, Icon]) => {
