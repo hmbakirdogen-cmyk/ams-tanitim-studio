@@ -19,6 +19,7 @@ import { pointsToCSV, download } from '@/data/recordings'
 import { fmtDateTime, fmtClock } from '@/lib/datetime'
 import { fmtInt, fmt1, fmtCompact, fmtTLCompact } from '@/lib/format'
 import { PRODUCT } from '@/data/product'
+import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
 
 const fmt = (v: number, d: number) =>
@@ -57,6 +58,7 @@ export function ReportView({
   generatedAt: number
   onClose: () => void
 }) {
+  const { t } = useLang()
   const metrics = useMetrics()
   const { economy } = useEconomy()
   const { model } = useModel()
@@ -90,9 +92,9 @@ export function ReportView({
 
   const Kpi = ({ label, value, unit, color }: { label: string; value: string; unit: string; color: string }) => (
     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-      <div className="text-[11px] font-medium text-slate-500">{label}</div>
+      <div className="text-[11px] font-medium text-slate-500">{t(label)}</div>
       <div className="num text-lg font-bold text-slate-900">
-        {value} <span className="text-xs font-medium text-slate-400">{unit}</span>
+        {value} <span className="text-xs font-medium text-slate-400">{t(unit)}</span>
       </div>
       <span className="mt-1 block h-0.5 w-8 rounded-full" style={{ background: color }} />
     </div>
@@ -106,13 +108,13 @@ export function ReportView({
       {/* Arac cubugu - YAZDIRILMAZ */}
       <div className="no-print mx-auto mb-3 flex max-w-[860px] items-center justify-between gap-2">
         <button onClick={onClose} className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20">
-          <X size={15} /> Kapat
+          <X size={15} /> {t('Kapat')}
         </button>
         <div className="flex items-center gap-2">
           <button onClick={exportCSV} className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20"><FileDown size={15} /> CSV</button>
           <button onClick={exportJSON} className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20"><FileDown size={15} /> JSON</button>
           <button onClick={() => window.print()} className="keep-white flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
-            <Printer size={15} /> Yazdır / PDF
+            <Printer size={15} /> {t('Yazdır / PDF')}
           </button>
         </div>
       </div>
@@ -122,31 +124,31 @@ export function ReportView({
         {/* Baslik */}
         <div className="flex items-start justify-between border-b-2 border-[#0072CE] pb-4">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0072CE]">{PRODUCT.brand} · {PRODUCT.name}</div>
-            <h1 className="mt-1 text-2xl font-extrabold text-slate-900">Veri Raporu</h1>
-            <div className="mt-1 text-sm text-slate-500">{title}</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0072CE]">{PRODUCT.brand} · {t(PRODUCT.name)}</div>
+            <h1 className="mt-1 text-2xl font-extrabold text-slate-900">{t('Veri Raporu')}</h1>
+            <div className="mt-1 text-sm text-slate-500">{t(title)}</div>
           </div>
           <div className="text-right text-xs text-slate-500">
             <div className="num text-base font-bold text-slate-900">{model.code}</div>
-            <div className="mt-1">Oluşturma: {fmtDateTime(generatedAt)}</div>
+            <div className="mt-1">{t('Oluşturma')}: {fmtDateTime(generatedAt)}</div>
           </div>
         </div>
 
         {/* Aralik ozeti */}
         <div className="mt-4 grid grid-cols-1 gap-2 rounded-lg bg-slate-50 p-3 text-sm md:grid-cols-3">
-          <div><span className="text-slate-500">Başlangıç: </span><b className="num text-slate-900">{fmtDateTime(rangeStart)}</b></div>
-          <div><span className="text-slate-500">Bitiş: </span><b className="num text-slate-900">{fmtDateTime(rangeEnd)}</b></div>
-          <div><span className="text-slate-500">Süre: </span><b className="num text-slate-900">{fmt1(spanSec)} sn</b> · <b className="num text-slate-900">{fmtInt(n)}</b> ölçüm</div>
+          <div><span className="text-slate-500">{t('Başlangıç')}: </span><b className="num text-slate-900">{fmtDateTime(rangeStart)}</b></div>
+          <div><span className="text-slate-500">{t('Bitiş')}: </span><b className="num text-slate-900">{fmtDateTime(rangeEnd)}</b></div>
+          <div><span className="text-slate-500">{t('Süre')}: </span><b className="num text-slate-900">{fmt1(spanSec)} {t('sn')}</b> · <b className="num text-slate-900">{fmtInt(n)}</b> {t('ölçüm')}</div>
         </div>
 
         {n < 2 ? (
           <div className="mt-6 rounded-lg border border-slate-200 p-8 text-center text-sm text-slate-500">
-            Seçilen aralıkta yeterli veri yok. Lütfen daha geniş bir tarih/saat aralığı seçin.
+            {t('Seçilen aralıkta yeterli veri yok. Lütfen daha geniş bir tarih/saat aralığı seçin.')}
           </div>
         ) : (
           <>
             {/* Tasarruf (one cikan) */}
-            <div className="mt-5 flex items-center gap-2 text-sm font-bold text-slate-900"><PiggyBank size={16} className="text-[#1f9d57]" /> Bu Aralıktaki Tasarruf</div>
+            <div className="mt-5 flex items-center gap-2 text-sm font-bold text-slate-900"><PiggyBank size={16} className="text-[#1f9d57]" /> {t('Bu Aralıktaki Tasarruf')}</div>
             <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
               <Kpi label="Para" value={fmtTLCompact(sv.tl)} unit="" color="#1f9d57" />
               <Kpi label="Enerji" value={fmtCompact(sv.kwh)} unit="kWh" color="#0072CE" />
@@ -154,17 +156,17 @@ export function ReportView({
               <Kpi label="Kısılan Hava" value={fmtInt(sv.liters)} unit="litre" color="#c77700" />
             </div>
             <div className="mt-1.5 text-[11px] text-slate-400">
-              {fmt1(economy.priceTL)} ₺/kWh elektrik fiyatı ve {fmtInt(economy.baselineFlow)} l/dak normal tüketim varsayımıyla.
+              {fmt1(economy.priceTL)} {t('₺/kWh elektrik fiyatı ve')} {fmtInt(economy.baselineFlow)} {t('l/dak normal tüketim varsayımıyla.')}
             </div>
 
             {/* Mod dagilimi */}
-            <div className="mt-5 flex items-center gap-2 text-sm font-bold text-slate-900"><Layers size={16} className="text-[#0072CE]" /> Mod Dağılımı (süre payı)</div>
+            <div className="mt-5 flex items-center gap-2 text-sm font-bold text-slate-900"><Layers size={16} className="text-[#0072CE]" /> {t('Mod Dağılımı (süre payı)')}</div>
             <div className="mt-2 space-y-2">
               {(['normal', 'standby', 'isolation'] as Mode[]).map((mo) => {
                 const pct = (modeCount[mo] / total) * 100
                 return (
                   <div key={mo} className="flex items-center gap-3">
-                    <span className="w-28 shrink-0 text-xs text-slate-600">{MODE_LABEL[mo]}</span>
+                    <span className="w-28 shrink-0 text-xs text-slate-600">{t(MODE_LABEL[mo])}</span>
                     <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, background: MODE_COLOR[mo] }} />
                     </div>
@@ -175,7 +177,7 @@ export function ReportView({
             </div>
 
             {/* Her sensor: secili aralik detayli */}
-            <div className="mt-5 flex items-center gap-2 text-sm font-bold text-slate-900"><Clock size={16} className="text-[#0072CE]" /> Sensör Özetleri</div>
+            <div className="mt-5 flex items-center gap-2 text-sm font-bold text-slate-900"><Clock size={16} className="text-[#0072CE]" /> {t('Sensör Özetleri')}</div>
             <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
               {metrics.map((m) => {
                 const series = points.map(m.get)
@@ -185,14 +187,14 @@ export function ReportView({
                   <div key={m.key} className="rounded-lg border border-slate-200 p-3">
                     <div className="mb-1 flex items-center gap-2">
                       <span className="grid h-7 w-7 place-items-center rounded-md" style={{ background: `${m.color}22`, color: m.color }}><Icon size={15} /></span>
-                      <span className="text-sm font-semibold text-slate-900">{m.name}</span>
-                      <span className="ml-auto text-[11px] text-slate-400">{m.unit}</span>
+                      <span className="text-sm font-semibold text-slate-900">{t(m.name)}</span>
+                      <span className="ml-auto text-[11px] text-slate-400">{t(m.unit)}</span>
                     </div>
                     <Sparkline values={downsample(series)} color={m.color} min={m.min} max={m.max} height={44} />
                     <div className="mt-2 grid grid-cols-3 gap-2">
                       {([['En düşük', s.min], ['Ortalama', s.avg], ['En yüksek', s.max]] as const).map(([label, val]) => (
                         <div key={label}>
-                          <div className="text-[10px] text-slate-400">{label}</div>
+                          <div className="text-[10px] text-slate-400">{t(label)}</div>
                           <div className="num text-sm font-semibold text-slate-900">
                             {fmt(val, m.digits)} <span className="text-[10px] font-normal text-slate-400">{m.unitShort}</span>
                           </div>
@@ -208,7 +210,7 @@ export function ReportView({
 
         {/* Footer */}
         <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-3 text-[11px] text-slate-400">
-          <span className="flex items-center gap-1.5"><Database size={12} /> AMS Tanıtım Stüdyosu · çevrimdışı rapor</span>
+          <span className="flex items-center gap-1.5"><Database size={12} /> {t('AMS Tanıtım Stüdyosu · çevrimdışı rapor')}</span>
           <span className="num">{fmtClock(generatedAt)}</span>
         </div>
       </div>

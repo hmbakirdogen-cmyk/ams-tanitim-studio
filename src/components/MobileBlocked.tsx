@@ -8,8 +8,10 @@
 import { SmcLogo } from './SmcLogo'
 import { Monitor } from 'lucide-react'
 import { PRODUCT } from '@/data/product'
+import { useLang } from '@/i18n'
 
 export function MobileBlocked() {
+  const { t } = useLang()
   return (
     <div
       className="force-dark-surface fixed inset-0 z-50 grid place-items-center p-8 text-center"
@@ -21,12 +23,11 @@ export function MobileBlocked() {
           <Monitor size={26} className="text-[var(--smc-bright)]" />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-white">{PRODUCT.name}</h1>
+          <h1 className="text-2xl font-bold text-white">{t(PRODUCT.name)}</h1>
           <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
-            Bu tanıtım uygulaması şu anda <b className="text-white">yalnızca bilgisayarda</b> çalışmaktadır.
-            Lütfen bir <b className="text-white">bilgisayar (PC)</b> üzerinden açın.
+            {t('Bu tanıtım uygulaması şu anda')} <b className="text-white">{t('yalnızca bilgisayarda')}</b> {t('çalışmaktadır. Lütfen bir')} <b className="text-white">{t('bilgisayar (PC)')}</b> {t('üzerinden açın.')}
           </p>
-          <p className="mt-2 text-xs text-[var(--ink-soft)]">Mobil sürüm hazırlanıyor.</p>
+          <p className="mt-2 text-xs text-[var(--ink-soft)]">{t('Mobil sürüm hazırlanıyor.')}</p>
         </div>
       </div>
     </div>

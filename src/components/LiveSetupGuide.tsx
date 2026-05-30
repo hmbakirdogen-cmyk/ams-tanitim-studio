@@ -12,6 +12,7 @@ import { motion } from 'framer-motion'
 import { X, Copy, Check, Terminal, ListChecks, Cable, PlugZap, Save, CheckCircle2 } from 'lucide-react'
 import { useConnection, type ConnStatus, type NodeIds } from '@/data/connection'
 import { sound } from '@/lib/sound'
+import { useLang } from '@/i18n'
 
 const CONN_UI: Record<ConnStatus, { label: string; color: string }> = {
   demo: { label: 'Demo verisi', color: '#FFB04D' },
@@ -30,6 +31,7 @@ const NODE_FIELDS: { key: keyof NodeIds; label: string }[] = [
 
 // Kopyalanabilir komut satiri
 function Cmd({ text }: { text: string }) {
+  const { t } = useLang()
   const [done, setDone] = useState(false)
   const copy = () => {
     navigator.clipboard?.writeText(text).then(() => {
@@ -43,7 +45,7 @@ function Cmd({ text }: { text: string }) {
       <Terminal size={14} className="shrink-0 text-[var(--ink-soft)]" />
       <code className="num min-w-0 flex-1 truncate text-[12.5px] text-[var(--smc-bright)]">{text}</code>
       <button onClick={copy} className="flex shrink-0 items-center gap-1 rounded-md border border-[var(--hair)] px-2 py-1 text-[11px] font-medium text-[var(--ink-soft)] transition hover:text-white">
-        {done ? <><Check size={12} /> Kopyalandı</> : <><Copy size={12} /> Kopyala</>}
+        {done ? <><Check size={12} /> {t('Kopyalandı')}</> : <><Copy size={12} /> {t('Kopyala')}</>}
       </button>
     </div>
   )
@@ -63,6 +65,7 @@ function Step({ n, icon: Icon, title, children }: { n: number; icon: typeof Term
 }
 
 export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
+  const { t } = useLang()
   const { settings, status, setEndpoint, setNodeIds, setMode } = useConnection()
   const [epDraft, setEpDraft] = useState(settings.endpoint)
   const [ids, setIds] = useState<NodeIds>({ ...settings.nodeIds })
@@ -92,9 +95,9 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
       >
         <div className="flex items-start justify-between">
           <div>
-            <div className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--ink-soft)]">Adım Adım</div>
-            <h2 className="flex items-center gap-2 text-xl font-bold text-white"><Cable size={20} className="text-[var(--smc-bright)]" /> Canlı Cihaza Bağlanma Kılavuzu</h2>
-            <p className="mt-1 text-xs text-[var(--ink-soft)]">Donanım hazır olduğunda bu adımları takip edin — kod düzenlemeye gerek yok.</p>
+            <div className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--ink-soft)]">{t('Adım Adım')}</div>
+            <h2 className="flex items-center gap-2 text-xl font-bold text-white"><Cable size={20} className="text-[var(--smc-bright)]" /> {t('Canlı Cihaza Bağlanma Kılavuzu')}</h2>
+            <p className="mt-1 text-xs text-[var(--ink-soft)]">{t('Donanım hazır olduğunda bu adımları takip edin — kod düzenlemeye gerek yok.')}</p>
           </div>
           <button onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--hair)] text-[var(--ink-soft)] transition hover:text-white">
             <X size={18} />
@@ -102,59 +105,59 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="mt-5 space-y-3">
-          <Step n={1} icon={ListChecks} title="Gerekenler">
+          <Step n={1} icon={ListChecks} title={t('Gerekenler')}>
             <ul className="ml-1 list-inside list-disc space-y-1">
-              <li>Cihazla <b className="text-[var(--ink)]">aynı ağda</b> bir Windows bilgisayar.</li>
-              <li><b className="text-[var(--ink)]">Node.js</b> kurulu olmalı (kontrol için):</li>
+              <li>{t('Cihazla')} <b className="text-[var(--ink)]">{t('aynı ağda')}</b> {t('bir Windows bilgisayar.')}</li>
+              <li><b className="text-[var(--ink)]">Node.js</b> {t('kurulu olmalı (kontrol için):')}</li>
             </ul>
             <Cmd text="node -v" />
-            <div>Yoksa <b className="text-[var(--ink)]">nodejs.org</b>'dan kurun (tek seferlik).</div>
+            <div>{t('Yoksa')} <b className="text-[var(--ink)]">nodejs.org</b>{t('’dan kurun (tek seferlik).')}</div>
           </Step>
 
-          <Step n={2} icon={Terminal} title="Köprüyü kurun (tek seferlik)">
-            <div>Proje klasöründe bir terminal açın ve sırayla çalıştırın:</div>
+          <Step n={2} icon={Terminal} title={t('Köprüyü kurun (tek seferlik)')}>
+            <div>{t('Proje klasöründe bir terminal açın ve sırayla çalıştırın:')}</div>
             <Cmd text="cd bridge" />
             <Cmd text="npm i node-opcua ws" />
-            <div className="text-[12px]">İnternet yalnızca bu kurulumda gerekir; sonrası tamamen çevrimdışı çalışır.</div>
+            <div className="text-[12px]">{t('İnternet yalnızca bu kurulumda gerekir; sonrası tamamen çevrimdışı çalışır.')}</div>
           </Step>
 
-          <Step n={3} icon={Cable} title="Cihaz bilgilerini girin (uyarlanabilir)">
-            <div>Cihazınızın OPC UA adresi ve düğüm kimlikleri (UaExpert gibi bir araçla okunur). Buraya girin — kod değiştirmenize gerek yok:</div>
+          <Step n={3} icon={Cable} title={t('Cihaz bilgilerini girin (uyarlanabilir)')}>
+            <div>{t('Cihazınızın OPC UA adresi ve düğüm kimlikleri (UaExpert gibi bir araçla okunur). Buraya girin — kod değiştirmenize gerek yok:')}</div>
             <div>
-              <label className="mb-1 block text-[11px] text-[var(--ink-soft)]">Cihaz adresi (OPC UA endpoint)</label>
+              <label className="mb-1 block text-[11px] text-[var(--ink-soft)]">{t('Cihaz adresi (OPC UA endpoint)')}</label>
               <input value={epDraft} onChange={(e) => setEpDraft(e.target.value)} placeholder="opc.tcp://192.168.1.50:4840" className={field} />
             </div>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {NODE_FIELDS.map((f) => (
                 <div key={f.key} className={f.key === 'mode' ? 'sm:col-span-2' : undefined}>
-                  <label className="mb-1 block text-[11px] text-[var(--ink-soft)]">{f.label}</label>
+                  <label className="mb-1 block text-[11px] text-[var(--ink-soft)]">{t(f.label)}</label>
                   <input value={ids[f.key]} onChange={(e) => setIds((s) => ({ ...s, [f.key]: e.target.value }))} placeholder="ns=2;s=..." className={field} />
                 </div>
               ))}
             </div>
             <button onClick={save} className="keep-white mt-1 flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
-              {saved ? <><CheckCircle2 size={15} /> Kaydedildi</> : <><Save size={15} /> Bilgileri Kaydet</>}
+              {saved ? <><CheckCircle2 size={15} /> {t('Kaydedildi')}</> : <><Save size={15} /> {t('Bilgileri Kaydet')}</>}
             </button>
           </Step>
 
-          <Step n={4} icon={Terminal} title="Köprüyü başlatın">
-            <div><span className="num">bridge</span> klasöründe çalıştırın (açık kalsın):</div>
+          <Step n={4} icon={Terminal} title={t('Köprüyü başlatın')}>
+            <div><span className="num">bridge</span> {t('klasöründe çalıştırın (açık kalsın):')}</div>
             <Cmd text="node opcua-bridge.mjs" />
-            <div>Şu satırı görmelisiniz: <span className="num text-[var(--ink)]">WebSocket hazır: ws://localhost:4841</span></div>
+            <div>{t('Şu satırı görmelisiniz:')} <span className="num text-[var(--ink)]">WebSocket hazır: ws://localhost:4841</span></div>
           </Step>
 
-          <Step n={5} icon={PlugZap} title="Bağlanın">
-            <div>Her şey hazırsa canlı moda geçin; durum <b style={{ color: '#41E08A' }}>Bağlı ✓</b> olmalı:</div>
+          <Step n={5} icon={PlugZap} title={t('Bağlanın')}>
+            <div>{t('Her şey hazırsa canlı moda geçin; durum')} <b style={{ color: '#41E08A' }}>{t('Bağlı ✓')}</b> {t('olmalı:')}</div>
             <div className="flex flex-wrap items-center gap-3">
               <button onClick={() => { sound.click(); setMode('live') }} className="keep-white flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
-                <PlugZap size={15} /> Canlı Moda Geç
+                <PlugZap size={15} /> {t('Canlı Moda Geç')}
               </button>
               <span className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: `${ui.color}22`, color: ui.color }}>
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: ui.color, boxShadow: `0 0 8px ${ui.color}` }} />
-                {ui.label}
+                {t(ui.label)}
               </span>
             </div>
-            <div className="text-[12px]">Bağlanamazsa: cihaz adresi/düğüm kimliklerini kontrol edin, köprü penceresinin açık olduğundan emin olun. İstediğiniz an <b className="text-[var(--ink)]">Demo</b>'ya dönebilirsiniz.</div>
+            <div className="text-[12px]">{t('Bağlanamazsa: cihaz adresi/düğüm kimliklerini kontrol edin, köprü penceresinin açık olduğundan emin olun. İstediğiniz an')} <b className="text-[var(--ink)]">Demo</b>{t('’ya dönebilirsiniz.')}</div>
           </Step>
         </div>
       </motion.div>

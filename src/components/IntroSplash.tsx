@@ -6,8 +6,10 @@
  */
 import { motion } from 'framer-motion'
 import { SmcLogo } from './SmcLogo'
+import { useLang } from '@/i18n'
 
 export function IntroSplash({ onDone }: { onDone: () => void }) {
+  const { t } = useLang()
   return (
     <motion.div
       className="force-dark-surface fixed inset-0 z-50 grid place-items-center"
@@ -30,9 +32,9 @@ export function IntroSplash({ onDone }: { onDone: () => void }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45, duration: 0.8 }}
         >
-          <div className="text-3xl font-bold text-white">Hava Yönetim Sistemi</div>
+          <div className="text-3xl font-bold text-white">{t('Hava Yönetim Sistemi')}</div>
           <div className="mt-1.5 text-xs font-medium uppercase tracking-[0.3em] text-[var(--ink-soft)]">
-            Canlı Tanıtım Stüdyosu
+            {t('Canlı Tanıtım Stüdyosu')}
           </div>
         </motion.div>
 

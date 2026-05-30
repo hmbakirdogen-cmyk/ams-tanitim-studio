@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react'
 import { Volume2, VolumeX, Radio } from 'lucide-react'
 import { SmcLogo } from './SmcLogo'
+import { useLang } from '@/i18n'
 
 interface TopBarProps {
   kind: 'demo' | 'live'
@@ -15,6 +16,7 @@ interface TopBarProps {
 }
 
 export function TopBar({ kind, muted, onToggleSound }: TopBarProps) {
+  const { t } = useLang()
   const [now, setNow] = useState<Date>(() => new Date())
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 1000)
@@ -33,12 +35,12 @@ export function TopBar({ kind, muted, onToggleSound }: TopBarProps) {
               <span className="relative grid h-2.5 w-2.5 place-items-center">
                 <span className="live-ring absolute h-2.5 w-2.5 rounded-full bg-[var(--c-saving)]" />
               </span>
-              <span className="text-xs font-semibold tracking-wide text-[var(--ink)]">CANLI</span>
+              <span className="text-xs font-semibold tracking-wide text-[var(--ink)]">{t('CANLI')}</span>
             </>
           ) : (
             <>
               <Radio size={14} className="text-[var(--c-temp)]" />
-              <span className="text-xs font-semibold tracking-wide text-[var(--ink-soft)]">DEMO VERİSİ</span>
+              <span className="text-xs font-semibold tracking-wide text-[var(--ink-soft)]">{t('DEMO VERİSİ')}</span>
             </>
           )}
         </div>
@@ -47,7 +49,7 @@ export function TopBar({ kind, muted, onToggleSound }: TopBarProps) {
 
         <button
           onClick={onToggleSound}
-          aria-label={muted ? 'Sesi aç' : 'Sesi kapat'}
+          aria-label={muted ? t('Sesi aç') : t('Sesi kapat')}
           className="grid h-9 w-9 place-items-center rounded-full border border-[var(--hair)] text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
         >
           {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}

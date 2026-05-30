@@ -14,6 +14,7 @@ import { ReportView } from './ReportView'
 import { useMetrics } from '@/data/metrics'
 import { toLocalInputValue, fromLocalInputValue } from '@/lib/datetime'
 import { downsample } from '@/lib/series'
+import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
 
 // Hazir aralik dugmesi (mutlak ms). Canli oturum varsayilanini kullanir; tarihsel rapor takvim presetleri verir.
@@ -52,6 +53,7 @@ export function RangeAnalysisModal({
   initialStart?: number // acilis secimi (verilmezse tum aralik) - tarihsel raporda or. son 24 saat
   initialEnd?: number
 }) {
+  const { t } = useLang()
   const metrics = useMetrics()
   const n = points.length
   const firstAbs = n ? startedAt + points[0].t : startedAt
@@ -94,8 +96,8 @@ export function RangeAnalysisModal({
       >
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--ink-soft)]">Zaman Aralığı Analizi</div>
-            <h2 className="text-xl font-bold text-white">{title}</h2>
+            <div className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--ink-soft)]">{t('Zaman Aralığı Analizi')}</div>
+            <h2 className="text-xl font-bold text-white">{t(title)}</h2>
           </div>
           <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full border border-[var(--hair)] text-[var(--ink-soft)] transition hover:text-white">
             <X size={18} />
@@ -111,16 +113,16 @@ export function RangeAnalysisModal({
                 onClick={() => { setStartMs(clampAbs(Math.min(p.start, p.end - 1000))); setEndMs(clampAbs(p.end)) }}
                 className="rounded-lg border border-[var(--hair)] px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"
               >
-                {p.label}
+                {t(p.label)}
               </button>
             ))}
             <span className="ml-auto flex items-center gap-1.5 text-xs text-[var(--ink-soft)]">
-              <Clock size={13} /> Seçili aralık: <b className="num text-white">{fmt(spanSec, 1)} sn</b> · {win.length} ölçüm
+              <Clock size={13} /> {t('Seçili aralık')}: <b className="num text-white">{fmt(spanSec, 1)} {t('sn')}</b> · {win.length} {t('ölçüm')}
             </span>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-[11px] text-[var(--ink-soft)]">Başlangıç (tarih + saat)</label>
+              <label className="mb-1 block text-[11px] text-[var(--ink-soft)]">{t('Başlangıç (tarih + saat)')}</label>
               <input
                 type="datetime-local"
                 step={1}
@@ -132,7 +134,7 @@ export function RangeAnalysisModal({
               />
             </div>
             <div>
-              <label className="mb-1 block text-[11px] text-[var(--ink-soft)]">Bitiş (tarih + saat)</label>
+              <label className="mb-1 block text-[11px] text-[var(--ink-soft)]">{t('Bitiş (tarih + saat)')}</label>
               <input
                 type="datetime-local"
                 step={1}
@@ -151,7 +153,7 @@ export function RangeAnalysisModal({
               className="keep-white flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40"
               style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}
             >
-              <FileBarChart size={16} /> Rapor Ver
+              <FileBarChart size={16} /> {t('Rapor Ver')}
             </button>
           </div>
         </div>
@@ -165,14 +167,14 @@ export function RangeAnalysisModal({
               <div key={m.key} className="rounded-2xl border border-[var(--hair)] p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: m.color, boxShadow: `0 0 10px ${m.color}` }} />
-                  <span className="text-sm font-semibold text-white">{m.name}</span>
+                  <span className="text-sm font-semibold text-white">{t(m.name)}</span>
                   <span className="ml-auto text-[11px] text-[var(--ink-soft)]">{m.unitShort}</span>
                 </div>
                 <Sparkline values={downsample(series)} color={m.color} min={m.min} max={m.max} height={48} />
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   {([['En düşük', s.min], ['Ortalama', s.avg], ['En yüksek', s.max]] as const).map(([label, val]) => (
                     <div key={label}>
-                      <div className="text-[10px] text-[var(--ink-soft)]">{label}</div>
+                      <div className="text-[10px] text-[var(--ink-soft)]">{t(label)}</div>
                       <div className="num text-sm font-semibold text-white">
                         {fmt(val, m.digits)} <span className="text-[10px] font-normal text-[var(--ink-soft)]">{m.unitShort}</span>
                       </div>

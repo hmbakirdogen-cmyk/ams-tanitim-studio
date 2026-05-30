@@ -7,6 +7,7 @@
  */
 import { METRICS, type MetricDef } from '@/data/metrics'
 import { WINDOW_POINTS } from './Hero3DChart'
+import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
 
 const LEVELS = [100, 75, 50, 25, 0]
@@ -29,6 +30,7 @@ function windowSpanSec(history: Reading[]): number {
 }
 
 export function ChartOverlay({ reading, history = [], metrics = METRICS }: { reading: Reading | null; history?: Reading[]; metrics?: MetricDef[] }) {
+  const { t } = useLang()
   const elapsed = fmtElapsed(reading?.t ?? 0)
   const spanSec = windowSpanSec(history)
   return (
@@ -40,9 +42,9 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
           <span className="relative grid h-2.5 w-2.5 place-items-center">
             <span className="live-ring absolute h-2.5 w-2.5 rounded-full bg-[var(--c-saving)]" />
           </span>
-          <span className="text-[11px] font-semibold tracking-wide text-[var(--c-saving)]">CANLI</span>
+          <span className="text-[11px] font-semibold tracking-wide text-[var(--c-saving)]">{t('CANLI')}</span>
           <span className="num text-sm font-bold text-white">{elapsed}</span>
-          <span className="text-[10px] text-[var(--ink-soft)]">akış süresi</span>
+          <span className="text-[10px] text-[var(--ink-soft)]">{t('akış süresi')}</span>
         </div>
 
         {/* Sag: anlik degerler (yatay, kompakt) */}
@@ -53,7 +55,7 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
             return (
               <div key={m.key} className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
-                <span className="text-[11px] font-medium text-[var(--ink-soft)]">{m.name}</span>
+                <span className="text-[11px] font-medium text-[var(--ink-soft)]">{t(m.name)}</span>
                 <span className="num text-sm font-bold text-white">{txt}</span>
                 <span className="text-[10px] text-[var(--ink-soft)]">{m.unitShort}</span>
               </div>
@@ -67,7 +69,7 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
         className="absolute left-1 top-1/2 text-[10px] font-semibold uppercase tracking-widest text-[var(--ink-soft)]"
         style={{ writingMode: 'vertical-rl', transform: 'translateY(-50%) rotate(180deg)', ...shadow }}
       >
-        Seviye (%)
+        {t('Seviye (%)')}
       </div>
 
       {/* Seviye cizgileri - her sensor kendi araliginda %0-100 */}
@@ -86,7 +88,7 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
       <div className="absolute inset-x-12 bottom-7 h-6">
         {TICKS.map((f) => {
           const secsAgo = spanSec * (1 - f)
-          const label = f === 1 ? 'şimdi' : `−${Math.round(secsAgo)} sn`
+          const label = f === 1 ? t('şimdi') : `−${Math.round(secsAgo)} ${t('sn')}`
           return (
             <div key={f} className="absolute flex -translate-x-1/2 flex-col items-center gap-0.5" style={{ left: `${f * 100}%` }}>
               <span className="h-2 w-px" style={{ background: 'var(--hair)' }} />
@@ -100,9 +102,9 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
 
       {/* Alt aciklama - zaman ekseni + seviye */}
       <div className="absolute inset-x-12 bottom-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
-        <span>← geçmiş</span>
-        <span>Zaman ekseni · dikey: seviye (%0–%100)</span>
-        <span>şimdi →</span>
+        <span>← {t('geçmiş')}</span>
+        <span>{t('Zaman ekseni · dikey: seviye (%0–%100)')}</span>
+        <span>{t('şimdi')} →</span>
       </div>
     </div>
   )

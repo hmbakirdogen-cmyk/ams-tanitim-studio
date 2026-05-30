@@ -7,6 +7,7 @@
 import { MODE_LABEL, type Mode } from '@/data/types'
 import { Activity, Leaf, PowerOff, type LucideIcon } from 'lucide-react'
 import { sound } from '@/lib/sound'
+import { useLang } from '@/i18n'
 
 const ITEMS: { mode: Mode; icon: LucideIcon; color: string }[] = [
   { mode: 'normal', icon: Activity, color: '#2E9BFF' },
@@ -15,6 +16,7 @@ const ITEMS: { mode: Mode; icon: LucideIcon; color: string }[] = [
 ]
 
 export function ModeStrip({ active, onSelect }: { active: Mode; onSelect: (m: Mode) => void }) {
+  const { t } = useLang()
   return (
     <div className="glass flex gap-2 rounded-2xl p-2">
       {ITEMS.map(({ mode, icon: Icon, color }) => {
@@ -41,7 +43,7 @@ export function ModeStrip({ active, onSelect }: { active: Mode; onSelect: (m: Mo
             }
           >
             <Icon size={16} style={{ color: on ? color : undefined }} />
-            {MODE_LABEL[mode]}
+            {t(MODE_LABEL[mode])}
           </button>
         )
       })}

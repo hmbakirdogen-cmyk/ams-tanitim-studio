@@ -14,6 +14,7 @@ import { MODE_LABEL, MODE_COLOR, type Mode } from '@/data/types'
 import { useEconomy } from '@/data/economy'
 import { litersToSavings, tickLitersSaved } from '@/lib/savings'
 import { fmtInt, fmt1, fmtCompact, fmtTLCompact } from '@/lib/format'
+import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
@@ -41,6 +42,7 @@ function stats(series: number[]) {
 }
 
 export function AnalysisPage({ data }: { data: LiveState }) {
+  const { t } = useLang()
   const { economy } = useEconomy()
   const metrics = useMetrics()
   const [startPct, setStartPct] = useState(0)
@@ -72,7 +74,7 @@ export function AnalysisPage({ data }: { data: LiveState }) {
 
       {n < 2 ? (
         <div className="glass flex flex-1 items-center justify-center rounded-2xl p-10 text-sm text-[var(--ink-soft)]">
-          Henüz yeterli veri yok — Canlı Panel bir süre açık kalsın, sonra burada analiz edin.
+          {t('Henüz yeterli veri yok — Canlı Panel bir süre açık kalsın, sonra burada analiz edin.')}
         </div>
       ) : (
         <>
@@ -85,20 +87,20 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                   onClick={() => { setStartPct(p.start); setEndPct(p.end) }}
                   className="rounded-lg border border-[var(--hair)] px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)]"
                 >
-                  {p.label}
+                  {t(p.label)}
                 </button>
               ))}
               <span className="ml-auto flex items-center gap-1.5 text-xs text-[var(--ink-soft)]">
-                <Clock size={13} /> Seçili: <b className="num text-[var(--ink)]">{fmt(spanSec, 1)} sn</b> · {win.length} ölçüm
+                <Clock size={13} /> {t('Seçili')}: <b className="num text-[var(--ink)]">{fmt(spanSec, 1)} {t('sn')}</b> · {win.length} {t('ölçüm')}
               </span>
             </div>
             <div className="space-y-2">
               <div>
-                <div className="mb-1 text-[11px] text-[var(--ink-soft)]">Başlangıç (%{startPct})</div>
+                <div className="mb-1 text-[11px] text-[var(--ink-soft)]">{t('Başlangıç')} (%{startPct})</div>
                 <input type="range" min={0} max={99} value={startPct} onChange={(e) => setStartPct(Math.min(parseInt(e.target.value, 10), endPct - 1))} className="w-full" style={{ accentColor: '#2E9BFF' }} />
               </div>
               <div>
-                <div className="mb-1 text-[11px] text-[var(--ink-soft)]">Bitiş (%{endPct})</div>
+                <div className="mb-1 text-[11px] text-[var(--ink-soft)]">{t('Bitiş')} (%{endPct})</div>
                 <input type="range" min={1} max={100} value={endPct} onChange={(e) => setEndPct(Math.max(parseInt(e.target.value, 10), startPct + 1))} className="w-full" style={{ accentColor: '#41E08A' }} />
               </div>
             </div>
@@ -107,13 +109,13 @@ export function AnalysisPage({ data }: { data: LiveState }) {
           {/* Ozet: mod dagilimi + tasarruf */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Tilt3D className="glass rounded-2xl p-5 lg:col-span-2" max={4}>
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><Layers size={16} className="text-[var(--smc-bright)]" /> Mod Dağılımı (süre payı)</div>
+              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><Layers size={16} className="text-[var(--smc-bright)]" /> {t('Mod Dağılımı (süre payı)')}</div>
               <div className="space-y-2.5">
                 {(['normal', 'standby', 'isolation'] as Mode[]).map((m) => {
                   const pct = (modeCount[m] / total) * 100
                   return (
                     <div key={m} className="flex items-center gap-3">
-                      <span className="w-28 shrink-0 text-xs text-[var(--ink-soft)]">{MODE_LABEL[m]}</span>
+                      <span className="w-28 shrink-0 text-xs text-[var(--ink-soft)]">{t(MODE_LABEL[m])}</span>
                       <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/5">
                         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: MODE_COLOR[m], boxShadow: `0 0 12px ${MODE_COLOR[m]}` }} />
                       </div>
@@ -126,7 +128,7 @@ export function AnalysisPage({ data }: { data: LiveState }) {
 
             <Tilt3D className="glass relative overflow-hidden rounded-2xl p-5" max={5}>
               <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-25 blur-3xl" style={{ background: 'var(--c-saving)' }} />
-              <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><PiggyBank size={16} className="text-[var(--c-saving)]" /> Bu Aralıktaki Tasarruf</div>
+              <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><PiggyBank size={16} className="text-[var(--c-saving)]" /> {t('Bu Aralıktaki Tasarruf')}</div>
               <div className="num mt-2 text-3xl font-bold text-[var(--c-saving)]">{fmtTLCompact(sv.tl)}</div>
               <div className="num mt-1 text-sm text-[var(--ink-soft)]">{fmtCompact(sv.kwh)} kWh · {fmtCompact(sv.co2)} kg CO₂</div>
             </Tilt3D>
@@ -143,7 +145,7 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                   <span className="absolute inset-x-0 top-0 h-1" style={{ background: m.color, boxShadow: `0 0 18px ${m.color}` }} />
                   <div className="flex items-center gap-2.5">
                     <span className="grid h-9 w-9 place-items-center rounded-lg" style={{ background: `${m.color}1f`, color: m.color }}><Icon size={18} /></span>
-                    <span className="text-sm font-semibold text-[var(--ink)]">{m.name}</span>
+                    <span className="text-sm font-semibold text-[var(--ink)]">{t(m.name)}</span>
                     <span className="ml-auto flex items-baseline gap-1">
                       <span className="num text-2xl font-bold text-white" style={{ textShadow: `0 0 18px ${m.color}66` }}>{fmt(s.cur, m.digits)}</span>
                       <span className="text-xs text-[var(--ink-soft)]">{m.unitShort}</span>
@@ -153,7 +155,7 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                   <div className="grid grid-cols-3 gap-2">
                     {([['En düşük', s.min], ['Ortalama', s.avg], ['En yüksek', s.max]] as const).map(([label, val]) => (
                       <div key={label}>
-                        <div className="text-[10px] text-[var(--ink-soft)]">{label}</div>
+                        <div className="text-[10px] text-[var(--ink-soft)]">{t(label)}</div>
                         <div className="num text-sm font-semibold text-white">
                           {fmt(val, m.digits)} <span className="text-[10px] font-normal text-[var(--ink-soft)]">{m.unitShort}</span>
                         </div>

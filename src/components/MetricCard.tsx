@@ -10,12 +10,14 @@ import type { Reading } from '@/data/types'
 import { useSmoothNumber } from '@/hooks/useSmoothNumber'
 import { Tilt3D } from './Tilt3D'
 import { Sparkline } from './Sparkline'
+import { useLang } from '@/i18n'
 
 type Size = 'lg' | 'md' | 'sm'
 const NUM_SIZE: Record<Size, string> = { lg: 'text-5xl', md: 'text-4xl', sm: 'text-3xl' }
 const SPARK_H: Record<Size, number> = { lg: 56, md: 44, sm: 38 }
 
 export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; history: Reading[]; size?: Size }) {
+  const { t } = useLang()
   const series = useMemo(() => history.slice(-60).map(def.get), [history, def])
   const current = series.length ? series[series.length - 1] : def.min
   const v = useSmoothNumber(current, def.hero ? 0.16 : 0.12)
@@ -37,7 +39,7 @@ export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; hist
         >
           <Icon size={20} />
         </span>
-        <span className="text-sm font-semibold text-[var(--ink)]">{def.name}</span>
+        <span className="text-sm font-semibold text-[var(--ink)]">{t(def.name)}</span>
       </div>
 
       <div className="flex items-baseline gap-1.5" style={{ transform: 'translateZ(14px)' }}>

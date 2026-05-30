@@ -1,6 +1,6 @@
 /*
- * NE      : Dil değiştirici - TR/EN/DE bayrak butonları. Türk bayrağı ASİL 3B DALGALANIR (cloth wave + ışık süzülmesi); diğerleri sade SVG.
- * NEDEN   : Mehmet Abi: "her sayfada (giriş dahil) dili değiştiren bayrak butonları; Türk bayrağı asil 3D gerçekçi dalgalansın".
+ * NE      : Dil değiştirici - TR/EN/JA bayrak butonları. Türk bayrağı ASİL 3B DALGALANIR (cloth wave + ışık süzülmesi); diğerleri sade SVG.
+ * NEDEN   : Mehmet Abi: "her sayfada (giriş dahil) dili değiştiren bayrak butonları; Türk bayrağı asil 3D gerçekçi dalgalansın". (Almanca yerine Japonca.)
  * NASIL   : useLang ile aktif dil; tıklayınca setLang (kalıcı). Bayraklar inline SVG (offline, keskin, her ekranda net). TR = .flag-wave/.flag-sheen.
  * YAN ETKI: Saf görsel + dil store'u. Küçük buton (~30×20). Sidebar + giriş ekranında mount edilir.
  */
@@ -31,12 +31,12 @@ function GBFlag() {
     </svg>
   )
 }
-function DEFlag() {
+function JPFlag() {
+  // Japonya: beyaz zemin + ortada kirmizi daire (Hinomaru). Oran 3:2 -> daire capi yuksekligin 3/5'i.
   return (
     <svg viewBox="0 0 36 24" preserveAspectRatio="none" className="h-full w-full">
-      <rect width="36" height="8" fill="#000" />
-      <rect y="8" width="36" height="8" fill="#DD0000" />
-      <rect y="16" width="36" height="8" fill="#FFCE00" />
+      <rect width="36" height="24" fill="#fff" />
+      <circle cx="18" cy="12" r="7.2" fill="#BC002D" />
     </svg>
   )
 }
@@ -44,7 +44,7 @@ function DEFlag() {
 const FLAGS: Record<Lang, { label: string; Comp: () => JSX.Element }> = {
   tr: { label: 'Türkçe', Comp: TRFlag },
   en: { label: 'English', Comp: GBFlag },
-  de: { label: 'Deutsch', Comp: DEFlag },
+  ja: { label: '日本語', Comp: JPFlag },
 }
 
 export function LangSwitcher() {

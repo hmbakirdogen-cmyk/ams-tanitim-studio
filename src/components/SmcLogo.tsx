@@ -6,6 +6,7 @@
  */
 import { useEffect, useState, type CSSProperties } from 'react'
 import { asset } from '@/lib/asset'
+import { useLang } from '@/i18n'
 
 export const SMC_SLOGAN = 'Expertise – Passion – Automation'
 const LOGO_SRC = asset('smc-logo.svg') // base-uyumlu (alt-yol/offline)
@@ -70,9 +71,12 @@ interface SmcLogoProps {
   size?: number
   withText?: boolean
   slogan?: boolean
+  /* stack: büyük logo ÜSTTE, marka yazısı ALTTA 2 satır (Mehmet Abi: paneldeki logoyu büyüt, yazı altında 2 satır). */
+  stack?: boolean
 }
 
-export function SmcLogo({ size = 40, withText = true, slogan = false }: SmcLogoProps) {
+export function SmcLogo({ size = 40, withText = true, slogan = false, stack = false }: SmcLogoProps) {
+  const { t } = useLang()
   const [imgOk, setImgOk] = useState(false)
   useEffect(() => {
     const img = new Image()
@@ -84,12 +88,13 @@ export function SmcLogo({ size = 40, withText = true, slogan = false }: SmcLogoP
   const visual = imgOk ? <LogoImage height={size} /> : <Smc3D height={size} />
 
   if (withText) {
+    // stack: logo üstte, yazı altında (büyük logoya yer açar); değilse klasik yan yana.
     return (
-      <div className="flex select-none items-center gap-3">
+      <div className={stack ? 'flex select-none flex-col items-start gap-2.5' : 'flex select-none items-center gap-3'}>
         {visual}
         <div className="leading-tight">
-          <div className="text-[15px] font-semibold text-[var(--ink)]">Hava Yönetim Sistemi</div>
-          <div className="text-[11px] font-medium tracking-wide text-[var(--ink-soft)]">Canlı Tanıtım Stüdyosu</div>
+          <div className="text-[15px] font-semibold text-[var(--ink)]">{t('Hava Yönetim Sistemi')}</div>
+          <div className="text-[11px] font-medium tracking-wide text-[var(--ink-soft)]">{t('Canlı Tanıtım Stüdyosu')}</div>
           {/* Slogan SADECE gercek logo YOKSA (logoda zaten basili - duplikasyon olmasin) */}
           {slogan && !imgOk && <div className="mt-0.5 text-[10px] italic text-[var(--ink-soft)]">{SMC_SLOGAN}</div>}
         </div>

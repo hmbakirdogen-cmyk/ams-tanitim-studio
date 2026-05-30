@@ -11,9 +11,11 @@ import { annualProjection, savingPercent } from '@/lib/savings'
 import { useEconomy } from '@/data/economy'
 import { fmtInt, fmt1, fmtTLCompact, fmtCompact } from '@/lib/format'
 import { Percent, Wind, Zap, Cloud, RotateCcw, SlidersHorizontal, type LucideIcon } from 'lucide-react'
+import { useLang } from '@/i18n'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
 function StatCard({ icon: Icon, color, label, value, sub }: { icon: LucideIcon; color: string; label: string; value: string; sub: string }) {
+  const { t } = useLang()
   return (
     <Tilt3D className="glass relative flex flex-col gap-2 overflow-hidden rounded-2xl p-5" max={6}>
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: color, boxShadow: `0 0 18px ${color}` }} />
@@ -21,16 +23,17 @@ function StatCard({ icon: Icon, color, label, value, sub }: { icon: LucideIcon; 
         <Icon size={20} />
       </span>
       <div className="num text-3xl font-bold text-white" style={{ textShadow: `0 0 22px ${color}66` }}>{value}</div>
-      <div className="text-sm font-medium text-[var(--ink)]">{label}</div>
-      <div className="text-xs text-[var(--ink-soft)]">{sub}</div>
+      <div className="text-sm font-medium text-[var(--ink)]">{t(label)}</div>
+      <div className="text-xs text-[var(--ink-soft)]">{t(sub)}</div>
     </Tilt3D>
   )
 }
 
 function EcoField({ label, unit, value, step, onChange }: { label: string; unit: string; value: number; step: number; onChange: (v: number) => void }) {
+  const { t } = useLang()
   return (
     <div>
-      <label className="mb-1 block text-xs text-[var(--ink-soft)]">{label}</label>
+      <label className="mb-1 block text-xs text-[var(--ink-soft)]">{t(label)}</label>
       <div className="flex items-center gap-2 rounded-lg border border-[var(--hair)] px-3 py-2 focus-within:border-[var(--smc-bright)]">
         <input
           type="number"
@@ -39,13 +42,14 @@ function EcoField({ label, unit, value, step, onChange }: { label: string; unit:
           onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
           className="num w-full bg-transparent text-sm font-semibold text-white outline-none"
         />
-        <span className="shrink-0 text-xs font-medium text-[var(--ink-soft)]">{unit}</span>
+        <span className="shrink-0 text-xs font-medium text-[var(--ink-soft)]">{t(unit)}</span>
       </div>
     </div>
   )
 }
 
 export function SavingsPage({ data }: { data: LiveState }) {
+  const { t } = useLang()
   const { economy, update, reset } = useEconomy()
   const flow = data.reading?.flow ?? economy.baselineFlow
   const savedFlow = Math.max(0, economy.baselineFlow - flow)
@@ -65,7 +69,7 @@ export function SavingsPage({ data }: { data: LiveState }) {
       <Tilt3D className="glass relative overflow-hidden rounded-3xl p-8" max={4}>
         <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full opacity-25 blur-3xl" style={{ background: 'var(--c-saving)' }} />
         <div className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--ink-soft)]" style={{ transform: 'translateZ(18px)' }}>
-          Yıllık Tahmini Tasarruf
+          {t('Yıllık Tahmini Tasarruf')}
         </div>
         <div
           className="num mt-1 text-7xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
@@ -74,7 +78,7 @@ export function SavingsPage({ data }: { data: LiveState }) {
           {fmtTLCompact(tl)}
         </div>
         <div className="mt-2 text-sm text-[var(--ink-soft)]">
-          {fmt1(economy.priceTL)} ₺/kWh elektrik fiyatı ve {fmtInt(economy.opHoursPerYear)} saat/yıl çalışma varsayımıyla
+          {fmt1(economy.priceTL)} {t('₺/kWh elektrik fiyatı ve')} {fmtInt(economy.opHoursPerYear)} {t('saat/yıl çalışma varsayımıyla')}
         </div>
       </Tilt3D>
 
@@ -83,6 +87,7 @@ export function SavingsPage({ data }: { data: LiveState }) {
         <StatCard icon={Wind} color="#2E9BFF" label="Kısılan Hava" value={fmtInt(air)} sub="l/dak" />
         <StatCard icon={Zap} color="#FFB04D" label="Yıllık Enerji" value={fmtCompact(kwh)} sub="kWh" />
         <StatCard icon={Cloud} color="#7CE0FF" label="Yıllık Karbon" value={fmtCompact(co2)} sub="kg CO₂" />
+        {/* not: label/sub StatCard icinde t() ile cevrilir (tek nokta) */}
       </div>
 
       {/* Duzenlenebilir hesap ayarlari - kullanici elektrik fiyatini vb. girer */}
@@ -90,10 +95,10 @@ export function SavingsPage({ data }: { data: LiveState }) {
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm font-semibold text-white">
             <SlidersHorizontal size={16} className="text-[var(--smc-bright)]" />
-            Hesap Ayarları <span className="text-xs font-normal text-[var(--ink-soft)]">— değerleri kendiniz girin, hesap anında güncellenir</span>
+            {t('Hesap Ayarları')} <span className="text-xs font-normal text-[var(--ink-soft)]">{t('— değerleri kendiniz girin, hesap anında güncellenir')}</span>
           </div>
           <button onClick={reset} className="flex items-center gap-1.5 rounded-lg border border-[var(--hair)] px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white">
-            <RotateCcw size={13} /> Varsayılana dön
+            <RotateCcw size={13} /> {t('Varsayılana dön')}
           </button>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">

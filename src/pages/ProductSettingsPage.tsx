@@ -23,6 +23,7 @@ import { seedDemoHistory, clearHistory, historyExtent } from '@/data/history'
 import { sound } from '@/lib/sound'
 import { fmt2, fmtInt } from '@/lib/format'
 import { isMobileDevice } from '@/lib/device'
+import { useLang } from '@/i18n'
 import {
   Gauge, Timer, Wind, ToggleRight, Info, RotateCcw, Eye, EyeOff, Boxes, Wifi, Zap, Network, Server, Plus, Radio,
   History, Trash2, Cable,
@@ -67,6 +68,7 @@ function SettingCard({ icon: Icon, color, title, desc, children }: { icon: Lucid
 }
 
 export function ProductSettingsPage() {
+  const { t } = useLang()
   const { settings, update, reset } = useDeviceSettings()
   const { visible, toggle, showAll } = useSensorVisibility()
   const metrics = useMetrics()
@@ -112,7 +114,7 @@ export function ProductSettingsPage() {
         subtitle="Önce ürün modelini seçin — tüm değerler o modele göre en mantıklı haline gelir"
         right={
           <button onClick={reset} className="flex items-center gap-1.5 rounded-lg border border-[var(--hair)] px-3 py-2 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white">
-            <RotateCcw size={13} /> Varsayılana dön
+            <RotateCcw size={13} /> {t('Varsayılana dön')}
           </button>
         }
       />
@@ -127,8 +129,8 @@ export function ProductSettingsPage() {
             <Boxes size={24} />
           </span>
           <div>
-            <div className="text-base font-semibold text-white">Ürün Modeli</div>
-            <div className="text-xs text-[var(--ink-soft)]">Tam kodu seçin — debi/basınç ölçeği ve tüm varsayılanlar otomatik uyar</div>
+            <div className="text-base font-semibold text-white">{t('Ürün Modeli')}</div>
+            <div className="text-xs text-[var(--ink-soft)]">{t('Tam kodu seçin — debi/basınç ölçeği ve tüm varsayılanlar otomatik uyar')}</div>
           </div>
         </div>
 
@@ -148,7 +150,7 @@ export function ProductSettingsPage() {
                 }
               >
                 <div className="num text-sm font-bold">{mm.code}</div>
-                <div className="text-[10px] text-[var(--ink-soft)]">{mm.type === 'A' ? 'Tip A' : 'Tip B'}</div>
+                <div className="text-[10px] text-[var(--ink-soft)]">{mm.type === 'A' ? t('Tip A') : t('Tip B')}</div>
               </button>
             )
           })}
@@ -162,17 +164,17 @@ export function ProductSettingsPage() {
             { label: 'Azami Basınç', value: fmt2(model.pressureMax), unit: 'MPa', color: '#36E0C8' },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-[var(--hair)] bg-white/[0.03] px-3 py-2.5">
-              <div className="text-[11px] text-[var(--ink-soft)]">{s.label}</div>
+              <div className="text-[11px] text-[var(--ink-soft)]">{t(s.label)}</div>
               <div className="num text-lg font-bold text-white" style={{ textShadow: `0 0 16px ${s.color}55` }}>
-                {s.value} <span className="text-xs font-medium text-[var(--ink-soft)]">{s.unit}</span>
+                {s.value} <span className="text-xs font-medium text-[var(--ink-soft)]">{t(s.unit)}</span>
               </div>
             </div>
           ))}
         </div>
         {/* Regulator tipi - tam etiket (kisaltma yok), tam genislik satir */}
         <div className="mt-3 flex items-center gap-2 rounded-xl border px-3 py-2.5" style={{ borderColor: '#FFB04D55', background: '#FFB04D12' }}>
-          <span className="text-[11px] text-[var(--ink-soft)]">Regülatör Tipi</span>
-          <span className="ml-auto text-sm font-semibold text-white">{TYPE_LABEL[model.type]}</span>
+          <span className="text-[11px] text-[var(--ink-soft)]">{t('Regülatör Tipi')}</span>
+          <span className="ml-auto text-sm font-semibold text-white">{t(TYPE_LABEL[model.type])}</span>
         </div>
       </div>
 
@@ -186,13 +188,13 @@ export function ProductSettingsPage() {
             </span>
             <div>
               <div className="flex items-center gap-2 text-base font-semibold text-white">
-                Veri Bağlantısı
+                {t('Veri Bağlantısı')}
                 <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: `${CONN_UI[connStatus].color}22`, color: CONN_UI[connStatus].color }}>
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: CONN_UI[connStatus].color, boxShadow: `0 0 8px ${CONN_UI[connStatus].color}` }} />
-                  {CONN_UI[connStatus].label}
+                  {t(CONN_UI[connStatus].label)}
                 </span>
               </div>
-              <div className="text-xs text-[var(--ink-soft)]">Demo verisi mi, gerçek cihazdan canlı veri mi (OPC UA)</div>
+              <div className="text-xs text-[var(--ink-soft)]">{t('Demo verisi mi, gerçek cihazdan canlı veri mi (OPC UA)')}</div>
             </div>
           </div>
           {/* Demo/Canli secimi - SADECE PC (masaustu). Mobilde gizli: mobil = yalniz demo gosterimi. */}
@@ -207,7 +209,7 @@ export function ProductSettingsPage() {
                     className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
                     style={on ? { background: 'rgba(46,155,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : { border: '1px solid var(--hair)' }}
                   >
-                    {label}
+                    {t(label)}
                   </button>
                 )
               })}
@@ -222,21 +224,21 @@ export function ProductSettingsPage() {
             className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:brightness-110"
             style={{ borderColor: 'rgba(46,155,255,0.4)', background: 'rgba(46,155,255,0.1)', color: 'var(--smc-bright)' }}
           >
-            <Cable size={16} /> Canlı cihaza bağlanma kılavuzu (adım adım)
+            <Cable size={16} /> {t('Canlı cihaza bağlanma kılavuzu (adım adım)')}
           </button>
         ) : (
           <div className="mt-4 flex items-start gap-2.5 rounded-xl border px-4 py-3 text-[13px] leading-snug" style={{ borderColor: '#FFB04D55', background: '#FFB04D12', color: 'var(--ink)' }}>
             <Radio size={18} className="mt-0.5 shrink-0 text-[var(--c-temp)]" />
             <div>
-              <b className="text-white">Mobil sürüm — yalnızca demo gösterimi.</b> Bu uygulama telefonda örnek/demo verileri izlemek (oynatmak) içindir.
-              Gerçek cihazdan <b className="text-white">canlı veri PC sürümünde</b> görüntülenir (cihaza kablo/ağ ile bağlı bilgisayar). Gerekirse ileride mobilden de canlı takip eklenebilir.
+              <b className="text-white">{t('Mobil sürüm — yalnızca demo gösterimi.')}</b> {t('Bu uygulama telefonda örnek/demo verileri izlemek (oynatmak) içindir.')}
+              {' '}{t('Gerçek cihazdan')} <b className="text-white">{t('canlı veri PC sürümünde')}</b> {t('görüntülenir (cihaza kablo/ağ ile bağlı bilgisayar). Gerekirse ileride mobilden de canlı takip eklenebilir.')}
             </div>
           </div>
         )}
 
         {conn.mode === 'live' && (
           <div className="mt-4">
-            <label className="mb-1 block text-xs text-[var(--ink-soft)]">Cihaz adresi (OPC UA)</label>
+            <label className="mb-1 block text-xs text-[var(--ink-soft)]">{t('Cihaz adresi (OPC UA)')}</label>
             <input
               value={epDraft}
               onChange={(e) => setEpDraft(e.target.value)}
@@ -246,7 +248,7 @@ export function ProductSettingsPage() {
               className="num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
             />
             <div className="mt-2 text-[11px] text-[var(--ink-soft)]">
-              Canlı veri için bilgisayarda yerel <b className="text-[var(--ink)]">OPC UA köprüsü</b> çalışmalı (<span className="num">bridge/opcua-bridge.mjs</span>). Cihaz yoksa Demo'ya dönün.
+              {t('Canlı veri için bilgisayarda yerel')} <b className="text-[var(--ink)]">{t('OPC UA köprüsü')}</b> {t('çalışmalı')} (<span className="num">bridge/opcua-bridge.mjs</span>). {t('Cihaz yoksa Demo’ya dönün.')}
             </div>
           </div>
         )}
@@ -254,24 +256,24 @@ export function ProductSettingsPage() {
         {/* DEMO GECMISI (sunum) - takvimsel rapor icin gercekci 30 gunluk gecmis uret/temizle */}
         <div className="mt-4 rounded-xl border border-[var(--hair)] bg-white/[0.03] p-4">
           <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <History size={16} className="text-[var(--smc-bright)]" /> Demo Geçmişi (Sunum)
+            <History size={16} className="text-[var(--smc-bright)]" /> {t('Demo Geçmişi (Sunum)')}
           </div>
           <div className="mt-1 text-[11px] leading-snug text-[var(--ink-soft)]">
-            Sunumda <b className="text-[var(--ink)]">“geçen hafta”</b> raporu gösterebilmek için 30 günlük gerçekçi geçmiş (gün/gece + hafta sonu ritmi) üretir.
-            Kayıtlar &gt; <b className="text-[var(--ink)]">Tarihsel Rapor</b>'dan açılır. Cihaz bağlandığında canlı geçmiş ayrıca birikir.
+            {t('Sunumda')} <b className="text-[var(--ink)]">{t('“geçen hafta”')}</b> {t('raporu gösterebilmek için 30 günlük gerçekçi geçmiş (gün/gece + hafta sonu ritmi) üretir.')}
+            {' '}{t('Kayıtlar')} &gt; <b className="text-[var(--ink)]">{t('Tarihsel Rapor')}</b>{t('’dan açılır. Cihaz bağlandığında canlı geçmiş ayrıca birikir.')}
           </div>
           <div className="mt-2 text-[11px] text-[var(--ink-soft)]">
             {demoHist
-              ? <>Mevcut demo geçmişi: <b className="num text-[var(--ink)]">{fmtInt(demoHist.count)}</b> ölçüm · ~<b className="num text-[var(--ink)]">{Math.max(1, Math.round((demoHist.last - demoHist.first) / DAY))}</b> gün.</>
-              : <>Henüz demo geçmişi yok.</>}
+              ? <>{t('Mevcut demo geçmişi')}: <b className="num text-[var(--ink)]">{fmtInt(demoHist.count)}</b> {t('ölçüm')} · ~<b className="num text-[var(--ink)]">{Math.max(1, Math.round((demoHist.last - demoHist.first) / DAY))}</b> {t('gün')}.</>
+              : <>{t('Henüz demo geçmişi yok.')}</>}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={seedDemo} disabled={seeding} className="keep-white flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
-              <History size={15} /> {seeding ? 'Oluşturuluyor…' : 'Demo geçmişi oluştur (30 gün)'}
+              <History size={15} /> {seeding ? t('Oluşturuluyor…') : t('Demo geçmişi oluştur (30 gün)')}
             </button>
             {demoHist && (
               <button onClick={clearDemo} className="flex items-center gap-1.5 rounded-lg border border-[var(--hair)] px-3 py-2 text-sm font-medium text-[#ff8a8a] transition hover:bg-white/5">
-                <Trash2 size={15} /> Geçmişi temizle
+                <Trash2 size={15} /> {t('Geçmişi temizle')}
               </button>
             )}
           </div>
@@ -281,47 +283,46 @@ export function ProductSettingsPage() {
       <div className="glass flex shrink-0 items-start gap-3 rounded-2xl p-4 text-sm text-[var(--ink-soft)]">
         <Info size={18} className="mt-0.5 shrink-0 text-[var(--smc-bright)]" />
         <div>
-          Bu ayarlar demo modunda <b className="text-white">senaryoyu canlı sürer</b> (bekleme basıncı ve otomatik kesinti süresi
-          grafiğe anında yansır). Cihaza bağlandığında aynı değerler <b className="text-white">OPC UA ile cihaza yazılır</b>.
+          {t('Bu ayarlar demo modunda')} <b className="text-white">{t('senaryoyu canlı sürer')}</b> {t('(bekleme basıncı ve otomatik kesinti süresi grafiğe anında yansır). Cihaza bağlandığında aynı değerler')} <b className="text-white">{t('OPC UA ile cihaza yazılır')}</b>.
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {/* Bekleme Basinci - ust sinir modelin azami basinci */}
-        <SettingCard icon={Gauge} color="#36E0C8" title="Bekleme Basıncı" desc={`Tasarruf modunda düşürülen hedef basınç (azami ${fmt2(model.pressureMax)} MPa)`}>
+        <SettingCard icon={Gauge} color="#36E0C8" title={t('Bekleme Basıncı')} desc={`${t('Tasarruf modunda düşürülen hedef basınç (azami')} ${fmt2(model.pressureMax)} MPa)`}>
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="text-xs text-[var(--ink-soft)]">Hedef</span>
+            <span className="text-xs text-[var(--ink-soft)]">{t('Hedef')}</span>
             <span className="num text-2xl font-bold text-white">
               {fmt2(settings.standbyPressure)} <span className="text-sm font-medium text-[var(--ink-soft)]">MPa</span>
-            </span>
+            </span>{/* MPa: uluslararasi birim, cevrilmez */}
           </div>
           <input type="range" min={0.1} max={model.pressureMax} step={0.05} value={Math.min(settings.standbyPressure, model.pressureMax)} onChange={(e) => update({ standbyPressure: parseFloat(e.target.value) })} className="w-full" style={{ accentColor: '#36E0C8' }} />
         </SettingCard>
 
         {/* Otomatik Kesinti Suresi */}
-        <SettingCard icon={Timer} color="#FFB04D" title="Otomatik Kesinti Süresi" desc="Beklemeden sonra havanın kesilmesine kadar süre">
+        <SettingCard icon={Timer} color="#FFB04D" title={t('Otomatik Kesinti Süresi')} desc={t('Beklemeden sonra havanın kesilmesine kadar süre')}>
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="text-xs text-[var(--ink-soft)]">Süre</span>
+            <span className="text-xs text-[var(--ink-soft)]">{t('Süre')}</span>
             <span className="num text-2xl font-bold text-white">
-              {fmtInt(settings.autoIsolationSec)} <span className="text-sm font-medium text-[var(--ink-soft)]">sn</span>
+              {fmtInt(settings.autoIsolationSec)} <span className="text-sm font-medium text-[var(--ink-soft)]">{t('sn')}</span>
             </span>
           </div>
           <input type="range" min={2} max={30} step={1} value={settings.autoIsolationSec} onChange={(e) => update({ autoIsolationSec: parseInt(e.target.value, 10) })} className="w-full" style={{ accentColor: '#FFB04D' }} />
         </SettingCard>
 
         {/* Bekleme Esigi - ust sinir modelin normal tuketimi */}
-        <SettingCard icon={Wind} color="#2E9BFF" title="Bekleme Eşiği" desc={`Debi bu değerin altına düşünce bekleme moduna geçilir (azami ${fmtInt(model.baselineFlow)} l/dak)`}>
+        <SettingCard icon={Wind} color="#2E9BFF" title={t('Bekleme Eşiği')} desc={`${t('Debi bu değerin altına düşünce bekleme moduna geçilir (azami')} ${fmtInt(model.baselineFlow)} ${t('l/dak')})`}>
           <div className="mb-1 flex items-baseline justify-between">
-            <span className="text-xs text-[var(--ink-soft)]">Eşik</span>
+            <span className="text-xs text-[var(--ink-soft)]">{t('Eşik')}</span>
             <span className="num text-2xl font-bold text-white">
-              {fmtInt(settings.standbyThreshold)} <span className="text-sm font-medium text-[var(--ink-soft)]">l/dak</span>
+              {fmtInt(settings.standbyThreshold)} <span className="text-sm font-medium text-[var(--ink-soft)]">{t('l/dak')}</span>
             </span>
           </div>
           <input type="range" min={10} max={model.baselineFlow} step={10} value={Math.min(settings.standbyThreshold, model.baselineFlow)} onChange={(e) => update({ standbyThreshold: parseInt(e.target.value, 10) })} className="w-full" style={{ accentColor: '#2E9BFF' }} />
         </SettingCard>
 
         {/* Valf Modu */}
-        <SettingCard icon={ToggleRight} color="#7CE0FF" title="Valf Modu" desc="Tahliye valfinin normal durumu">
+        <SettingCard icon={ToggleRight} color="#7CE0FF" title={t('Valf Modu')} desc={t('Tahliye valfinin normal durumu')}>
           <div className="flex gap-2">
             {(['NC', 'NO'] as ValveMode[]).map((m) => {
               const on = settings.valveMode === m
@@ -332,7 +333,7 @@ export function ProductSettingsPage() {
                   className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
                   style={on ? { background: 'rgba(124,224,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(124,224,255,0.5)' } : { border: '1px solid var(--hair)' }}
                 >
-                  {m === 'NC' ? 'Normalde Kapalı' : 'Normalde Açık'}
+                  {m === 'NC' ? t('Normalde Kapalı') : t('Normalde Açık')}
                 </button>
               )
             })}
@@ -343,10 +344,10 @@ export function ProductSettingsPage() {
       {/* BAGLI MODULLER - opsiyonel ek urunler; secim Urun & Teknoloji vitrinine de yansir */}
       <div className="glass rounded-2xl p-6">
         <div className="mb-1 flex items-center gap-2 text-base font-semibold text-white">
-          <Plus size={18} className="text-[var(--smc-bright)]" /> Bağlı Modüller
+          <Plus size={18} className="text-[var(--smc-bright)]" /> {t('Bağlı Modüller')}
         </div>
         <div className="mb-4 text-xs text-[var(--ink-soft)]">
-          AMS'e takılan opsiyonel ürünler. Seçtikleriniz Ürün &amp; Teknoloji sayfasında da görünür. (Çekirdekte OPC UA + Endüstriyel Ethernet zaten dahil.)
+          {t('AMS’e takılan opsiyonel ürünler. Seçtikleriniz Ürün & Teknoloji sayfasında da görünür. (Çekirdekte OPC UA + Endüstriyel Ethernet zaten dahil.)')}
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           {MODULES.map((mod) => {
@@ -364,13 +365,13 @@ export function ProductSettingsPage() {
                   <Icon size={18} />
                 </span>
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold text-white">{mod.name}</div>
-                  <div className="text-[11px] leading-snug text-[var(--ink-soft)]">{mod.desc}</div>
+                  <div className="text-sm font-semibold text-white">{t(mod.name)}</div>
+                  <div className="text-[11px] leading-snug text-[var(--ink-soft)]">{t(mod.desc)}</div>
                 </div>
                 <span className="ml-auto shrink-0">
                   {on
-                    ? <span className="rounded-full bg-[var(--c-saving)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--c-saving)]">Bağlı</span>
-                    : <span className="rounded-full border border-[var(--hair)] px-2 py-0.5 text-[10px] font-medium text-[var(--ink-soft)]">Ekle</span>}
+                    ? <span className="rounded-full bg-[var(--c-saving)]/15 px-2 py-0.5 text-[10px] font-semibold text-[var(--c-saving)]">{t('Bağlı')}</span>
+                    : <span className="rounded-full border border-[var(--hair)] px-2 py-0.5 text-[10px] font-medium text-[var(--ink-soft)]">{t('Ekle')}</span>}
                 </span>
               </button>
             )
@@ -382,14 +383,14 @@ export function ProductSettingsPage() {
       <div className="glass rounded-2xl p-6">
         <div className="mb-1 flex items-center justify-between">
           <div className="flex items-center gap-2 text-base font-semibold text-white">
-            <Eye size={18} className="text-[var(--smc-bright)]" /> Sensörler
+            <Eye size={18} className="text-[var(--smc-bright)]" /> {t('Sensörler')}
           </div>
           <button onClick={showAll} className="rounded-lg border border-[var(--hair)] px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)]">
-            Tümünü Aç
+            {t('Tümünü Aç')}
           </button>
         </div>
         <div className="mb-4 text-xs text-[var(--ink-soft)]">
-          Hangi sensörlerin grafik ve kartlarda görüneceğini seçin. Yeni sensör eklendiğinde burada otomatik görünür. (Şu an hepsi etkin.)
+          {t('Hangi sensörlerin grafik ve kartlarda görüneceğini seçin. Yeni sensör eklendiğinde burada otomatik görünür. (Şu an hepsi etkin.)')}
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           {metrics.map((m) => {
@@ -406,8 +407,8 @@ export function ProductSettingsPage() {
                   <Icon size={18} />
                 </span>
                 <div className="text-left">
-                  <div className="text-sm font-semibold text-white">{m.name}</div>
-                  <div className="text-[11px] text-[var(--ink-soft)]">{m.unit}</div>
+                  <div className="text-sm font-semibold text-white">{t(m.name)}</div>
+                  <div className="text-[11px] text-[var(--ink-soft)]">{t(m.unit)}</div>
                 </div>
                 <span className="ml-auto">
                   {on ? <Eye size={18} className="text-[var(--c-saving)]" /> : <EyeOff size={18} className="text-[var(--ink-soft)]" />}

@@ -20,6 +20,7 @@ import { useSensorVisibility } from '@/data/sensorVisibility'
 import { useDeviceSettings } from '@/data/deviceSettings'
 import { fmtInt, fmt2 } from '@/lib/format'
 import { sound } from '@/lib/sound'
+import { useLang } from '@/i18n'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
 type LiveView = 'pipe' | 'classic'
@@ -28,6 +29,7 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
 
 export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
   const { reading, history, setMode } = data
+  const { t } = useLang()
   const metrics = useMetrics() // aktif modele gore reaktif (debi/basinc olcegi modelle gelir)
   const byKey = Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<MetricKey, MetricDef>
   const { visible } = useSensorVisibility()
@@ -54,8 +56,8 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   const hour = new Date().getHours()
   const greet = hour < 11 ? 'Günaydın' : hour < 18 ? 'İyi günler' : 'İyi akşamlar'
   const subtitle = greetName
-    ? `${greet}, ${greetName} Bey — tüm sensörler canlı akıyor`
-    : 'Tüm sensörler tek ekranda, gerçek zamanlı akıyor'
+    ? `${t(greet)}, ${greetName} Bey — ${t('tüm sensörler canlı akıyor')}`
+    : t('Tüm sensörler tek ekranda, gerçek zamanlı akıyor')
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -75,7 +77,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
                     className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
                     style={on ? { background: 'rgba(46,155,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : undefined}
                   >
-                    <Icon size={14} /> {label}
+                    <Icon size={14} /> {t(label)}
                   </button>
                 )
               })}

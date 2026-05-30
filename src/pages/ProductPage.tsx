@@ -11,6 +11,7 @@ import { SmcLogo } from '@/components/SmcLogo'
 import { asset } from '@/lib/asset'
 import { useModel } from '@/data/model'
 import { useModules, MODULES } from '@/data/modules'
+import { useLang } from '@/i18n'
 import {
   Leaf, PowerOff, Timer, Cpu, Gauge, Wind, Network, Wifi, Server, Ruler, Zap, ShieldCheck, Plus, Activity,
   type LucideIcon,
@@ -67,12 +68,14 @@ function Reveal({ children, delay = 0 }: { children: React.ReactNode; delay?: nu
 }
 
 export function ProductPage() {
+  const { t } = useLang()
   const { model } = useModel()
   const { modules } = useModules()
   const activeModules = MODULES.filter((m) => modules[m.id]) // secili bagli moduller -> baglanabilirlik vitrinine eklenir
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto pr-1">
       <PageHeader title="Ürün & Teknoloji" subtitle="SMC Hava Yönetim Sistemi — AMS20/30/40/60 Serisi" />
+      {/* not: const dizilerdeki (CAPABILITIES/MODES/COMPONENTS/CONNECT/SPECS) Turkce metinler render'da t() ile cevrilir */}
 
       {/* Hero */}
       <Reveal>
@@ -81,12 +84,10 @@ export function ProductPage() {
           <div style={{ transform: 'translateZ(20px)' }}>
             <SmcLogo size={80} withText={false} />
             <h2 className="mt-5 text-4xl font-extrabold leading-tight text-white">
-              Boşa giden havayı <span className="text-[var(--c-saving)] glow-text" style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)' }}>%62'ye kadar</span> azaltın
+              {t('Boşa giden havayı')} <span className="text-[var(--c-saving)] glow-text" style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)' }}>{t('%62’ye kadar')}</span> {t('azaltın')}
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--ink-soft)]">
-              Air Management System; ekipman beklemedeyken hava basıncını otomatik düşürür ya da keser.
-              Debi, basınç ve sıcaklığı sürekli ölçer; enerji tasarrufunu görünür kılar. Endüstri 4.0 ve
-              kestirimci bakım için doğrudan veri iletişimi sunar.
+              {t('Air Management System; ekipman beklemedeyken hava basıncını otomatik düşürür ya da keser. Debi, basınç ve sıcaklığı sürekli ölçer; enerji tasarrufunu görünür kılar. Endüstri 4.0 ve kestirimci bakım için doğrudan veri iletişimi sunar.')}
             </p>
           </div>
           {/* GERCEK SMC urun gorseli (giris sayfasiyla AYNI) - hucreyi DOLDURUR (object-cover), belirgin/net/yuksek kalite */}
@@ -101,7 +102,7 @@ export function ProductPage() {
             <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(4,12,26,0.6), transparent 42%)' }} />
             <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>{model.code}</span>
             <span className="absolute bottom-3 right-3 z-10 text-[11px] font-semibold text-white" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.8)' }}>
-              {model.type === 'A' ? 'Elektro-pnömatik regülatör' : 'Regülatör (elle ayar)'}
+              {model.type === 'A' ? t('Elektro-pnömatik regülatör') : t('Regülatör (elle ayar)')}
             </span>
           </div>
         </Tilt3D>
@@ -109,7 +110,7 @@ export function ProductPage() {
 
       {/* Nasil calisir - 3 mod */}
       <div>
-        <h3 className="mb-3 text-lg font-bold text-white">Nasıl Tasarruf Sağlar?</h3>
+        <h3 className="mb-3 text-lg font-bold text-white">{t('Nasıl Tasarruf Sağlar?')}</h3>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {MODES.map((m, i) => {
             const Icon = m.icon
@@ -120,8 +121,8 @@ export function ProductPage() {
                   <span className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: `${m.color}1f`, color: m.color }}>
                     <Icon size={22} />
                   </span>
-                  <div className="text-base font-semibold text-white">{m.title}</div>
-                  <div className="text-sm leading-relaxed text-[var(--ink-soft)]">{m.desc}</div>
+                  <div className="text-base font-semibold text-white">{t(m.title)}</div>
+                  <div className="text-sm leading-relaxed text-[var(--ink-soft)]">{t(m.desc)}</div>
                 </Tilt3D>
               </Reveal>
             )
@@ -131,7 +132,7 @@ export function ProductPage() {
 
       {/* One cikan yetenekler - tum katalog temalari (sürdürülebilirlik, kestirimci bakim, dijitallesme) */}
       <div>
-        <h3 className="mb-3 text-lg font-bold text-white">Öne Çıkan Yetenekler</h3>
+        <h3 className="mb-3 text-lg font-bold text-white">{t('Öne Çıkan Yetenekler')}</h3>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {CAPABILITIES.map((c, i) => {
             const Icon = c.icon
@@ -142,8 +143,8 @@ export function ProductPage() {
                   <span className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: `${c.color}1f`, color: c.color }}>
                     <Icon size={22} />
                   </span>
-                  <div className="text-base font-semibold text-white">{c.title}</div>
-                  <div className="text-sm leading-relaxed text-[var(--ink-soft)]">{c.desc}</div>
+                  <div className="text-base font-semibold text-white">{t(c.title)}</div>
+                  <div className="text-sm leading-relaxed text-[var(--ink-soft)]">{t(c.desc)}</div>
                 </Tilt3D>
               </Reveal>
             )
@@ -153,7 +154,7 @@ export function ProductPage() {
 
       {/* Bilesenler + KOMPLE UNITE vitrini (en yuksek cozunurluklu gorsel) */}
       <div>
-        <h3 className="mb-3 text-lg font-bold text-white">Bileşenler</h3>
+        <h3 className="mb-3 text-lg font-bold text-white">{t('Bileşenler')}</h3>
 
         {/* Komple unite - EN KALITELI gorsel (ams-system, 2800px) aciklamanin yaninda, elit */}
         <Reveal>
@@ -162,11 +163,10 @@ export function ProductPage() {
               <img src={asset('products/ams-system.jpg')} alt="SMC AMS — komple ünite (yakından, yüksek çözünürlük)" className="mx-auto max-h-[300px] w-full object-contain p-4" loading="lazy" />
             </div>
             <div style={{ transform: 'translateZ(14px)' }}>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--smc-bright)]">Komple Ünite · {model.code}</div>
-              <h4 className="mt-1 text-2xl font-bold text-white">Tek gövdede tüm sistem</h4>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--smc-bright)]">{t('Komple Ünite')} · {model.code}</div>
+              <h4 className="mt-1 text-2xl font-bold text-white">{t('Tek gövdede tüm sistem')}</h4>
               <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
-                Regülatör, tahliye valfi ve ölçüm/iletişim merkezi tek modüler gövdede birleşir. Dahili ekran anlık
-                basınç, debi ve sıcaklığı gösterir; IO-Link / OPC UA ile üst sisteme doğrudan bağlanır.
+                {t('Regülatör, tahliye valfi ve ölçüm/iletişim merkezi tek modüler gövdede birleşir. Dahili ekran anlık basınç, debi ve sıcaklığı gösterir; IO-Link / OPC UA ile üst sisteme doğrudan bağlanır.')}
               </p>
             </div>
           </Tilt3D>
@@ -185,12 +185,12 @@ export function ProductPage() {
                       <div className="flex items-stretch justify-center gap-1 p-3">
                         <div className="flex flex-1 flex-col items-center justify-end">
                           <img src={asset(c.img)} alt="Elektro-pnömatik regülatör" className="h-28 w-auto object-contain" loading="lazy" />
-                          <span className="mt-1 text-[10px] font-semibold text-slate-500">Elektro-pnömatik</span>
+                          <span className="mt-1 text-[10px] font-semibold text-slate-500">{t('Elektro-pnömatik')}</span>
                         </div>
                         <div className="mx-1 w-px self-stretch bg-slate-300/60" />
                         <div className="flex flex-1 flex-col items-center justify-end">
                           <img src={asset(c.imgB)} alt="Elle ayarlı regülatör" className="h-28 w-auto object-contain" loading="lazy" />
-                          <span className="mt-1 text-[10px] font-semibold text-slate-500">Elle ayar</span>
+                          <span className="mt-1 text-[10px] font-semibold text-slate-500">{t('Elle ayar')}</span>
                         </div>
                       </div>
                     ) : (
@@ -202,9 +202,9 @@ export function ProductPage() {
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${c.color}1f`, color: c.color }}>
                         <Icon size={18} />
                       </span>
-                      <div className="text-base font-semibold text-white">{c.title}</div>
+                      <div className="text-base font-semibold text-white">{t(c.title)}</div>
                     </div>
-                    <div className="text-sm leading-relaxed text-[var(--ink-soft)]">{c.desc}</div>
+                    <div className="text-sm leading-relaxed text-[var(--ink-soft)]">{t(c.desc)}</div>
                   </div>
                 </Tilt3D>
               </Reveal>
@@ -216,14 +216,14 @@ export function ProductPage() {
       {/* Baglanabilirlik + secili bagli moduller (Urun Ayarlari'ndan) */}
       <Reveal>
         <div className="glass rounded-2xl p-5">
-          <h3 className="mb-3 text-lg font-bold text-white">Bağlanabilirlik &amp; Modüller</h3>
+          <h3 className="mb-3 text-lg font-bold text-white">{t('Bağlanabilirlik & Modüller')}</h3>
           <div className="flex flex-wrap gap-2.5">
             {CONNECT.map((c) => {
               const Icon = c.icon
               return (
                 <span key={c.label} className="flex items-center gap-2 rounded-full border border-[var(--hair)] bg-white/[0.04] px-3.5 py-1.5 text-sm font-medium text-[var(--ink)]">
                   <Icon size={15} className="text-[var(--smc-bright)]" />
-                  {c.label}
+                  {t(c.label)}
                 </span>
               )
             })}
@@ -231,13 +231,13 @@ export function ProductPage() {
             {activeModules.map((m) => (
               <span key={m.id} className="flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm font-semibold" style={{ borderColor: 'rgba(65,224,138,0.5)', background: 'rgba(65,224,138,0.12)', color: 'var(--c-saving)' }}>
                 <Plus size={15} />
-                {m.badge}
+                {t(m.badge)}
               </span>
             ))}
           </div>
           {activeModules.length === 0 && (
             <div className="mt-3 text-xs text-[var(--ink-soft)]">
-              Ek modül seçilmedi. <b className="text-[var(--ink)]">Ürün Ayarları &gt; Bağlı Modüller</b>'den ekleyebilirsiniz (ör. kablosuz EXW1).
+              {t('Ek modül seçilmedi.')} <b className="text-[var(--ink)]">{t('Ürün Ayarları > Bağlı Modüller')}</b>{t('’den ekleyebilirsiniz (ör. kablosuz EXW1).')}
             </div>
           )}
         </div>
@@ -246,7 +246,7 @@ export function ProductPage() {
       {/* Teknik ozellikler */}
       <Reveal>
         <div className="glass rounded-2xl p-5">
-          <h3 className="mb-3 text-lg font-bold text-white">Teknik Özellikler</h3>
+          <h3 className="mb-3 text-lg font-bold text-white">{t('Teknik Özellikler')}</h3>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {SPECS.map((s) => {
               const Icon = s.icon
@@ -256,8 +256,8 @@ export function ProductPage() {
                     <Icon size={18} />
                   </span>
                   <div>
-                    <div className="text-xs text-[var(--ink-soft)]">{s.label}</div>
-                    <div className="text-sm font-semibold text-white">{s.value}</div>
+                    <div className="text-xs text-[var(--ink-soft)]">{t(s.label)}</div>
+                    <div className="text-sm font-semibold text-white">{t(s.value)}</div>
                   </div>
                 </div>
               )

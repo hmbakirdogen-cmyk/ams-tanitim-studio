@@ -10,11 +10,13 @@ import { X, Camera } from 'lucide-react'
 import { Avatar } from './Avatar'
 import { processPortrait } from '@/lib/image'
 import { sound } from '@/lib/sound'
+import { useLang } from '@/i18n'
 import type { Auth } from '@/auth/useAuth'
 
 const field = 'w-full rounded-lg border border-[var(--hair)] bg-transparent px-3 py-2 text-sm text-white outline-none placeholder:text-[var(--ink-soft)]'
 
 export function ProfileEditor({ auth, onClose }: { auth: Auth; onClose: () => void }) {
+  const { t } = useLang()
   const current = auth.user
   const [photo, setPhoto] = useState<string | undefined>(current?.photo)
   const [title, setTitle] = useState(current?.title ?? '')
@@ -48,11 +50,11 @@ export function ProfileEditor({ auth, onClose }: { auth: Auth; onClose: () => vo
     if (!curPw || !newPw) return
     const ok = await auth.changePassword(curPw, newPw)
     if (ok) {
-      setPwMsg({ ok: true, text: 'Şifreniz değişti — güvenlik için yeniden giriş yapın' })
+      setPwMsg({ ok: true, text: t('Şifreniz değişti — güvenlik için yeniden giriş yapın') })
       sound.click()
       window.setTimeout(() => auth.logout(), 1300)
     } else {
-      setPwMsg({ ok: false, text: 'Mevcut şifre hatalı' })
+      setPwMsg({ ok: false, text: t('Mevcut şifre hatalı') })
     }
   }
 
@@ -71,7 +73,7 @@ export function ProfileEditor({ auth, onClose }: { auth: Auth; onClose: () => vo
         className="glass max-h-[88vh] w-full max-w-md overflow-y-auto rounded-3xl p-7"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Profilim</h2>
+          <h2 className="text-xl font-bold text-white">{t('Profilim')}</h2>
           <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full border border-[var(--hair)] text-[var(--ink-soft)] transition hover:text-white">
             <X size={18} />
           </button>
@@ -91,47 +93,47 @@ export function ProfileEditor({ auth, onClose }: { auth: Auth; onClose: () => vo
           </div>
           <div className="text-lg font-semibold text-white">{current.firstName} Bey</div>
           <div className="text-xs text-[var(--ink-soft)]">
-            {busy ? 'Fotoğraf işleniyor…' : 'Fotoğrafı en karizmatik biçimde otomatik yerleştiririm'}
+            {busy ? t('Fotoğraf işleniyor…') : t('Fotoğrafı en karizmatik biçimde otomatik yerleştiririm')}
           </div>
         </div>
 
         <div className="mt-6 space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-[var(--ink-soft)]">Ünvan / Görev</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="örn. SMC Satış Destek Uzmanı" className={field} />
+            <label className="mb-1 block text-xs text-[var(--ink-soft)]">{t('Ünvan / Görev')}</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('örn. SMC Satış Destek Uzmanı')} className={field} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-xs text-[var(--ink-soft)]">Telefon</label>
+              <label className="mb-1 block text-xs text-[var(--ink-soft)]">{t('Telefon')}</label>
               <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0 5xx xxx xx xx" className={field} />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-[var(--ink-soft)]">E‑posta</label>
+              <label className="mb-1 block text-xs text-[var(--ink-soft)]">{t('E‑posta')}</label>
               <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ad@firma.com" className={field} />
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-[var(--ink-soft)]">Kendini Tanıtım</label>
-            <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder="Kısa bir tanıtım…" className={`${field} resize-none`} />
+            <label className="mb-1 block text-xs text-[var(--ink-soft)]">{t('Kendini Tanıtım')}</label>
+            <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} placeholder={t('Kısa bir tanıtım…')} className={`${field} resize-none`} />
           </div>
         </div>
 
         <button onClick={save} disabled={busy} className="keep-white mt-5 w-full rounded-lg py-2.5 text-sm font-semibold text-white transition disabled:opacity-50" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
-          Kaydet
+          {t('Kaydet')}
         </button>
 
         {/* Sifre degistir */}
         <div className="mt-6 rounded-2xl border border-[var(--hair)] p-4">
-          <div className="mb-3 text-sm font-semibold text-white">Şifre Değiştir</div>
+          <div className="mb-3 text-sm font-semibold text-white">{t('Şifre Değiştir')}</div>
           <div className="grid grid-cols-2 gap-3">
-            <input type="password" value={curPw} onChange={(e) => { setCurPw(e.target.value); setPwMsg(null) }} placeholder="Mevcut şifre" className={field} />
-            <input type="password" value={newPw} onChange={(e) => { setNewPw(e.target.value); setPwMsg(null) }} placeholder="Yeni şifre" className={field} />
+            <input type="password" value={curPw} onChange={(e) => { setCurPw(e.target.value); setPwMsg(null) }} placeholder={t('Mevcut şifre')} className={field} />
+            <input type="password" value={newPw} onChange={(e) => { setNewPw(e.target.value); setPwMsg(null) }} placeholder={t('Yeni şifre')} className={field} />
           </div>
           {pwMsg && (
             <div className={`mt-2 text-xs ${pwMsg.ok ? 'text-[var(--c-saving)]' : 'text-[#ff8a8a]'}`}>{pwMsg.text}</div>
           )}
           <button onClick={changePw} className="mt-3 w-full rounded-lg border border-[var(--hair)] py-2 text-sm font-medium text-[var(--ink-soft)] transition hover:text-white">
-            Şifreyi Değiştir
+            {t('Şifreyi Değiştir')}
           </button>
         </div>
       </motion.div>

@@ -10,6 +10,7 @@ import { MODE_LABEL, MODE_DESC, MODE_COLOR, type Mode } from '@/data/types'
 import { ArrowDown, ArrowUp } from 'lucide-react'
 import type { MetricDef } from '@/data/metrics'
 import type { Reading } from '@/data/types'
+import { useLang } from '@/i18n'
 
 const shadow = { textShadow: '0 1px 5px rgba(2,4,10,0.95), 0 0 2px rgba(2,4,10,0.9)' }
 
@@ -28,6 +29,7 @@ export function PipeOverlay({
   mode: Mode
   thresholds?: Record<string, { value: number; label: string } | undefined>
 }) {
+  const { t } = useLang()
   const modeColor = MODE_COLOR[mode]
   return (
     <div className="force-dark-surface pointer-events-none absolute inset-0">
@@ -41,17 +43,17 @@ export function PipeOverlay({
         </span>
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold tracking-wide" style={{ color: modeColor }}>CANLI</span>
-            <span className="text-sm font-bold text-white">{MODE_LABEL[mode]}</span>
+            <span className="text-[11px] font-bold tracking-wide" style={{ color: modeColor }}>{t('CANLI')}</span>
+            <span className="text-sm font-bold text-white">{t(MODE_LABEL[mode])}</span>
           </div>
-          <div className="text-[11px] text-[var(--ink-soft)]">{MODE_DESC[mode]}</div>
+          <div className="text-[11px] text-[var(--ink-soft)]">{t(MODE_DESC[mode])}</div>
         </div>
       </div>
 
       {/* UST SAG: kisa anahtar aciklama */}
       <div className="absolute right-3 top-3 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3 py-2 text-right backdrop-blur-md">
-        <div className="text-[11px] font-semibold text-white">Pnömatik Hat</div>
-        <div className="text-[10px] text-[var(--ink-soft)]">akış hızı + dolum = anlık değer</div>
+        <div className="text-[11px] font-semibold text-white">{t('Pnömatik Hat')}</div>
+        <div className="text-[10px] text-[var(--ink-soft)]">{t('akış hızı + dolum = anlık değer')}</div>
       </div>
 
       {/* SAG DIKEY: boru sirasinda anlik degerler (cikis tarafi). Renk = boru rengi. */}
@@ -64,7 +66,7 @@ export function PipeOverlay({
             <div key={m.key} className="flex flex-col items-end">
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
-                <span className="text-[11px] font-medium text-[var(--ink-soft)]" style={shadow}>{m.name}</span>
+                <span className="text-[11px] font-medium text-[var(--ink-soft)]" style={shadow}>{t(m.name)}</span>
               </div>
               <div className="flex items-baseline gap-1" style={shadow}>
                 <span className="num text-2xl font-bold leading-none text-white">{fmt(v, m.digits)}</span>
@@ -73,7 +75,7 @@ export function PipeOverlay({
               {thr && (
                 <div className="mt-0.5 flex items-center gap-1 text-[10px]" style={{ color: below ? '#FFB04D' : 'var(--c-saving)' }}>
                   {below ? <ArrowDown size={11} /> : <ArrowUp size={11} />}
-                  <span style={shadow}>eşik: {thr.label}</span>
+                  <span style={shadow}>{t('eşik')}: {thr.label}</span>
                 </div>
               )}
             </div>
@@ -83,9 +85,9 @@ export function PipeOverlay({
 
       {/* ALT: zaman/akis aciklamasi */}
       <div className="absolute inset-x-3 bottom-2 flex items-center justify-between text-[10px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
-        <span>giriş →</span>
-        <span>hava soldan sağa akıyor · sağ uç = anlık çıkış</span>
-        <span>→ çıkış</span>
+        <span>{t('giriş')} →</span>
+        <span>{t('hava soldan sağa akıyor · sağ uç = anlık çıkış')}</span>
+        <span>→ {t('çıkış')}</span>
       </div>
     </div>
   )

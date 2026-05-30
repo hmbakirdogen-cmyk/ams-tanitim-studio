@@ -27,8 +27,10 @@ import { useAuth } from './auth/useAuth'
 import { useTheme } from './hooks/useTheme'
 import { isMobileDevice } from './lib/device'
 import { sound } from './lib/sound'
+import { useLang } from './i18n'
 
 export default function App() {
+  const { t } = useLang()
   const data = useLiveReadings()
   const auth = useAuth()
   const { theme, toggle: toggleTheme } = useTheme()
@@ -68,13 +70,13 @@ export default function App() {
           <div className="flex shrink-0 items-center gap-3 px-4 py-2.5 md:hidden">
             <button
               onClick={() => { sound.click(); setNavOpen(true) }}
-              aria-label="Menü"
+              aria-label={t('Menü')}
               className="glass grid h-10 w-10 place-items-center rounded-xl text-[var(--ink)]"
             >
               <Menu size={20} />
             </button>
             <SmcLogo size={30} withText={false} />
-            <span className="text-sm font-semibold text-white">Hava Yönetim Sistemi</span>
+            <span className="text-sm font-semibold text-white">{t('Hava Yönetim Sistemi')}</span>
           </div>
 
           <Sidebar

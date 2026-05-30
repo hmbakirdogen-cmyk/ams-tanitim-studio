@@ -13,6 +13,7 @@ import {
 import { SmcLogo } from './SmcLogo'
 import { ProductBadge } from './ProductBadge'
 import { LangSwitcher } from './LangSwitcher'
+import { Signature } from './Signature'
 import { useConnection } from '@/data/connection'
 import { useLang } from '@/i18n'
 import { Avatar } from './Avatar'
@@ -66,15 +67,16 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
       className={`glass fixed inset-y-0 left-0 z-40 m-2 flex w-[260px] shrink-0 flex-col overflow-y-auto rounded-3xl p-5 transition-transform duration-300 md:static md:z-10 md:m-5 md:mr-0 md:translate-x-0 ${navOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >
       <div className="px-1">
-        <SmcLogo size={60} />
+        {/* Mehmet Abi: paneldeki SMC logosunu BUYUT; yazi logonun ALTINDA 2 satir (stack). */}
+        <SmcLogo size={84} stack />
       </div>
 
       {/* URUN KIMLIGI - her sayfada gorunur (gorsel + ad + aktif model); "ne tanittigimiz her yerde belli" */}
-      <div className="mt-3">
+      <div className="mt-4">
         <ProductBadge />
       </div>
 
-      {/* DIL ANAHTARI - TR (asil 3B dalgalanan) / EN / DE */}
+      {/* DIL ANAHTARI - TR (asil 3B dalgalanan) / EN / JA */}
       <div className="mt-3 flex justify-start">
         <LangSwitcher />
       </div>
@@ -158,6 +160,11 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             {theme === 'dark' ? t('Gündüz') : t('Gece')}
           </button>
+        </div>
+
+        {/* İMZA - her sayfada görünür (Sidebar tüm sayfalarda mount). Hep İngilizce. */}
+        <div className="border-t border-[var(--hair)] pt-2.5">
+          <Signature compact />
         </div>
       </div>
     </aside>

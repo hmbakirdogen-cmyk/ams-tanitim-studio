@@ -11,6 +11,7 @@ import { Sparkline } from '@/components/Sparkline'
 import { useSmoothNumber } from '@/hooks/useSmoothNumber'
 import { useMetrics, type MetricDef } from '@/data/metrics'
 import { useSensorVisibility } from '@/data/sensorVisibility'
+import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
@@ -31,6 +32,7 @@ function computeStats(series: number[]) {
 }
 
 function SensorDetail({ def, history }: { def: MetricDef; history: Reading[] }) {
+  const { t } = useLang()
   const series = history.map(def.get)
   const s = computeStats(series)
   const cur = useSmoothNumber(s.cur, def.hero ? 0.16 : 0.12)
@@ -43,7 +45,7 @@ function SensorDetail({ def, history }: { def: MetricDef; history: Reading[] }) 
           <Icon size={24} />
         </span>
         <div>
-          <div className="text-base font-semibold text-white">{def.name}</div>
+          <div className="text-base font-semibold text-white">{t(def.name)}</div>
           <div className="text-xs text-[var(--ink-soft)]">{def.unitShort}</div>
         </div>
         <div className="ml-auto flex items-baseline gap-1.5">
@@ -59,7 +61,7 @@ function SensorDetail({ def, history }: { def: MetricDef; history: Reading[] }) 
       <div className="grid grid-cols-3 gap-3">
         {([['En düşük', s.min], ['Ortalama', s.avg], ['En yüksek', s.max]] as const).map(([label, val]) => (
           <div key={label} className="rounded-xl bg-white/5 px-3 py-2">
-            <div className="text-[11px] text-[var(--ink-soft)]">{label}</div>
+            <div className="text-[11px] text-[var(--ink-soft)]">{t(label)}</div>
             <div className="num text-lg font-semibold text-white">{fmt(val, def.digits)}</div>
           </div>
         ))}

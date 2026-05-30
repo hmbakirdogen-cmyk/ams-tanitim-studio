@@ -9,9 +9,11 @@
 import { PRODUCT } from '@/data/product'
 import { useModel } from '@/data/model'
 import { asset } from '@/lib/asset'
+import { useLang } from '@/i18n'
 
 export function ProductBadge() {
   const { model } = useModel()
+  const { t } = useLang()
   return (
     <div className="flex items-center gap-2.5 rounded-xl border border-[var(--hair)] bg-white/[0.03] p-2">
       <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10">
@@ -25,7 +27,7 @@ export function ProductBadge() {
         />
       </span>
       <div className="min-w-0">
-        <div className="truncate text-[12px] font-semibold leading-tight text-white">{PRODUCT.name}</div>
+        <div className="truncate text-[12px] font-semibold leading-tight text-white">{t(PRODUCT.name)}</div>
         <div className="num text-[11px] font-semibold leading-tight text-[var(--smc-bright)]">{PRODUCT.brand} · {model.code}</div>
       </div>
     </div>
