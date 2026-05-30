@@ -56,15 +56,15 @@ export function LoginScreen({ auth }: { auth: Auth }) {
       >
         <div className="grid gap-6 lg:grid-cols-2 lg:items-center lg:gap-10">
           {/* SOL: SMC bagli sistem diyagrami (smcusa.com Best Practices gorseli, yuksek kalite) */}
-          <div className="relative h-52 overflow-hidden rounded-2xl border border-[var(--hair)] sm:h-60 lg:h-[380px]" style={{ background: 'linear-gradient(150deg,#ffffff,#eef4fb 55%,#dbe8f7)' }}>
+          <div className="relative h-52 overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424] sm:h-60 lg:h-[380px]">
             {/* Urun adi etiketi (eski "Bagli Sistem" yerine - markaya uygun) */}
             <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS Hava Yönetim Sistemi</span>
+            {/* NET yuksek-coz urun + sevilen FABRIKA arka plani (yumusatilmis) birlesik = ams-hero.jpg */}
             <img
-              src={asset('products/ams-system.jpg')}
-              alt="SMC AMS — Hava Yönetim Sistemi (gerçek ürün)"
-              /* YUKSEK COZUNURLUK (2800px) -> NET. object-cover ile urune odakli/IRI; objectPosition ile biraz asagi. */
+              src={asset('products/ams-hero.jpg')}
+              alt="SMC AMS — Hava Yönetim Sistemi (gerçek ürün, fabrika arka planı)"
               className="absolute inset-0 h-full w-full object-cover"
-              style={{ objectPosition: '80% 58%' }}
+              style={{ objectPosition: 'center' }}
               loading="lazy"
             />
           </div>
