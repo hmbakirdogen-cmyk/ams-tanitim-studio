@@ -5,9 +5,10 @@
  * YAN ETKI: Logo dosyasi public/'e konunca otomatik gelir (offline; build'e gomulur). 8K kalite = yuksek cozunurluklu kaynak.
  */
 import { useEffect, useState, type CSSProperties } from 'react'
+import { asset } from '@/lib/asset'
 
 export const SMC_SLOGAN = 'Expertise – Passion – Automation'
-const LOGO_SRC = '/smc-logo.svg'
+const LOGO_SRC = asset('smc-logo.svg') // base-uyumlu (alt-yol/offline)
 
 // 3D ekstrüzyonlu "SMC" wordmark (gercek logo dosyasi yoksa vekil)
 function Smc3D({ height }: { height: number }) {

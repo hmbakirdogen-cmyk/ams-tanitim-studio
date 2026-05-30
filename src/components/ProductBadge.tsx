@@ -8,6 +8,7 @@
  */
 import { PRODUCT } from '@/data/product'
 import { useModel } from '@/data/model'
+import { asset } from '@/lib/asset'
 
 export function ProductBadge() {
   const { model } = useModel()
@@ -16,7 +17,7 @@ export function ProductBadge() {
       <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg ring-1 ring-white/10">
         {/* Giris sayfasiyla AYNI gorsel; kucuk karede urunu ortalayan object-cover (net/belirgin) */}
         <img
-          src="/products/ams-diagram.jpg"
+          src={asset('products/ams-diagram.jpg')}
           alt={`${PRODUCT.brand} ${PRODUCT.name} — ${model.code}`}
           className="h-full w-full object-cover"
           style={{ objectPosition: 'center' }}

@@ -11,6 +11,7 @@ import { Avatar } from './Avatar'
 import { sound } from '@/lib/sound'
 import { PRODUCT } from '@/data/product'
 import { useModel } from '@/data/model'
+import { asset } from '@/lib/asset'
 import { Lock, ArrowRight, ShieldCheck, User as UserIcon, ChevronLeft } from 'lucide-react'
 import type { Auth } from '@/auth/useAuth'
 import type { User } from '@/auth/users'
@@ -58,7 +59,7 @@ export function LoginScreen({ auth }: { auth: Auth }) {
           <div className="relative overflow-hidden rounded-2xl border border-[var(--hair)]" style={{ background: 'linear-gradient(140deg,#f3f8fd,#cfe0f2 55%,#a9c8e6)' }}>
             <span className="absolute left-3 top-3 z-10 rounded-md px-2 py-0.5 text-[10px] font-bold text-white" style={{ background: '#0072CE' }}>SMC · Bağlı Sistem</span>
             <img
-              src="/products/ams-diagram.jpg"
+              src={asset('products/ams-diagram.jpg')}
               alt="SMC Hava Yönetim Sistemi — bağlı sistem şeması: EXW1 kablosuz, IO-Link, Fieldbus"
               className="max-h-44 w-full object-contain p-3 lg:max-h-[340px]"
               loading="lazy"

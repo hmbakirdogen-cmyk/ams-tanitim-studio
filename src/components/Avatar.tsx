@@ -5,9 +5,11 @@
  * YAN ETKI: Saf gorsel; her yerde (giris kartlari, sidebar, profil) ayni karizmatik gorunum.
  */
 import type { User } from '@/auth/users'
+import { resolvePhoto } from '@/lib/asset'
 
 export function Avatar({ user, size = 64, ring = true }: { user: Pick<User, 'firstName' | 'lastName' | 'photo'>; size?: number; ring?: boolean }) {
   const initials = `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`
+  const photo = resolvePhoto(user.photo) // base-uyumlu (varsayilan public foto) + data:/http oldugu gibi
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <div
@@ -23,10 +25,10 @@ export function Avatar({ user, size = 64, ring = true }: { user: Pick<User, 'fir
         }
       >
         <div className="relative h-full w-full overflow-hidden rounded-full bg-[#071427]">
-          {user.photo ? (
+          {photo ? (
             <>
               <img
-                src={user.photo}
+                src={photo}
                 alt=""
                 className="h-full w-full object-cover"
                 style={{ objectPosition: 'center 30%', filter: 'contrast(1.06) saturate(1.08) brightness(1.02)' }}

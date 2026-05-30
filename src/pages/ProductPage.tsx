@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { SmcLogo } from '@/components/SmcLogo'
+import { asset } from '@/lib/asset'
 import { useModel } from '@/data/model'
 import { useModules, MODULES } from '@/data/modules'
 import {
@@ -90,7 +91,7 @@ export function ProductPage() {
           {/* GERCEK SMC urun gorseli (giris sayfasiyla AYNI) - hucreyi DOLDURUR (object-cover), belirgin/net/yuksek kalite */}
           <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424]">
             <img
-              src="/products/ams-diagram.jpg"
+              src={asset('products/ams-diagram.jpg')}
               alt="SMC Hava Yönetim Sistemi — fabrika hattında gerçek ürün"
               className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
