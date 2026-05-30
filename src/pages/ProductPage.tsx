@@ -32,10 +32,10 @@ const MODES: { icon: LucideIcon; color: string; title: string; desc: string }[] 
   { icon: Timer, color: '#2E9BFF', title: 'Otomatik Kesinti', desc: 'Beklemede belirlenen süre sonra sistem havayı kendiliğinden keser; sıfır müdahale.' },
 ]
 
-const COMPONENTS: { icon: LucideIcon; color: string; title: string; desc: string }[] = [
-  { icon: Cpu, color: '#2E9BFF', title: 'Hava Yönetim Merkezi', desc: 'Debi, basınç ve sıcaklığı ölçer; üst sisteme veri iletir, regülatör ve valfi yönetir (EXA1).' },
-  { icon: Gauge, color: '#36E0C8', title: 'Bekleme Regülatörü', desc: 'Basıncı uzaktan (elektro-pnömatik) veya elle ayarlayarak bekleme basıncına düşürür.' },
-  { icon: Wind, color: '#7CE0FF', title: 'Tahliye Valfi', desc: 'Üç yollu solenoid valf; havayı keser, kalan basıncı güvenle boşaltır (yumuşak başlatma seçeneği).' },
+const COMPONENTS: { icon: LucideIcon; color: string; title: string; desc: string; img: string }[] = [
+  { icon: Cpu, color: '#2E9BFF', title: 'Hava Yönetim Merkezi', desc: 'Debi, basınç ve sıcaklığı ölçer; üst sisteme veri iletir, regülatör ve valfi yönetir (EXA1).', img: 'products/exa1-hub.jpg' },
+  { icon: Gauge, color: '#36E0C8', title: 'Bekleme Regülatörü', desc: 'Basıncı uzaktan (elektro-pnömatik) veya elle ayarlayarak bekleme basıncına düşürür.', img: 'products/regulator-itv.jpg' },
+  { icon: Wind, color: '#7CE0FF', title: 'Tahliye Valfi', desc: 'Üç yollu solenoid valf; havayı keser, kalan basıncı güvenle boşaltır (yumuşak başlatma seçeneği).', img: 'products/valve-vp.jpg' },
 ]
 
 const CONNECT: { icon: LucideIcon; label: string }[] = [
@@ -150,20 +150,47 @@ export function ProductPage() {
         </div>
       </div>
 
-      {/* Bilesenler */}
+      {/* Bilesenler + KOMPLE UNITE vitrini (en yuksek cozunurluklu gorsel) */}
       <div>
         <h3 className="mb-3 text-lg font-bold text-white">Bileşenler</h3>
+
+        {/* Komple unite - EN KALITELI gorsel (ams-system, 2800px) aciklamanin yaninda, elit */}
+        <Reveal>
+          <Tilt3D className="glass mb-4 grid grid-cols-1 items-center gap-5 overflow-hidden rounded-2xl p-5 lg:grid-cols-[1.15fr_1fr]" max={4}>
+            <div className="overflow-hidden rounded-xl border border-[var(--hair)]" style={{ background: 'linear-gradient(150deg,#ffffff,#e9f1fa)' }}>
+              <img src={asset('products/ams-system.jpg')} alt="SMC AMS — komple ünite (yakından, yüksek çözünürlük)" className="mx-auto max-h-[300px] w-full object-contain p-4" loading="lazy" />
+            </div>
+            <div style={{ transform: 'translateZ(14px)' }}>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--smc-bright)]">Komple Ünite · {model.code}</div>
+              <h4 className="mt-1 text-2xl font-bold text-white">Tek gövdede tüm sistem</h4>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
+                Regülatör, tahliye valfi ve ölçüm/iletişim merkezi tek modüler gövdede birleşir. Dahili ekran anlık
+                basınç, debi ve sıcaklığı gösterir; IO-Link / OPC UA ile üst sisteme doğrudan bağlanır.
+              </p>
+            </div>
+          </Tilt3D>
+        </Reveal>
+
+        {/* Parcalar - her birinin GERCEK fotografi (temiz acik panel) + aciklamasi */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {COMPONENTS.map((c, i) => {
             const Icon = c.icon
             return (
               <Reveal key={c.title} delay={i * 0.08}>
-                <Tilt3D className="glass relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl p-5" max={6}>
-                  <span className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: `${c.color}1f`, color: c.color }}>
-                    <Icon size={22} />
-                  </span>
-                  <div className="text-base font-semibold text-white">{c.title}</div>
-                  <div className="text-sm leading-relaxed text-[var(--ink-soft)]">{c.desc}</div>
+                <Tilt3D className="glass relative flex h-full flex-col overflow-hidden rounded-2xl" max={6}>
+                  {/* bilesen FOTOGRAFI - temiz acik panel (urun net gorunur) */}
+                  <div className="border-b border-[var(--hair)]" style={{ background: 'linear-gradient(160deg,#f6f9fd,#dde9f6)' }}>
+                    <img src={asset(c.img)} alt={c.title} className="mx-auto h-36 w-auto object-contain p-3" loading="lazy" />
+                  </div>
+                  <div className="flex flex-col gap-2 p-5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${c.color}1f`, color: c.color }}>
+                        <Icon size={18} />
+                      </span>
+                      <div className="text-base font-semibold text-white">{c.title}</div>
+                    </div>
+                    <div className="text-sm leading-relaxed text-[var(--ink-soft)]">{c.desc}</div>
+                  </div>
                 </Tilt3D>
               </Reveal>
             )

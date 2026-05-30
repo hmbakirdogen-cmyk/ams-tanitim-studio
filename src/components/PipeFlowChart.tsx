@@ -177,7 +177,7 @@ export function PipeFlowChart({
   const fogColor = light ? '#dce8f7' : '#04060f'
   return (
     <Canvas
-      dpr={[1, 1.75]}
+      dpr={[1, 2]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       camera={{ position: [0, 2.2, 14], fov: 34 }}
       onCreated={({ camera }) => camera.lookAt(0, -0.2, 0)}

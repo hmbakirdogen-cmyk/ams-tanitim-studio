@@ -290,7 +290,7 @@ export function Hero3DChart({
   const floorColor = light ? '#c2d4ec' : '#050c1a'
   return (
     <Canvas
-      dpr={[1, 1.75]}
+      dpr={[1, 2]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       camera={{ position: [0, 2.5, 9], fov: 42 }}
     >
