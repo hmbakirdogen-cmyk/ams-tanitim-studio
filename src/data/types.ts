@@ -45,4 +45,7 @@ export interface DataSource {
   stop(): void
   // Mod secimi (Normal/Tasarruf/Kesinti butonlari). Canli cihaz yazma desteklemezse no-op olabilir.
   setMode?(mode: Mode): void
+  // HIBRIT senkron (donanim gelince): kullanici Urun Ayarlari'nda degistirince cihaza yazilir.
+  // Tip cevrimsel bagimliligi onlemek icin parametre gevsek (deviceSettings.DeviceSettings sekli) tutulur.
+  setSettings?(settings: { standbyPressure: number; autoIsolationSec: number; standbyThreshold: number; valveMode: 'NC' | 'NO' }): void
 }

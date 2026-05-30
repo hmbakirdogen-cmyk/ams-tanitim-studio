@@ -18,6 +18,11 @@ export interface NodeIds {
   temperature: string
   humidity: string
   mode: string // mod yazma (donanim gelince)
+  // HIBRIT ayar senkronu (donanim gelince - opsiyonel; cihazda yoksa kopru atlar)
+  standbyPressure?: string
+  standbyThreshold?: string
+  autoIsolationSec?: string
+  valveMode?: string
 }
 
 export interface ConnSettings {

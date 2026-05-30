@@ -11,6 +11,7 @@ import { DemoDataSource } from '@/data/demoSource'
 import { LiveDataSource } from '@/data/liveSource'
 import { useConnection, setConnStatus } from '@/data/connection'
 import { appendReading } from '@/data/history'
+import { applyDeviceSettingsFromDevice, getDeviceSettings, subscribeDeviceSettings, wasLastChangeFromDevice } from '@/data/deviceSettings'
 
 const MAX_POINTS = 160 // grafikte tutulan son okuma sayisi (akan grafik)
 const LOG_MAX = 4500 // analiz/kayit icin daha uzun gunluk (~6 dk @80ms tik)
@@ -40,9 +41,21 @@ export function useLiveReadings(): LiveState {
     setHistory([])
     setLog([])
 
-    const src: DataSource = settings.mode === 'live' ? new LiveDataSource(settings.endpoint, settings.nodeIds) : new DemoDataSource()
+    // HIBRIT senkron: canli kaynak, cihazin gonderdigi mevcut ayarlari Urun Ayarlari'na uygular (cihazdan oku → devam et)
+    const src: DataSource = settings.mode === 'live'
+      ? new LiveDataSource(settings.endpoint, settings.nodeIds, (s) => applyDeviceSettingsFromDevice(s))
+      : new DemoDataSource()
     srcRef.current = src
     if (settings.mode === 'demo') setConnStatus('demo') // demo seciliyken durum daima 'demo' (geç live callback ezse bile normalize)
+
+    // HIBRIT: canli modda kullanici Urun Ayarlari'nda degistirince cihaza yaz (cihazdan gelen degisikligi GERI yazma → dongu yok)
+    let unsubSettings = () => {}
+    if (settings.mode === 'live') {
+      unsubSettings = subscribeDeviceSettings(() => {
+        if (wasLastChangeFromDevice()) return
+        src.setSettings?.(getDeviceSettings())
+      })
+    }
     src.start((r) => {
       if (!pinnedRef.current) {
         startedAtRef.current = Date.now() - r.t // t=0 duvar saatini ilk okumadan tam kur
@@ -63,7 +76,7 @@ export function useLiveReadings(): LiveState {
         return next
       })
     })
-    return () => src.stop()
+    return () => { unsubSettings(); src.stop() }
     // nodeIds degisince (kilavuzdan) canli kaynak yeniden kurulur -> yeni dugumlerle okur
   }, [settings.mode, settings.endpoint, settings.nodeIds])
 

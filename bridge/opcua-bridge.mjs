@@ -22,6 +22,11 @@ const DEFAULT_NODE_IDS = {
   temperature: 'ns=2;s=AMS.Temperature',
   humidity: 'ns=2;s=AMS.Humidity',
   mode: 'ns=2;s=AMS.Mode',
+  // HIBRIT ayar senkronu (cihazda yoksa okuma/yazma sessizce atlanir)
+  standbyPressure: 'ns=2;s=AMS.StandbyPressure',
+  standbyThreshold: 'ns=2;s=AMS.StandbyThreshold',
+  autoIsolationSec: 'ns=2;s=AMS.AutoIsolationSec',
+  valveMode: 'ns=2;s=AMS.ValveMode',
 }
 
 const wss = new WebSocketServer({ port: WS_PORT })
@@ -46,6 +51,17 @@ wss.on('connection', (socket) => {
       session = await client.createSession()
       send({ type: 'status', connected: true })
       console.log('[kopru] cihaza baglandi:', endpoint, '| node:', nodeIds)
+      // HIBRIT: cihazin MEVCUT ayarlarini bir kez OKU → uygulamaya gonder (Urun Ayarlari o degerlerle devam etsin)
+      try {
+        const sids = [nodeIds.standbyPressure, nodeIds.standbyThreshold, nodeIds.autoIsolationSec, nodeIds.valveMode]
+        const sres = await session.read(sids.map((nodeId) => ({ nodeId, attributeId: AttributeIds.Value })))
+        const out = {}
+        const sp = Number(sres[0]?.value?.value); if (Number.isFinite(sp)) out.standbyPressure = sp
+        const st = Number(sres[1]?.value?.value); if (Number.isFinite(st)) out.standbyThreshold = st
+        const ai = Number(sres[2]?.value?.value); if (Number.isFinite(ai)) out.autoIsolationSec = ai
+        const vm = Number(sres[3]?.value?.value); if (Number.isFinite(vm)) out.valveMode = vm ? 'NO' : 'NC'
+        if (Object.keys(out).length) { send({ type: 'settings', settings: out }); console.log('[kopru] cihaz ayarlari okundu:', out) }
+      } catch (e) { console.log('[kopru] ayar dugumleri okunamadi (cihazda yok olabilir):', e.message) }
       // Periyodik oku (basit ve saglam; istenirse subscription'a cevrilebilir)
       timer = setInterval(async () => {
         try {
@@ -93,6 +109,17 @@ wss.on('connection', (socket) => {
       } catch (e) {
         console.error('[kopru] setMode yazma hatasi:', e.message)
       }
+    }
+    else if (msg.type === 'setSettings' && session && msg.settings) {
+      // HIBRIT: Urun Ayarlari'nda degisen degerleri cihaza YAZ (donanim gelince). Cihaz tipine gore dataType uyarlanabilir.
+      const s = msg.settings
+      const writes = []
+      if (typeof s.standbyPressure === 'number') writes.push({ nodeId: nodeIds.standbyPressure, attributeId: AttributeIds.Value, value: { value: { dataType: DataType.Double, value: s.standbyPressure } } })
+      if (typeof s.standbyThreshold === 'number') writes.push({ nodeId: nodeIds.standbyThreshold, attributeId: AttributeIds.Value, value: { value: { dataType: DataType.Int32, value: Math.round(s.standbyThreshold) } } })
+      if (typeof s.autoIsolationSec === 'number') writes.push({ nodeId: nodeIds.autoIsolationSec, attributeId: AttributeIds.Value, value: { value: { dataType: DataType.Int32, value: Math.round(s.autoIsolationSec) } } })
+      if (s.valveMode) writes.push({ nodeId: nodeIds.valveMode, attributeId: AttributeIds.Value, value: { value: { dataType: DataType.Int16, value: s.valveMode === 'NO' ? 1 : 0 } } })
+      for (const w of writes) { try { await session.write(w) } catch (e) { console.error('[kopru] ayar yazma hatasi:', e.message) } }
+      console.log('[kopru] ayarlar cihaza yazildi:', s)
     }
   })
 

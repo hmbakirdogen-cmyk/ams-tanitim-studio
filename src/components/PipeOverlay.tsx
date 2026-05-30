@@ -47,6 +47,21 @@ export function PipeOverlay({
             <span className="text-sm font-bold text-white">{t(MODE_LABEL[mode])}</span>
           </div>
           <div className="text-[11px] text-[var(--ink-soft)]">{t(MODE_DESC[mode])}</div>
+          {/* Hangi bilesen DEVREDE: Tasarruf=oransal regulator, Kesinti=tahliye valfi */}
+          {(mode === 'standby' || mode === 'isolation') && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {mode === 'standby' && (
+                <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'rgba(54,224,200,0.18)', color: '#36E0C8' }}>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#36E0C8', boxShadow: '0 0 6px #36E0C8' }} /> {t('Regülatör devrede')}
+                </span>
+              )}
+              {mode === 'isolation' && (
+                <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'rgba(255,176,77,0.18)', color: '#FFB04D' }}>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#FFB04D', boxShadow: '0 0 6px #FFB04D' }} /> {t('Valf devrede')}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

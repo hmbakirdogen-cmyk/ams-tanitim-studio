@@ -369,6 +369,12 @@ const EN: Record<string, string> = {
   'Canlı Moda Geç': 'Switch to Live Mode',
   'Bağlanamazsa: cihaz adresi/düğüm kimliklerini kontrol edin, köprü penceresinin açık olduğundan emin olun. İstediğiniz an': 'If it won’t connect: check the device address/node IDs and make sure the bridge window is open. Any time you can switch back to',
   '’ya dönebilirsiniz.': '.',
+  'Kolay yol: bridge klasöründeki': 'Easy way: in the bridge folder,',
+  'dosyasına çift tıklayın — kurulumu kendi yapar ve köprüyü başlatır (Adım 4’e gerek kalmaz).': 'double-click it — it installs and starts the bridge for you (no need for Step 4).',
+  'Veya elle: proje klasöründe bir terminal açıp sırayla çalıştırın:': 'Or manually: open a terminal in the project folder and run in order:',
+  // Cihaz Akisi gorunumu (DeviceFlowChart / PipeOverlay devreye-girme)
+  'Regülatör devrede': 'Regulator engaged',
+  'Valf devrede': 'Valve engaged',
   // Mobil engel (MobileBlocked) + TopBar
   'Bu tanıtım uygulaması şu anda': 'This showcase app currently runs',
   'yalnızca bilgisayarda': 'only on a computer',
@@ -751,6 +757,12 @@ const JA: Record<string, string> = {
   'Canlı Moda Geç': 'ライブモードへ切替',
   'Bağlanamazsa: cihaz adresi/düğüm kimliklerini kontrol edin, köprü penceresinin açık olduğundan emin olun. İstediğiniz an': '接続できない場合：機器アドレス/ノードIDを確認し、ブリッジのウィンドウが開いていることを確認してください。いつでも',
   '’ya dönebilirsiniz.': 'に戻せます。',
+  'Kolay yol: bridge klasöründeki': '簡単な方法：bridge フォルダの',
+  'dosyasına çift tıklayın — kurulumu kendi yapar ve köprüyü başlatır (Adım 4’e gerek kalmaz).': 'をダブルクリック — インストールとブリッジ起動を自動で行います（ステップ4は不要）。',
+  'Veya elle: proje klasöründe bir terminal açıp sırayla çalıştırın:': 'または手動で：プロジェクトフォルダでターミナルを開き、順に実行:',
+  // Cihaz Akisi gorunumu (DeviceFlowChart / PipeOverlay devreye-girme)
+  'Regülatör devrede': 'レギュレータ作動中',
+  'Valf devrede': 'バルブ作動中',
   // Mobil engel (MobileBlocked) + TopBar
   'Bu tanıtım uygulaması şu anda': 'このショーケースアプリは現在',
   'yalnızca bilgisayarda': 'コンピューターのみ',

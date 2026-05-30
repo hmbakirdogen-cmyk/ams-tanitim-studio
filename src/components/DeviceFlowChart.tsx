@@ -1,390 +1,269 @@
 /*
- * NE      : "Cihaz Akışı" - Canlı Panel için GERÇEKÇİ 3B canlı görünüm (Klasik grafiğin yanında 2. seçenek; eski "Boru" yerine).
- *           Yarı ŞEFFAF bir AMS cihazı sahnenin ortasında; SOLDAN hortum giriş → SAĞDAN çıkış. İçinden uçtan uca şeffaf boru geçer,
- *           içinde hava soldan sağa AKAR. Hepsi anlık VERİYE bağlı: tek bakışta debi/basınç/sıcaklık/nem anlaşılır.
+ * NE      : "Cihaz Akışı" - Canlı Panel'in 2. canlı görünümü (Klasik'in yanında). GERÇEK SMC AMS ünitesinin fotoğrafı
+ *           (public/products/ams-product.png, şeffaf zemin) YARI ŞEFFAF arka planda; önünde uçtan uca cam boru içinde
+ *           SOLDAN SAĞA akan hava. Hepsi anlık VERİYE bağlı — tek bakışta debi/basınç/sıcaklık/nem anlaşılır.
+ *           Ayrıca VALF ve ORANSAL REGÜLATÖR DEVREYE GİRİNCE foto üzerinde nabız atan parlak halka ile gösterilir.
  *
- * NEDEN   : Mehmet Abi vizyonu: "boruyu kaldır; gerçek cihazın içinden hava aksın, en gerçekçi animasyonla; debi düşünce/yükselince
- *           akış, basınç değişince hava sıkışsın (regülatör), sıcaklık boru renginde, nem su damlalarıyla, valf egzozdan hava atsın".
+ * NEDEN   : Mehmet Abi: "procedural 3B'yi beğenmedim; cihazın KENDİ GERÇEK görünümünü koy, biraz şeffaf; soldan giriş → sağdan
+ *           çıkış; hava içinden aksın; debi/basınç/sıcaklık/nem + valf egzozu + valf/regülatörün DEVREYE GİRDİĞİ görünsün."
  *
- * NASIL   : r3f + emissive (PBR değil — koyu sahnede kararmaz) + Bloom. Değerler ref'te yumuşatılır (SignalUpdater) ve TÜM alt
- *           bileşenlere paylaşılır. 60fps KATI: InstancedMesh + yeniden kullanılan dummy ile kare-başı SIFIR tahsis.
- *             - Debi (flow)  → akan parçacık HIZI + parlaklık (+ regülatör dışında yoğunluk).
- *             - Basınç (pres)→ REGÜLATÖR bölgesinde parçacıklar YAVAŞLAYIP SIKIŞIR (yoğunlaşma) + regülatör halkası parlar.
- *             - Sıcaklık (temp)→ boru + parçacık RENGİ (soğuk mavi → sıcak turuncu/kırmızı lerp).
- *             - Nem (hum)    → borunun ALTINDA gerçek SU DAMLALARI (sayı ∝ nem), yavaş kayar.
- *             - Valf         → mod normal değilken (tasarruf/kesinti = karşı basınç tahliyesi) EGZOZ portundan hava püskürür.
+ * NASIL   : Saf Canvas 2B (akıcı/hafif, gerçek foto ile bütünleşir). requestAnimationFrame; değerler ref'te yumuşatılır. 60fps,
+ *           sabit parçacık havuzu (kare-başı tahsis yok). Mod → reg/valf devreye-girme sinyali (Tasarruf=regülatör, Kesinti=valf).
+ *             - Debi  → akış HIZI + yoğunluk + parlaklık.   - Basınç → REGÜLATÖR bölgesinde SIKIŞMA.
+ *             - Sıcaklık→ boru/parçacık RENGİ.              - Nem → SU DAMLALARI.
+ *             - Valf devreye → EGZOZ püskürtme + valf modülünde nabız halka.  - Regülatör devreye → regülatör modülünde nabız halka.
  *
- * YAN ETKI: Offline (HDR indirmez, frames=1). Üstüne 2B anlatım katmanı PipeOverlay biner (mod + anlık değer + eşik + giriş/çıkış).
+ * YAN ETKI: Offline (foto gömülü). Üstüne PipeOverlay biner (mod + anlık değer + eşik + giriş/çıkış + Regülatör/Valf "devrede" rozeti).
  */
-import { useMemo, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { Environment, Lightformer, Sparkles, RoundedBox } from '@react-three/drei'
-import { EffectComposer, Bloom } from '@react-three/postprocessing'
-import * as THREE from 'three'
+import { useEffect, useMemo, useRef } from 'react'
+import { asset } from '@/lib/asset'
 import type { Reading, Mode } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 
-// --- Sahne ölçüleri (X = akış yönü: sol giriş → sağ çıkış) ---
-const PIPE_LEN = 15        // şeffaf ana borunun X uzunluğu (uçtan uca)
-const PIPE_R = 0.46        // parçacıkların dolaştığı iç yarıçap
-const REG0 = -0.5          // regülatör (sıkışma) bölgesi başlangıcı (X)
-const REG1 = 1.15          // regülatör bölgesi bitişi (X)
-const VALVE_X = 1.7        // valf/egzoz portu konumu (X)
-const EXHAUST_PORT = new THREE.Vector3(VALVE_X, -1.05, 0.5) // egzozun havayı attığı yer
-const FLOW_COUNT = 170     // akan hava parçacığı sayısı
-const DROPLET_MAX = 28     // azami su damlası (aktif sayı ∝ nem)
-const EXHAUST_COUNT = 44   // egzoz parçacığı havuzu
-const TWO_PI = Math.PI * 2
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
-
-// Sıcaklık renk skalası (soğuk → sıcak)
-const COLD = new THREE.Color('#37a3ff')
-const WARM = new THREE.Color('#ff5a32')
-
-// Tüm alt bileşenlerin okuduğu YUMUŞATILMIŞ sinyaller
-interface Sig { flow: number; pressure: number; temp: number; hum: number; exhaust: number }
-
-// Anlık hedefleri (ref) yumuşatıp paylaşılan sig'e yazar — useFrame sırasında İLK çalışmalı (en üstte mount).
-function SignalUpdater({ targetRef, sigRef }: { targetRef: React.MutableRefObject<{ flow: number; pressure: number; temp: number; hum: number; mode: Mode }>; sigRef: React.MutableRefObject<Sig> }) {
-  useFrame((_, dt) => {
-    const k = Math.min(1, dt * 3)
-    const s = sigRef.current
-    const t = targetRef.current
-    s.flow += (t.flow - s.flow) * k
-    s.pressure += (t.pressure - s.pressure) * k
-    s.temp += (t.temp - s.temp) * k
-    s.hum += (t.hum - s.hum) * k
-    // Egzoz: tasarruf/kesinti modunda karşı basınç tahliye edilir → port aktif (basınç ne kadar yüksekse o kadar güçlü).
-    const exTarget = t.mode === 'normal' ? 0 : 0.45 + 0.55 * s.pressure
-    s.exhaust += (exTarget - s.exhaust) * Math.min(1, dt * 2.2)
-  })
-  return null
-}
-
-// Şeffaf ana cam boru (renk = sıcaklık)
-function GlassPipe({ sigRef }: { sigRef: React.MutableRefObject<Sig> }) {
-  const matRef = useRef<THREE.MeshStandardMaterial>(null)
-  const col = useMemo(() => new THREE.Color(), [])
-  useFrame(() => {
-    if (matRef.current) {
-      col.lerpColors(COLD, WARM, sigRef.current.temp)
-      matRef.current.color.copy(col)
-      matRef.current.emissive.copy(col)
-    }
-  })
-  return (
-    <mesh rotation={[0, 0, Math.PI / 2]}>
-      <cylinderGeometry args={[PIPE_R * 1.22, PIPE_R * 1.22, PIPE_LEN, 40, 1, true]} />
-      <meshStandardMaterial ref={matRef} color={COLD} emissive={COLD} emissiveIntensity={0.18} transparent opacity={0.14} roughness={0.08} metalness={0} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
-    </mesh>
-  )
-}
-
-// Akan hava parçacıkları (debi=hız/parlaklık, basınç=regülatörde sıkışma, sıcaklık=renk)
-function FlowParticles({ sigRef }: { sigRef: React.MutableRefObject<Sig> }) {
-  const ref = useRef<THREE.InstancedMesh>(null)
-  const matRef = useRef<THREE.MeshStandardMaterial>(null)
-  const dummy = useMemo(() => new THREE.Object3D(), [])
-  const col = useMemo(() => new THREE.Color(), [])
-  // Parçacık başına: faz (0..1 boru boyunca), kesit açısı, yarıçap oranı, hız varyansı
-  const phase = useMemo(() => Float32Array.from({ length: FLOW_COUNT }, (_, i) => i / FLOW_COUNT), [])
-  const ang = useMemo(() => Float32Array.from({ length: FLOW_COUNT }, () => Math.random() * TWO_PI), [])
-  const rad = useMemo(() => Float32Array.from({ length: FLOW_COUNT }, () => 0.12 + Math.random() * 0.82), [])
-  const spd = useMemo(() => Float32Array.from({ length: FLOW_COUNT }, () => 0.82 + Math.random() * 0.36), [])
-
-  useFrame((state, dt) => {
-    const mesh = ref.current
-    if (!mesh) return
-    const { flow, pressure, temp } = sigRef.current
-    const tnow = state.clock.elapsedTime
-    // Renk + parlaklık (debi)
-    if (matRef.current) {
-      col.lerpColors(COLD, WARM, temp)
-      matRef.current.color.copy(col)
-      matRef.current.emissive.copy(col)
-      matRef.current.emissiveIntensity = 0.55 + flow * 1.7
-    }
-    const base = (0.05 + 0.95 * flow) * 3.4 // dünya birimi/sn (debi düşünce neredeyse durur)
-    const size = 0.05 + flow * 0.05
-    for (let i = 0; i < FLOW_COUNT; i++) {
-      let x = -PIPE_LEN / 2 + phase[i] * PIPE_LEN
-      const inReg = x > REG0 && x < REG1
-      // Regülatörde basınç yükseldikçe yavaşla → parçacıklar SIKIŞIR (yoğunlaşma)
-      const factor = inReg ? 1 - 0.62 * pressure : 1
-      phase[i] += (base * spd[i] * factor * dt) / PIPE_LEN
-      if (phase[i] > 1) phase[i] -= 1
-      x = -PIPE_LEN / 2 + phase[i] * PIPE_LEN
-      const a = ang[i] + tnow * 0.35
-      const rr = PIPE_R * rad[i]
-      dummy.position.set(x, Math.sin(a) * rr, Math.cos(a) * rr)
-      const sc = size * (0.55 + 0.7 * flow) * (inReg ? 1 + 0.35 * pressure : 1)
-      dummy.scale.setScalar(Math.max(0.012, sc))
-      dummy.updateMatrix()
-      mesh.setMatrixAt(i, dummy.matrix)
-    }
-    mesh.instanceMatrix.needsUpdate = true
-  })
-
-  return (
-    <instancedMesh ref={ref} args={[undefined as unknown as THREE.BufferGeometry, undefined as unknown as THREE.Material, FLOW_COUNT]} frustumCulled={false}>
-      <sphereGeometry args={[1, 8, 8]} />
-      <meshStandardMaterial ref={matRef} color={COLD} emissive={COLD} emissiveIntensity={1} metalness={0} roughness={0.3} transparent opacity={0.92} depthWrite={false} toneMapped={false} />
-    </instancedMesh>
-  )
-}
-
-// Borunun altında biriken su damlaları (sayı ∝ nem)
-function WaterDroplets({ sigRef }: { sigRef: React.MutableRefObject<Sig> }) {
-  const ref = useRef<THREE.InstancedMesh>(null)
-  const dummy = useMemo(() => new THREE.Object3D(), [])
-  const px = useMemo(() => Float32Array.from({ length: DROPLET_MAX }, () => Math.random()), [])
-  const pz = useMemo(() => Float32Array.from({ length: DROPLET_MAX }, () => (Math.random() - 0.5) * 1.2), [])
-  const dsp = useMemo(() => Float32Array.from({ length: DROPLET_MAX }, () => 0.01 + Math.random() * 0.03), [])
-  const bob = useMemo(() => Float32Array.from({ length: DROPLET_MAX }, () => Math.random() * TWO_PI), [])
-
-  useFrame((state, dt) => {
-    const mesh = ref.current
-    if (!mesh) return
-    const { hum } = sigRef.current
-    const active = Math.round(hum * DROPLET_MAX)
-    const tnow = state.clock.elapsedTime
-    for (let i = 0; i < DROPLET_MAX; i++) {
-      if (i < active) {
-        px[i] += dsp[i] * dt * (0.5 + hum) // yavaş sağa kayar
-        if (px[i] > 1) px[i] -= 1
-        const x = -PIPE_LEN / 2 + px[i] * PIPE_LEN
-        const y = -PIPE_R * 0.82 + Math.sin(tnow * 1.5 + bob[i]) * 0.015
-        const z = pz[i] * PIPE_R * 0.7
-        dummy.position.set(x, y, z)
-        const s = 0.05 + 0.045 * hum
-        dummy.scale.set(s, s * 1.35, s) // hafif damla formu (dikey uzun)
-        dummy.updateMatrix()
-        mesh.setMatrixAt(i, dummy.matrix)
-      } else {
-        dummy.position.set(0, -50, 0)
-        dummy.scale.setScalar(0.0001)
-        dummy.updateMatrix()
-        mesh.setMatrixAt(i, dummy.matrix)
-      }
-    }
-    mesh.instanceMatrix.needsUpdate = true
-  })
-
-  return (
-    <instancedMesh ref={ref} args={[undefined as unknown as THREE.BufferGeometry, undefined as unknown as THREE.Material, DROPLET_MAX]} frustumCulled={false}>
-      <sphereGeometry args={[1, 10, 10]} />
-      <meshStandardMaterial color="#bfe6ff" emissive="#7cc4ff" emissiveIntensity={0.5} roughness={0.05} metalness={0} transparent opacity={0.78} toneMapped={false} />
-    </instancedMesh>
-  )
-}
-
-// Valf egzozundan püsküren hava (mod normal değilken)
-function ExhaustBurst({ sigRef }: { sigRef: React.MutableRefObject<Sig> }) {
-  const ref = useRef<THREE.InstancedMesh>(null)
-  const dummy = useMemo(() => new THREE.Object3D(), [])
-  const pos = useMemo(() => Array.from({ length: EXHAUST_COUNT }, () => EXHAUST_PORT.clone()), [])
-  const vel = useMemo(() => Array.from({ length: EXHAUST_COUNT }, () => new THREE.Vector3()), [])
-  const life = useMemo(() => Float32Array.from({ length: EXHAUST_COUNT }, () => Math.random()), [])
-
-  useFrame((_, dt) => {
-    const mesh = ref.current
-    if (!mesh) return
-    const ex = sigRef.current.exhaust
-    for (let i = 0; i < EXHAUST_COUNT; i++) {
-      life[i] -= dt * 1.3
-      if (life[i] <= 0) {
-        if (ex > 0.08) {
-          // Yeniden doğ: porttan aşağı-öne doğru rastgele yön (havanın dışarı atılması)
-          pos[i].copy(EXHAUST_PORT)
-          vel[i].set((Math.random() - 0.5) * 1.4, -(1.6 + Math.random() * 1.8) * (0.5 + ex), (0.4 + Math.random() * 1.0))
-          life[i] = 1
-        } else {
-          dummy.position.set(0, -50, 0)
-          dummy.scale.setScalar(0.0001)
-          dummy.updateMatrix()
-          mesh.setMatrixAt(i, dummy.matrix)
-          continue
-        }
-      }
-      pos[i].addScaledVector(vel[i], dt)
-      vel[i].y -= dt * 1.2 // hafif yerçekimi (saçılma)
-      const l = life[i]
-      dummy.position.copy(pos[i])
-      const s = (0.04 + 0.07 * ex) * Math.sin(Math.min(1, l) * Math.PI)
-      dummy.scale.setScalar(Math.max(0.0001, s))
-      dummy.updateMatrix()
-      mesh.setMatrixAt(i, dummy.matrix)
-    }
-    mesh.instanceMatrix.needsUpdate = true
-  })
-
-  return (
-    <instancedMesh ref={ref} args={[undefined as unknown as THREE.BufferGeometry, undefined as unknown as THREE.Material, EXHAUST_COUNT]} frustumCulled={false}>
-      <sphereGeometry args={[1, 8, 8]} />
-      <meshStandardMaterial color="#eaf4ff" emissive="#bcd9ff" emissiveIntensity={0.8} roughness={0.4} metalness={0} transparent opacity={0.7} depthWrite={false} toneMapped={false} />
-    </instancedMesh>
-  )
-}
-
-// Yarı şeffaf AMS cihaz gövdesi + oransal regülatör (basınçla parlar/döner) + valf bloğu + egzoz nozulu
-function DeviceBody({ sigRef }: { sigRef: React.MutableRefObject<Sig> }) {
-  const regRingRef = useRef<THREE.MeshStandardMaterial>(null)
-  const knobRef = useRef<THREE.Mesh>(null)
-  const exhaustGlowRef = useRef<THREE.MeshStandardMaterial>(null)
-  useFrame(() => {
-    const { pressure, exhaust } = sigRef.current
-    if (regRingRef.current) regRingRef.current.emissiveIntensity = 0.4 + pressure * 2.4 // basınç → regülatör halkası parlar
-    if (knobRef.current) knobRef.current.rotation.y = pressure * Math.PI * 0.9 // knob basınçla döner
-    if (exhaustGlowRef.current) exhaustGlowRef.current.emissiveIntensity = 0.2 + exhaust * 2.2
-  })
-  return (
-    <group>
-      {/* Ana gövde - yarı şeffaf cam (içinden boru/akış görünür) */}
-      <RoundedBox args={[3.5, 2.2, 1.9]} radius={0.16} smoothness={4} position={[0.2, 0, 0]}>
-        <meshStandardMaterial color="#9cc6f2" emissive="#0f4f96" emissiveIntensity={0.22} transparent opacity={0.13} roughness={0.06} metalness={0} side={THREE.DoubleSide} depthWrite={false} toneMapped={false} />
-      </RoundedBox>
-      {/* İnce SMC-mavisi ışıyan çerçeve (gövde kenarı belli olsun) */}
-      <RoundedBox args={[3.54, 2.24, 1.94]} radius={0.16} smoothness={2} position={[0.2, 0, 0]}>
-        <meshBasicMaterial color="#2E9BFF" wireframe transparent opacity={0.16} toneMapped={false} />
-      </RoundedBox>
-
-      {/* ORANSAL REGÜLATÖR - gövdenin üstünde; halka basınçla parlar, knob döner */}
-      <group position={[REG0 + 0.3, 1.18, 0]}>
-        <mesh>
-          <cylinderGeometry args={[0.34, 0.4, 0.5, 28]} />
-          <meshStandardMaterial color="#cfe2f7" emissive="#1f6fc0" emissiveIntensity={0.3} roughness={0.3} metalness={0.1} toneMapped={false} />
-        </mesh>
-        {/* basınç göstergesi halkası */}
-        <mesh position={[0, 0.28, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.26, 0.045, 10, 28]} />
-          <meshStandardMaterial ref={regRingRef} color="#36E0C8" emissive="#36E0C8" emissiveIntensity={0.6} roughness={0.2} toneMapped={false} />
-        </mesh>
-        {/* ayar knobu */}
-        <mesh ref={knobRef} position={[0, 0.34, 0]}>
-          <cylinderGeometry args={[0.12, 0.16, 0.22, 16]} />
-          <meshStandardMaterial color="#eaf3ff" emissive="#9ec9ff" emissiveIntensity={0.3} roughness={0.25} metalness={0.2} toneMapped={false} />
-        </mesh>
-      </group>
-
-      {/* VALF BLOĞU + EGZOZ NOZULU (sağ tarafta, aşağı bakan) */}
-      <group position={[VALVE_X, -0.2, 0.2]}>
-        <mesh>
-          <boxGeometry args={[0.7, 0.8, 0.7]} />
-          <meshStandardMaterial color="#b9d4ef" emissive="#134a86" emissiveIntensity={0.25} transparent opacity={0.5} roughness={0.25} metalness={0.1} toneMapped={false} />
-        </mesh>
-        {/* egzoz nozulu */}
-        <mesh position={[0, -0.55, 0.25]} rotation={[Math.PI * 0.18, 0, 0]}>
-          <cylinderGeometry args={[0.1, 0.14, 0.5, 16]} />
-          <meshStandardMaterial color="#d7e6f7" emissive="#7cc4ff" emissiveIntensity={0.4} roughness={0.3} metalness={0.2} toneMapped={false} />
-        </mesh>
-        {/* egzoz ağzı parıltısı (tahliyede parlar) */}
-        <mesh position={[0, -0.8, 0.32]}>
-          <sphereGeometry args={[0.1, 12, 12]} />
-          <meshStandardMaterial ref={exhaustGlowRef} color="#eaf4ff" emissive="#bcd9ff" emissiveIntensity={0.3} transparent opacity={0.85} toneMapped={false} />
-        </mesh>
-      </group>
-
-      {/* SMC mavi taban tablası (cihaz "otursun") */}
-      <mesh position={[0.2, -1.18, 0]}>
-        <boxGeometry args={[3.7, 0.14, 2.0]} />
-        <meshStandardMaterial color="#0a2c52" emissive="#0072CE" emissiveIntensity={0.12} roughness={0.5} metalness={0.2} toneMapped={false} />
-      </mesh>
-    </group>
-  )
-}
-
-// Giriş/çıkış hortumları (eğik koyu lastik tüpler)
-function Hose({ from, to, color = '#16202e' }: { from: [number, number, number]; to: [number, number, number]; color?: string }) {
-  const geo = useMemo(() => {
-    const a = new THREE.Vector3(...from)
-    const b = new THREE.Vector3(...to)
-    const mid = a.clone().lerp(b, 0.5)
-    mid.y -= 0.5 // hafif sarkma
-    const curve = new THREE.CatmullRomCurve3([a, mid, b])
-    return new THREE.TubeGeometry(curve, 24, 0.26, 16, false)
-  }, [from, to])
-  return (
-    <mesh geometry={geo}>
-      <meshStandardMaterial color={color} emissive="#0a2540" emissiveIntensity={0.15} roughness={0.6} metalness={0.15} toneMapped={false} />
-    </mesh>
-  )
-}
-
-// Fareyle yumuşak kamera parallax'ı
-function ParallaxRig() {
-  const target = useMemo(() => new THREE.Vector3(), [])
-  useFrame((state) => {
-    target.set(state.pointer.x * 1.3, 0.6 + state.pointer.y * 0.5, 12)
-    state.camera.position.lerp(target, 0.045)
-    state.camera.lookAt(0, 0.1, 0)
-  })
-  return null
-}
-
-function DeviceScene({ reading, metrics, mode }: { reading: Reading | null; metrics: MetricDef[]; mode: Mode }) {
-  const byKey = useMemo(() => Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<string, MetricDef>, [metrics])
-  const nv = (k: string) => {
-    const m = byKey[k]
-    if (!m || !reading) return 0
-    return clamp01((m.get(reading) - m.min) / (m.max - m.min))
-  }
-  const targetRef = useRef({ flow: 0, pressure: 0, temp: 0, hum: 0, mode })
-  targetRef.current = { flow: nv('flow'), pressure: nv('pressure'), temp: nv('temperature'), hum: nv('humidity'), mode }
-  const sigRef = useRef<Sig>({ flow: 0, pressure: 0, temp: 0, hum: 0, exhaust: 0 })
-
-  return (
-    <>
-      <SignalUpdater targetRef={targetRef} sigRef={sigRef} />
-      <Hose from={[-PIPE_LEN / 2 - 2.4, -0.1, 0]} to={[-PIPE_LEN / 2 + 0.6, 0, 0]} />
-      <Hose from={[PIPE_LEN / 2 - 0.6, 0, 0]} to={[PIPE_LEN / 2 + 2.4, -0.1, 0]} />
-      <DeviceBody sigRef={sigRef} />
-      <GlassPipe sigRef={sigRef} />
-      <FlowParticles sigRef={sigRef} />
-      <WaterDroplets sigRef={sigRef} />
-      <ExhaustBurst sigRef={sigRef} />
-    </>
-  )
-}
+const FLOW_COUNT = 150
+const DROPLET_MAX = 24
+const PUFF_COUNT = 34
+const COLD: [number, number, number] = [55, 163, 255]
+const WARM: [number, number, number] = [255, 90, 50]
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+const tempRGB = (t: number): [number, number, number] => [Math.round(lerp(COLD[0], WARM[0], t)), Math.round(lerp(COLD[1], WARM[1], t)), Math.round(lerp(COLD[2], WARM[2], t))]
 
 export function DeviceFlowChart({
   reading,
   metrics = METRICS,
   mode = 'normal',
-  theme = 'dark',
 }: {
   reading: Reading | null
   metrics?: MetricDef[]
   mode?: Mode
   theme?: 'dark' | 'light'
 }) {
-  const light = theme === 'light'
-  const fogColor = light ? '#dce8f7' : '#04060f'
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+
+  const byKey = useMemo(() => Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<string, MetricDef>, [metrics])
+  const targetRef = useRef({ flow: 0, pressure: 0, temp: 0, hum: 0, mode })
+  {
+    const nv = (k: string) => {
+      const m = byKey[k]
+      if (!m || !reading) return 0
+      return clamp01((m.get(reading) - m.min) / (m.max - m.min))
+    }
+    targetRef.current = { flow: nv('flow'), pressure: nv('pressure'), temp: nv('temperature'), hum: nv('humidity'), mode }
+  }
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const wrap = wrapRef.current
+    if (!canvas || !wrap) return
+    const ctx = canvas.getContext('2d')!
+
+    const img = new Image()
+    let imgReady = false
+    img.onload = () => { imgReady = true }
+    img.src = asset('products/ams-product.png')
+
+    const sig = { flow: 0, pressure: 0, temp: 0, hum: 0, exhaust: 0, reg: 0, valve: 0 }
+
+    const phase = Float32Array.from({ length: FLOW_COUNT }, (_, i) => i / FLOW_COUNT)
+    const lane = Float32Array.from({ length: FLOW_COUNT }, () => Math.random() * 2 - 1)
+    const psize = Float32Array.from({ length: FLOW_COUNT }, () => 0.6 + Math.random() * 0.8)
+    const pspd = Float32Array.from({ length: FLOW_COUNT }, () => 0.8 + Math.random() * 0.4)
+    const dropX = Float32Array.from({ length: DROPLET_MAX }, () => Math.random())
+    const dropLane = Float32Array.from({ length: DROPLET_MAX }, () => Math.random() * 2 - 1)
+    const dropSpd = Float32Array.from({ length: DROPLET_MAX }, () => 0.01 + Math.random() * 0.03)
+    const puffX = new Float32Array(PUFF_COUNT)
+    const puffY = new Float32Array(PUFF_COUNT)
+    const puffVx = new Float32Array(PUFF_COUNT)
+    const puffVy = new Float32Array(PUFF_COUNT)
+    const puffLife = Float32Array.from({ length: PUFF_COUNT }, () => Math.random())
+
+    let W = 0, H = 0, dpr = 1
+    const resize = () => {
+      dpr = Math.min(2, window.devicePixelRatio || 1)
+      W = wrap.clientWidth
+      H = wrap.clientHeight
+      canvas.width = Math.max(1, Math.round(W * dpr))
+      canvas.height = Math.max(1, Math.round(H * dpr))
+      canvas.style.width = W + 'px'
+      canvas.style.height = H + 'px'
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    }
+    resize()
+    const ro = new ResizeObserver(resize)
+    ro.observe(wrap)
+
+    // Devreye-girme nabız halkası (regülatör/valf modülü üzerinde)
+    const drawEngage = (cx: number, cy: number, rgb: string, intensity: number, pulse: number, radius: number) => {
+      if (intensity < 0.04) return
+      const pr = radius * (1 + 0.12 * Math.sin(pulse))
+      ctx.globalCompositeOperation = 'lighter'
+      const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, pr * 1.7)
+      rg.addColorStop(0, `rgba(${rgb},${0.30 * intensity})`)
+      rg.addColorStop(0.55, `rgba(${rgb},${0.12 * intensity})`)
+      rg.addColorStop(1, `rgba(${rgb},0)`)
+      ctx.fillStyle = rg
+      ctx.beginPath(); ctx.arc(cx, cy, pr * 1.7, 0, Math.PI * 2); ctx.fill()
+      ctx.lineWidth = 2.5
+      ctx.strokeStyle = `rgba(${rgb},${0.75 * intensity})`
+      ctx.beginPath(); ctx.arc(cx, cy, pr, 0, Math.PI * 2); ctx.stroke()
+      ctx.globalCompositeOperation = 'source-over'
+    }
+
+    let raf = 0
+    let last = performance.now()
+
+    const draw = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000)
+      last = now
+
+      const t = targetRef.current
+      const k = Math.min(1, dt * 3)
+      sig.flow += (t.flow - sig.flow) * k
+      sig.pressure += (t.pressure - sig.pressure) * k
+      sig.temp += (t.temp - sig.temp) * k
+      sig.hum += (t.hum - sig.hum) * k
+      // Mod → bileşen devreye-girme sinyalleri (Tasarruf=regülatör basıncı düşürür; Kesinti=valf havayı keser/tahliye)
+      const regTarget = t.mode === 'standby' ? 1 : t.mode === 'isolation' ? 0.35 : 0
+      const valveTarget = t.mode === 'isolation' ? 1 : t.mode === 'standby' ? 0.5 : 0
+      sig.reg += (regTarget - sig.reg) * Math.min(1, dt * 2.5)
+      sig.valve += (valveTarget - sig.valve) * Math.min(1, dt * 2.5)
+      const exTarget = t.mode === 'normal' ? 0 : 0.4 + 0.6 * sig.valve
+      sig.exhaust += (exTarget - sig.exhaust) * Math.min(1, dt * 2.2)
+
+      const [r, g, b] = tempRGB(sig.temp)
+      const col = (a: number) => `rgba(${r},${g},${b},${a})`
+
+      ctx.clearRect(0, 0, W, H)
+
+      // 1) GERÇEK CİHAZ FOTOSU - yarı şeffaf, içine sığan (contain)
+      let dx = 0, dy = 0, dw = W, dh = H
+      if (imgReady) {
+        const pad = 18
+        const ar = img.width / img.height
+        dw = W - pad * 2; dh = dw / ar
+        if (dh > H - pad * 2) { dh = H - pad * 2; dw = dh * ar }
+        dx = (W - dw) / 2; dy = (H - dh) / 2
+        ctx.globalAlpha = 0.62
+        ctx.drawImage(img, dx, dy, dw, dh)
+        ctx.globalAlpha = 1
+      }
+
+      // Modül konumları (foto üzerinde yaklaşık): regülatör üst-orta-sol, valf orta-sağ-alt
+      const regCx = dx + dw * 0.36, regCy = dy + dh * 0.30
+      const valveCx = dx + dw * 0.60, valveCy = dy + dh * 0.64
+      const markR = Math.min(dw, dh) * 0.13
+
+      const pipeY = H * 0.58
+      const pipeH = Math.max(46, Math.min(120, H * 0.17))
+      const regX0 = W * 0.40, regX1 = W * 0.58
+      const HOSE = 0.17 // sol/sag uctaki hortum bolgesi orani (boru ile AYNI cap)
+
+      // 2) DEVREYE GİRME nabız halkaları (regülatör yeşil / valf amber)
+      const pulse = now * 0.006
+      drawEngage(regCx, regCy, '54,224,200', sig.reg, pulse, markR)
+      drawEngage(valveCx, valveCy, '255,176,77', sig.valve, pulse + 1.5, markR)
+
+      // 3) CAM BORU bandı - UÇTAN UCA tek sürekli şeffaf boru (giriş/çıkış hortumları AYNI çap; hava içlerinde de akar)
+      const top = pipeY - pipeH / 2, bot = pipeY + pipeH / 2
+      const grad = ctx.createLinearGradient(0, top, 0, bot)
+      grad.addColorStop(0, col(0.16)); grad.addColorStop(0.5, 'rgba(8,16,28,0.10)'); grad.addColorStop(1, col(0.10))
+      ctx.fillStyle = grad
+      ctx.fillRect(0, top, W, pipeH)
+      // Hortum bölgeleri (uçlar) - hafif lastik tonu (içindeki akış görünür kalsın diye düşük alpha)
+      ctx.fillStyle = 'rgba(38,52,72,0.13)'
+      ctx.fillRect(0, top, W * HOSE, pipeH)
+      ctx.fillRect(W * (1 - HOSE), top, W * HOSE, pipeH)
+      // Boru kenar çizgileri (uçtan uca)
+      ctx.strokeStyle = col(0.5); ctx.lineWidth = 1.5
+      ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(W, top); ctx.moveTo(0, bot); ctx.lineTo(W, bot); ctx.stroke()
+      // Hortum ↔ cihaz birleşim kelepçeleri (metalik) - hortumu belli eder, çapı borunun aynısı
+      const drawCoupler = (cx: number) => {
+        const cw = 10
+        const cg = ctx.createLinearGradient(0, top, 0, bot)
+        cg.addColorStop(0, 'rgba(190,206,224,0.92)'); cg.addColorStop(0.5, 'rgba(95,114,138,0.92)'); cg.addColorStop(1, 'rgba(160,178,198,0.92)')
+        ctx.fillStyle = cg
+        ctx.beginPath(); ctx.roundRect(cx - cw / 2, top - 3, cw, pipeH + 6, 3); ctx.fill()
+      }
+      drawCoupler(W * HOSE); drawCoupler(W * (1 - HOSE))
+
+      // 4) AKAN HAVA parçacıkları
+      const baseSpeed = (0.04 + 0.96 * sig.flow) * 0.24
+      const pr = pipeH * 0.36
+      ctx.globalCompositeOperation = 'lighter'
+      for (let i = 0; i < FLOW_COUNT; i++) {
+        let x = phase[i] * W
+        const inReg = x > regX0 && x < regX1
+        const factor = inReg ? 1 - 0.6 * sig.pressure : 1
+        phase[i] += baseSpeed * pspd[i] * factor * dt
+        if (phase[i] > 1) phase[i] -= 1
+        x = phase[i] * W
+        const y = pipeY + lane[i] * pr + Math.sin(now * 0.002 + i) * 3
+        const size = (1.6 + psize[i] * (2.2 + sig.flow * 4.2)) * (inReg ? 1 + 0.35 * sig.pressure : 1)
+        const a = 0.18 + 0.6 * sig.flow
+        const rg = ctx.createRadialGradient(x, y, 0, x, y, size)
+        rg.addColorStop(0, col(a)); rg.addColorStop(1, col(0))
+        ctx.fillStyle = rg
+        ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill()
+      }
+      ctx.globalCompositeOperation = 'source-over'
+
+      // 5) SU DAMLALARI (nem)
+      const active = Math.round(sig.hum * DROPLET_MAX)
+      for (let i = 0; i < active; i++) {
+        dropX[i] += dropSpd[i] * dt * (0.4 + sig.hum)
+        if (dropX[i] > 1) dropX[i] -= 1
+        const x = dropX[i] * W
+        const y = bot - 5 + dropLane[i] * 3
+        const s = 2.2 + sig.hum * 2.4
+        ctx.fillStyle = 'rgba(150,210,255,0.85)'
+        ctx.beginPath(); ctx.ellipse(x, y, s * 0.7, s, 0, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = 'rgba(255,255,255,0.6)'
+        ctx.beginPath(); ctx.arc(x - s * 0.2, y - s * 0.3, s * 0.22, 0, Math.PI * 2); ctx.fill()
+      }
+
+      // 6) VALF EGZOZU - valf devreye girince valf modülünden havayı aşağı püskürtür
+      ctx.globalCompositeOperation = 'lighter'
+      const exOx = imgReady ? valveCx : W * 0.62
+      const exOy = imgReady ? valveCy + markR * 0.5 : bot
+      for (let i = 0; i < PUFF_COUNT; i++) {
+        puffLife[i] -= dt * 1.3
+        if (puffLife[i] <= 0) {
+          if (sig.exhaust > 0.08) {
+            puffX[i] = exOx + (Math.random() - 0.5) * 12
+            puffY[i] = exOy
+            puffVx[i] = (Math.random() - 0.5) * 60
+            puffVy[i] = (45 + Math.random() * 80) * (0.5 + sig.exhaust)
+            puffLife[i] = 1
+          } else { continue }
+        }
+        puffX[i] += puffVx[i] * dt
+        puffY[i] += puffVy[i] * dt
+        puffVy[i] += 70 * dt
+        const l = puffLife[i]
+        const s = (3 + sig.exhaust * 7) * Math.sin(Math.min(1, l) * Math.PI)
+        if (s <= 0.2) continue
+        const rg = ctx.createRadialGradient(puffX[i], puffY[i], 0, puffX[i], puffY[i], s)
+        rg.addColorStop(0, `rgba(200,225,255,${0.5 * l})`); rg.addColorStop(1, 'rgba(200,225,255,0)')
+        ctx.fillStyle = rg
+        ctx.beginPath(); ctx.arc(puffX[i], puffY[i], s, 0, Math.PI * 2); ctx.fill()
+      }
+      ctx.globalCompositeOperation = 'source-over'
+
+      raf = requestAnimationFrame(draw)
+    }
+    raf = requestAnimationFrame(draw)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+    }
+  }, [])
+
   return (
-    <Canvas
-      dpr={[1, 2]}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-      camera={{ position: [0, 0.6, 12], fov: 38 }}
-      onCreated={({ camera }) => camera.lookAt(0, 0.1, 0)}
-    >
-      <fog attach="fog" args={[fogColor, 16, 34]} />
-      <ambientLight intensity={0.6} />
-      <directionalLight position={[5, 8, 6]} intensity={0.6} color="#bfe0ff" />
-      <pointLight position={[-7, 3, 7]} intensity={1.8} color="#0072CE" distance={26} />
-
-      {/* Prosedürel stüdyo ortamı (OFFLINE) → cam gövdede/boruda hafif yansıma */}
-      <Environment resolution={256} frames={1}>
-        <Lightformer form="rect" intensity={2.0} color="#2E9BFF" position={[0, 6, -8]} scale={[16, 6, 1]} />
-        <Lightformer form="rect" intensity={1.2} color="#36E0C8" position={[-9, 2, 3]} scale={[6, 8, 1]} />
-        <Lightformer form="rect" intensity={1.1} color="#ffffff" position={[9, 3, 3]} scale={[6, 8, 1]} />
-      </Environment>
-      <Sparkles count={50} scale={[24, 9, 10]} position={[0, 1, -2]} size={2.2} speed={0.22} color="#8fd0ff" opacity={0.4} />
-
-      <DeviceScene reading={reading} metrics={metrics} mode={mode} />
-      <ParallaxRig />
-
-      <EffectComposer multisampling={4}>
-        <Bloom intensity={0.85} luminanceThreshold={0.22} luminanceSmoothing={0.9} mipmapBlur radius={0.8} />
-      </EffectComposer>
-    </Canvas>
+    <div ref={wrapRef} className="absolute inset-0">
+      <canvas ref={canvasRef} className="block h-full w-full" />
+    </div>
   )
 }

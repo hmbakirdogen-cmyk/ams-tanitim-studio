@@ -115,7 +115,10 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
           </Step>
 
           <Step n={2} icon={Terminal} title={t('Köprüyü kurun (tek seferlik)')}>
-            <div>{t('Proje klasöründe bir terminal açın ve sırayla çalıştırın:')}</div>
+            <div className="rounded-lg border px-3 py-2 text-[12.5px]" style={{ borderColor: 'rgba(65,224,138,0.4)', background: 'rgba(65,224,138,0.08)', color: 'var(--ink)' }}>
+              {t('Kolay yol: bridge klasöründeki')} <b className="text-white">baslat.bat</b> {t('dosyasına çift tıklayın — kurulumu kendi yapar ve köprüyü başlatır (Adım 4’e gerek kalmaz).')}
+            </div>
+            <div className="mt-1">{t('Veya elle: proje klasöründe bir terminal açıp sırayla çalıştırın:')}</div>
             <Cmd text="cd bridge" />
             <Cmd text="npm i node-opcua ws" />
             <div className="text-[12px]">{t('İnternet yalnızca bu kurulumda gerekir; sonrası tamamen çevrimdışı çalışır.')}</div>

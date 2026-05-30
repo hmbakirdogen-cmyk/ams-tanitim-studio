@@ -8,6 +8,7 @@
  */
 import type { DataSource, Mode, Reading } from './types'
 import { setConnStatus, type ConnStatus, type NodeIds } from './connection'
+import type { DeviceSettings } from './deviceSettings'
 
 const BRIDGE_URL = 'ws://localhost:4841' // personelin bilgisayarindaki yerel OPC UA koprusu
 const RECONNECT_MS = 2500
@@ -28,7 +29,8 @@ export class LiveDataSource implements DataSource {
   private reconnect: number | null = null
   private stopped = false
 
-  constructor(private endpoint: string, private nodeIds?: NodeIds) {}
+  // onDeviceSettings: HIBRIT senkron — kopru baglaninca cihazin MEVCUT ayarlarini gonderince cagrilir (cihazdan oku → devam et).
+  constructor(private endpoint: string, private nodeIds?: NodeIds, private onDeviceSettings?: (s: Partial<DeviceSettings>) => void) {}
 
   // Durum yalnizca AKTIF (durdurulmamis) kaynaktan yazilir -> Demo'ya gecince geç callback ezmez
   private setStatus(s: ConnStatus): void {
@@ -64,6 +66,11 @@ export class LiveDataSource implements DataSource {
         const d = JSON.parse(ev.data as string)
         if (d.type === 'status') {
           this.setStatus(d.connected ? 'connected' : 'connecting')
+          return
+        }
+        // HIBRIT: kopru cihazin mevcut ayarlarini gonderdi → uygula (Urun Ayarlari o degerlerle devam etsin)
+        if (d.type === 'settings') {
+          if (d.settings && this.onDeviceSettings) this.onDeviceSettings(d.settings as Partial<DeviceSettings>)
           return
         }
         const flow = Number(d.flow) || 0
@@ -117,5 +124,10 @@ export class LiveDataSource implements DataSource {
   // Mod secimi cihaza yazilir (kopru OPC UA write yapar)
   setMode(mode: Mode): void {
     try { this.ws?.send(JSON.stringify({ type: 'setMode', mode })) } catch { /* yok */ }
+  }
+
+  // HIBRIT: kullanici Urun Ayarlari'nda degistirince ayarlar cihaza yazilir (kopru OPC UA write yapar)
+  setSettings(settings: DeviceSettings): void {
+    try { this.ws?.send(JSON.stringify({ type: 'setSettings', settings })) } catch { /* yok */ }
   }
 }
