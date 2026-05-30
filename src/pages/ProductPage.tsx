@@ -32,9 +32,10 @@ const MODES: { icon: LucideIcon; color: string; title: string; desc: string }[] 
   { icon: Timer, color: '#2E9BFF', title: 'Otomatik Kesinti', desc: 'Beklemede belirlenen süre sonra sistem havayı kendiliğinden keser; sıfır müdahale.' },
 ]
 
-const COMPONENTS: { icon: LucideIcon; color: string; title: string; desc: string; img: string }[] = [
+const COMPONENTS: { icon: LucideIcon; color: string; title: string; desc: string; img: string; imgB?: string }[] = [
   { icon: Cpu, color: '#2E9BFF', title: 'Hava Yönetim Merkezi', desc: 'Debi, basınç ve sıcaklığı ölçer; üst sisteme veri iletir, regülatör ve valfi yönetir (EXA1).', img: 'products/exa1-hub.jpg' },
-  { icon: Gauge, color: '#36E0C8', title: 'Bekleme Regülatörü', desc: 'Basıncı uzaktan (elektro-pnömatik) veya elle ayarlayarak bekleme basıncına düşürür.', img: 'products/regulator-itv.jpg' },
+  // Regulator modele gore: Tip A -> elektro-pnomatik (ITV), Tip B -> elle ayar (AR)
+  { icon: Gauge, color: '#36E0C8', title: 'Bekleme Regülatörü', desc: 'Basıncı uzaktan (elektro-pnömatik) veya elle ayarlayarak bekleme basıncına düşürür.', img: 'products/regulator-itv.jpg', imgB: 'products/regulator-ar.jpg' },
   { icon: Wind, color: '#7CE0FF', title: 'Tahliye Valfi', desc: 'Üç yollu solenoid valf; havayı keser, kalan basıncı güvenle boşaltır (yumuşak başlatma seçeneği).', img: 'products/valve-vp.jpg' },
 ]
 
@@ -175,12 +176,13 @@ export function ProductPage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {COMPONENTS.map((c, i) => {
             const Icon = c.icon
+            const cimg = c.imgB && model.type === 'B' ? c.imgB : c.img // regulator: modele gore dogru varyant
             return (
               <Reveal key={c.title} delay={i * 0.08}>
                 <Tilt3D className="glass relative flex h-full flex-col overflow-hidden rounded-2xl" max={6}>
                   {/* bilesen FOTOGRAFI - temiz acik panel (urun net gorunur) */}
                   <div className="border-b border-[var(--hair)]" style={{ background: 'linear-gradient(160deg,#f6f9fd,#dde9f6)' }}>
-                    <img src={asset(c.img)} alt={c.title} className="mx-auto h-36 w-auto object-contain p-3" loading="lazy" />
+                    <img src={asset(cimg)} alt={c.title} className="mx-auto h-36 w-auto object-contain p-3" loading="lazy" />
                   </div>
                   <div className="flex flex-col gap-2 p-5">
                     <div className="flex items-center gap-2.5">
