@@ -12,7 +12,9 @@ import {
 } from 'lucide-react'
 import { SmcLogo } from './SmcLogo'
 import { ProductBadge } from './ProductBadge'
+import { LangSwitcher } from './LangSwitcher'
 import { useConnection } from '@/data/connection'
+import { useLang } from '@/i18n'
 import { Avatar } from './Avatar'
 import type { User } from '@/auth/users'
 import type { Theme } from '@/hooks/useTheme'
@@ -50,6 +52,7 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
     return () => window.clearInterval(id)
   }, [])
   const time = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const { t } = useLang()
 
   // Veri kaynagi rozeti - Demo mu Canli cihaz mi (Urun Ayarlari'ndan)
   const { settings: conn, status: connStatus } = useConnection()
@@ -71,7 +74,12 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
         <ProductBadge />
       </div>
 
-      <nav className="mt-7 flex flex-col gap-1.5">
+      {/* DIL ANAHTARI - TR (asil 3B dalgalanan) / EN / DE */}
+      <div className="mt-3 flex justify-start">
+        <LangSwitcher />
+      </div>
+
+      <nav className="mt-6 flex flex-col gap-1.5">
         {NAV.map(({ id, label, icon: Icon }) => {
           const on = page === id
           return (
@@ -91,7 +99,7 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
               }
             >
               <Icon size={18} style={{ color: on ? 'var(--smc-bright)' : undefined }} />
-              {label}
+              {t(label)}
             </button>
           )
         })}
@@ -107,7 +115,7 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold text-white">{user.firstName} Bey</div>
             <div className="truncate text-[11px] text-[var(--ink-soft)]">
-              {user.title ?? (user.role === 'admin' ? 'Yönetici' : 'Personel')}
+              {user.title ?? t(user.role === 'admin' ? 'Yönetici' : 'Personel')}
             </div>
           </div>
         </button>
@@ -118,20 +126,20 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
               onClick={onManageUsers}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--hair)] py-2 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"
             >
-              <Users size={14} /> Kullanıcılar
+              <Users size={14} /> {t('Kullanıcılar')}
             </button>
           )}
           <button
             onClick={onLogout}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--hair)] py-2 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"
           >
-            <LogOut size={14} /> Çıkış
+            <LogOut size={14} /> {t('Çıkış')}
           </button>
         </div>
 
         <div className="flex items-center gap-2 rounded-xl border border-[var(--hair)] px-3 py-2">
           {live ? <Wifi size={14} style={{ color: connColor }} /> : <Radio size={14} style={{ color: connColor }} />}
-          <span className="text-xs font-semibold tracking-wide" style={{ color: connColor }}>{connLabel}</span>
+          <span className="text-xs font-semibold tracking-wide" style={{ color: connColor }}>{t(connLabel)}</span>
           <span className="num ml-auto text-xs font-medium text-[var(--ink-soft)]">{time}</span>
         </div>
 
@@ -141,14 +149,14 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
             className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--hair)] px-2 py-2.5 text-xs font-medium text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
           >
             {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            {muted ? 'Sesi Aç' : 'Ses Açık'}
+            {muted ? t('Sesi Aç') : t('Ses Açık')}
           </button>
           <button
             onClick={onToggleTheme}
             className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--hair)] px-2 py-2.5 text-xs font-medium text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
           >
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            {theme === 'dark' ? 'Gündüz' : 'Gece'}
+            {theme === 'dark' ? t('Gündüz') : t('Gece')}
           </button>
         </div>
       </div>

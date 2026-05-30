@@ -107,6 +107,21 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
 }
 .smc-logo-glow { animation: smc-logo-glow 2.8s ease-in-out infinite; will-change: filter; }
 
+/* === BAYRAK: asil 3B dalgalanma (Türk bayrağı butonu) - cloth wave + ışık süzülmesi === */
+@keyframes flag-wave {
+  0%, 100% { transform: perspective(90px) rotateY(0deg) skewY(0deg); }
+  20%      { transform: perspective(90px) rotateY(-11deg) skewY(1.5deg); }
+  50%      { transform: perspective(90px) rotateY(0deg) skewY(-0.9deg); }
+  80%      { transform: perspective(90px) rotateY(11deg) skewY(1.2deg); }
+}
+@keyframes flag-sheen { 0% { transform: translateX(-170%); } 100% { transform: translateX(270%); } }
+.flag-wave { animation: flag-wave 3s ease-in-out infinite; transform-origin: left center; will-change: transform; }
+.flag-sheen::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.5) 50%, transparent 62%);
+  transform: translateX(-170%); animation: flag-sheen 3s ease-in-out infinite; mix-blend-mode: screen;
+}
+
 .animate-aurora { animation: aurora-drift 22s ease-in-out infinite; }
 .animate-live   { animation: live-pulse 1.6s ease-in-out infinite; }
 .animate-float  { animation: float-soft 7s ease-in-out infinite; }
