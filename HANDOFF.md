@@ -14,12 +14,12 @@
 - **İmza:** `Signature.tsx` — "This software is crafted with precision & passion by **Mehmet Bakırdöğen**" (HEP İngilizce, çevrilmez). Her sayfada: Sidebar altı + Giriş ekranı.
 - **Logo:** Paneldeki SMC logosu büyütüldü (60→**84px**, `stack`: yazı logonun altında 2 satır).
 
-## 🟢 KARARLAR (bu oturum)
-- **Cihaz ayar senkronu = HİBRİT:** donanım gelince cihaz ayarları **okunup devam** edilir, kullanıcı değiştirince cihaza **yazılır**. (Köprü read+write donanımla.) Bkz hafıza [[cihaz-ayar-senkron-karari]].
-- **Arkadaşların kendi kurulumu:** SMC mühendisleri kendi PC'lerine kurup cihazı bağlayıp ayar yapabilmeli — **mühendis seviyesinde** adım adım (VS Code zorunlu değil). LiveSetupGuide bu hedefe göre genişletilecek. Donanım/dağıtım fazı.
+## ✅ YAPILDI (v1): Canlı grafik 2. görünüm — "Cihaz Akışı"
+**"Boru" kaldırıldı; "Klasik" kaldı; yeni "Akış" eklendi** (LivePage view anahtarı: Akış / Klasik). `DeviceFlowChart.tsx` = **Canvas 2B** (procedural 3B Mehmet Abi'nin isteğiyle ATILDI). **Gerçek AMS fotosu** `public/products/ams-product.png` (şeffaf zemin) yarı şeffaf arkada; uçtan uca tek **şeffaf boru** içinde soldan sağa akan hava. Giriş/çıkış hortumları **boru ile aynı çap** + içinde de akış (birleşim kelepçeli). **Debi**→akış hızı/parlaklık · **basınç**→regülatör bölgesinde sıkışma · **sıcaklık**→renk (soğuk→sıcak) · **nem**→su damlaları · **valf/regülatör DEVREYE GİRİNCE** foto üzerinde nabız halka (Tasarruf=regülatör/yeşil, Kesinti=valf/amber) + **valf egzoz püskürtme**. Üstünde PipeOverlay (mod+değer+eşik+giriş/çıkış+"devrede" rozeti). **Açık:** Mehmet Abi 1 saatlik işe gitti — dönüşte canlıyı görüp rötuş/geri bildirim verecek. Detay: hafıza [[live-chart-pnomatik-hat]].
 
-## 🔴 EN SONA BIRAKILDI: Canlı grafik 2. görünüm (Mehmet Abi vizyonu)
-**"Boru" görünümü KOMPLE kaldırılacak; Klasik KALIR.** Yerine: grafik penceresine tam oturan **yarı şeffaf gerçek AMS cihazı**; soldan hortum giriş → sağdan çıkış, hava soldan sağa akar. **Debi**→akış hız/yoğunluk, **basınç**→sıkışma (molekül), **sıcaklık**→boru rengi, **nem**→su damlaları; **oransal regülatörde basınç değişimi** + **valf egzoz tahliyesi** animasyonu. Ürün arkada/3B, hava içinden geçer. CC **3B (WebGL)** öneriyor (derin araştırma + en gerçekçi yaklaşım). Açık soru: gerçek kesit foto mu / tam 3B mi. Detay: hafıza [[live-chart-pnomatik-hat]].
+## 🟢 KARARLAR + İSKELETLER (bu oturum)
+- **Cihaz ayar senkronu = HİBRİT (iskelet HAZIR, donanımla aktif):** Bağlanınca cihaz ayarları **okunur** (Ürün Ayarları o değerlerle devam), kullanıcı değiştirince cihaza **yazılır** (echo-write korumalı). Kod: `deviceSettings.ts` (paylaşılan store + `applyDeviceSettingsFromDevice`), `liveSource.ts` (`setSettings`/`onDeviceSettings`), `bridge/opcua-bridge.mjs` (bağlanınca ayar oku→gönder + `setSettings` yaz; ayar node'ları cihazda yoksa atlar), `useLiveReadings.ts` köprüleme. Bkz [[cihaz-ayar-senkron-karari]].
+- **Arkadaşların kendi kurulumu (mühendis seviyesi):** **`bridge/baslat.bat`** = çift tıkla (Node kontrol + ilk kurulum + köprüyü başlat). `bridge/README.md` mühendis seviyesi rehber. LiveSetupGuide'da "kolay yol" notu. (Daha fazla paketleme/portable node gerekirse ileride.)
 
 ## 💡 SIRADAKİ FİKİRLER (Mehmet Abi istedi, henüz başlanmadı)
 - **Canlı Panel'de zaman çubuğu (tutup-çekme):** Klasik grafiğin zaman aralığını geçmişe çek (−10sn → saatler/günler, retention=30 gün). **Veri hazır** (`history.ts` `queryHistory`); LivePage scrubber + Hero3DChart pencere + ChartOverlay etiketleri.
