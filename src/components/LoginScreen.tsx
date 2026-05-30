@@ -59,12 +59,12 @@ export function LoginScreen({ auth }: { auth: Auth }) {
           <div className="relative h-52 overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424] sm:h-60 lg:h-[380px]">
             {/* Urun adi etiketi (eski "Bagli Sistem" yerine - markaya uygun) */}
             <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS Hava Yönetim Sistemi</span>
-            {/* NET yuksek-coz urun + sevilen FABRIKA arka plani (yumusatilmis) birlesik = ams-hero.jpg */}
+            {/* ORIJINAL fabrika görseli (kendi arka planıyla) - object-cover ile hücreye, ürün ortalı */}
             <img
-              src={asset('products/ams-hero.jpg')}
-              alt="SMC AMS — Hava Yönetim Sistemi (gerçek ürün, fabrika arka planı)"
+              src={asset('products/ams-diagram.jpg')}
+              alt="SMC AMS — Hava Yönetim Sistemi (fabrika hattında gerçek ürün)"
               className="absolute inset-0 h-full w-full object-cover"
-              style={{ objectPosition: 'center' }}
+              style={{ objectPosition: '50% 42%' }}
               loading="lazy"
             />
           </div>
