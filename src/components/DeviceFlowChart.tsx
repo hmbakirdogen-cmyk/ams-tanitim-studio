@@ -585,7 +585,9 @@ export function DeviceFlowChart({
       const hub = displays[0]
       if (hub) {
         const rx = dx + hub.x * dw, ry = dy + hub.y * dh, rw = hub.w * dw, rh = hub.h * dh
-        const rad = Math.min(rw, rh) * 0.18
+        // KÖŞE RADÜSÜ — GERÇEK ekrandan FOTO-ÖLÇÜM (tools: ams-flow.png koyu cam maskesi): gerçek radüs ~6px / min ≈ 0.06.
+        //   Eskiden 0.18 idi (3× fazla yuvarlak → köşeler gerçekten sapıyordu). Artık gerçek ekranla birebir oturur.
+        const rad = Math.min(rw, rh) * 0.06
         const rnd = !!(ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect
         ctx.fillStyle = 'rgb(6,9,13)'
         if (rnd) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, rad); ctx.fill() } else ctx.fillRect(rx, ry, rw, rh)
