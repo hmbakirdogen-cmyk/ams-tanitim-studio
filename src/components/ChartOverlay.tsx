@@ -1,7 +1,7 @@
 /*
  * NE      : Grafik aciklama katmani - UST yatay serit (sol: akis suresi · sag: anlik degerler) + seviye cizgileri + X/Y eksen basliklari.
  * NEDEN   : Mehmet Bey: "anlik degerler daha mantikli yerde olsun, arka plandaki cizgilerin gorunumunu ETKILEMESIN".
- *           Cizgiler sag uca (en guncel) akiyor -> okuma paneli ust seride alindi; cizgilerin ustunu kapatmaz.
+ *           Cizgiler sag uca (en guncel/şimdi) akiyor -> okuma paneli ust seride; cizgilerin ustunu kapatmaz.
  * NASIL   : Ust margin'de (cizgi alaninin ustunde) koyu cam serit; force-dark-surface ile metin daima acik/net.
  * YAN ETKI: pointer-events yok. Renkler metrics.ts cizgi renkleriyle birebir (kimlik bagi).
  */
@@ -11,7 +11,7 @@ import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
 
 const LEVELS = [100, 75, 50, 25, 0]
-const TICKS = [0, 0.25, 0.5, 0.75, 1] // X ekseni zaman etiketleri (sol=eski, sag=simdi)
+const TICKS = [0, 0.25, 0.5, 0.75, 1] // X ekseni zaman etiketleri (sol=eski/16sn, sag=simdi)
 const shadow = { textShadow: '0 1px 5px rgba(2,4,10,0.95), 0 0 2px rgba(2,4,10,0.9)' }
 
 function fmtElapsed(ms: number): string {
@@ -84,7 +84,7 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
         ))}
       </div>
 
-      {/* X ekseni CANLI zaman etiketleri - sol=eski, sag=simdi (kullanici kolay anlasin) */}
+      {/* X ekseni CANLI zaman etiketleri - sol=eski(16sn), sag=simdi (konvansiyonel) */}
       <div className="absolute inset-x-12 bottom-7 h-6">
         {TICKS.map((f) => {
           const secsAgo = spanSec * (1 - f)
@@ -100,7 +100,7 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
         })}
       </div>
 
-      {/* Alt aciklama - zaman ekseni + seviye */}
+      {/* Alt aciklama - zaman ekseni + seviye (SOL=geçmiş, SAĞ=şimdi) */}
       <div className="absolute inset-x-12 bottom-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
         <span>← {t('geçmiş')}</span>
         <span>{t('Zaman ekseni · dikey: seviye (%0–%100)')}</span>

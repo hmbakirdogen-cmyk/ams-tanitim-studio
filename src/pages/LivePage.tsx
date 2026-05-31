@@ -76,7 +76,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             <div className="glass relative min-h-0 flex-[3] overflow-hidden rounded-3xl">
               <AmbientScene theme={theme} flow={flowNorm} />
               <DeviceFlowChart reading={reading} metrics={visibleMetrics} mode={mode} theme={theme} />
-              <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} />
+              <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} theme={theme} />
             </div>
             {/* KLASİK — akışın ALTINDA, tam orantılı; SABİT ~16 sn'lik canlı range (Mehmet Abi: zaman çubuğu/tarih ölçeği KALDIRILDI) */}
             <div className="glass relative min-h-0 flex-[2] overflow-hidden rounded-3xl">

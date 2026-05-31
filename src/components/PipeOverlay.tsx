@@ -13,8 +13,6 @@ import type { MetricDef } from '@/data/metrics'
 import type { Reading } from '@/data/types'
 import { useLang } from '@/i18n'
 
-const shadow = { textShadow: '0 1px 5px rgba(2,4,10,0.95), 0 0 2px rgba(2,4,10,0.9)' }
-
 function fmt(v: number, d: number): string {
   return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
 }
@@ -24,21 +22,29 @@ export function PipeOverlay({
   metrics,
   mode,
   thresholds = {},
+  theme = 'dark',
 }: {
   reading: Reading | null
   metrics: MetricDef[]
   mode: Mode
   thresholds?: Record<string, { value: number; label: string } | undefined>
+  theme?: 'dark' | 'light'
 }) {
   const { t } = useLang()
   const modeColor = MODE_COLOR[mode]
+  // Gölge TEMA-UYUMLU: gündüz BEYAZ hale (koyu metin açık zemin/akış üstünde okunur) / gece KOYU hale (açık metin okunur).
+  const shadow = theme === 'light'
+    ? { textShadow: '0 1px 4px rgba(255,255,255,0.92), 0 0 2px rgba(255,255,255,0.85)' }
+    : { textShadow: '0 1px 5px rgba(2,4,10,0.95), 0 0 2px rgba(2,4,10,0.9)' }
   return (
-    <div className="force-dark-surface pointer-events-none absolute inset-0">
+    // force-dark-surface KÖKTEN kaldırıldı (Mehmet Abi: gündüz modunda veriler/yazılar zor okunuyordu) → çerçevesiz metin TEMAYLA uyumlu (gündüz KOYU).
+    //   Koyu-zeminli rozet + sağ-üst nota AYRICA force-dark-surface alır (kendi içlerinde açık metin kalsın).
+    <div className="pointer-events-none absolute inset-0">
       {/* Mod tonu - ust kenarda cok hafif renk (neyin surdugunu ima eder) */}
       <div className="absolute inset-x-0 top-0 h-24" style={{ background: `linear-gradient(to bottom, ${modeColor}22, transparent)` }} />
 
-      {/* UST SOL: calisma modu + NEDEN (artip azalmanin sebebi) */}
-      <div className="absolute left-3 top-3 flex items-center gap-2.5 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3.5 py-2 backdrop-blur-md">
+      {/* UST SOL: calisma modu + NEDEN (artip azalmanin sebebi) — koyu zemin → force-dark-surface (acik metin) */}
+      <div className="force-dark-surface absolute left-3 top-3 flex items-center gap-2.5 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3.5 py-2 backdrop-blur-md">
         <span className="relative grid h-2.5 w-2.5 place-items-center">
           <span className="live-ring absolute h-2.5 w-2.5 rounded-full" style={{ background: modeColor }} />
         </span>
@@ -66,8 +72,8 @@ export function PipeOverlay({
         </div>
       </div>
 
-      {/* UST SAG: kisa anahtar aciklama */}
-      <div className="absolute right-3 top-3 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3 py-2 text-right backdrop-blur-md">
+      {/* UST SAG: kisa anahtar aciklama — koyu zemin → force-dark-surface (acik metin) */}
+      <div className="force-dark-surface absolute right-3 top-3 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3 py-2 text-right backdrop-blur-md">
         <div className="text-[11px] font-semibold text-white">{t('Pnömatik Hat')}</div>
         <div className="text-[10px] text-[var(--ink-soft)]">{t('akış hızı + dolum = anlık değer')}</div>
       </div>
@@ -86,7 +92,7 @@ export function PipeOverlay({
                 <span className="text-[11px] font-medium text-[var(--ink-soft)]">{t(m.name)}</span>
               </div>
               <div className="mt-0.5 flex items-baseline gap-1" style={shadow}>
-                <span className="num text-2xl font-bold leading-none text-white">{fmt(v, m.digits)}</span>
+                <span className="num text-2xl font-bold leading-none text-[var(--ink)]">{fmt(v, m.digits)}</span>
                 <span className="text-[11px] font-medium text-[var(--ink-soft)]">{m.unitShort}</span>
                 {thr && (
                   <span className="ml-0.5 flex items-center gap-0.5 text-[9px]" style={{ color: below ? '#FFB04D' : 'var(--c-saving)' }}>

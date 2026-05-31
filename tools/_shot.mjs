@@ -19,6 +19,11 @@ await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 })
 await new Promise((r) => setTimeout(r, 2500))
 // 2) Oturumu tohumla (login'i atla) — session düz string
 await page.evaluate(() => localStorage.setItem('ams_session_v1', 'karakelle'))
+// 2a) İsteğe bağlı tema (THEME=light → gündüz modu kontrolü)
+if (process.env.THEME) {
+  const th = process.env.THEME
+  await page.evaluate((t) => localStorage.setItem('ams_theme_v1', t), th)
+}
 // 2b) İsteğe bağlı: demo geçmiş tohumu (scrubber/zaman çubuğu görünsün) — 12 saatlik dakikalık örnek
 if (process.env.SEED) {
   await page.evaluate(() => {

@@ -26,7 +26,7 @@ import type { Reading } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 
 // --- Sahne sabitleri ---
-const SPAN_X = 17 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis" (sol) kenara kadar. Skala (10sn/%0-100) bundan bagimsiz.
+const SPAN_X = 17 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis(16sn)" (sol) kenara kadar.
 const MAX_H = 4.0 // normalize deger -> yukseklik
 const L = 200 // ekran penceresi nokta sayisi (~16 sn @80ms tik; Mehmet Abi: sabit 16 sn range) + boru boyu cozunurlugu (puruzsuz)
 const RADIAL = 12 // boru kesit cozunurlugu (yuvarlak)

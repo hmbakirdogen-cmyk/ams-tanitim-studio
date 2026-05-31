@@ -43,7 +43,7 @@ const FB_AXIS = 0.19, FB_PIPE = 0.06, FB_IN = 0.03, FB_OUT = 0.95  // image #1 (
 const FB_DISPLAYS = [{ x: 0.4304, y: 0.1742, w: 0.1414, h: 0.0842 }]  // image #1: üst-orta dijital monitör LCD (gerçek camla BİREBİR — foto-ölçüm; Mehmet Abi onayladı)
 // PDF'e gore modul bolgeleri (tum-foto x/y orani)
 const REG_FRAC: [number, number] = [0.155, 0.305] // standby/oransal regülatör — regüle hücresi (Mehmet Abi: biraz genişletildi)
-const REG_DISP: [number, number, number, number] = [0.198, 0.450, 0.073, 0.022] // regülatör KIRMIZI dijital LCD (image #1, foto-ölçüm) [x,y,w,h]
+const REG_DISP: [number, number, number, number] = [0.211, 0.4467, 0.0624, 0.0233] // regülatör KIRMIZI dijital LCD — BİREBİR foto-ölçüm (tools/_regscreen.py: ışın-tarama, siyah cam kenarı) [x,y,w,h]
 const VALVE_CX = 0.74                            // tahliye valfi merkezi (image #1: sağ modül)
 const EXHAUST_CX = 0.76, EXHAUST_CY = 0.335      // egzoz = valf orta-ekseninin BİRAZ SAĞINDAKİ siyah parça (Mehmet Abi); hava AŞAĞI atılır
 // PDF LED konumu (tum-foto orani): SADECE regülatör POWER LED'i (valf LED'i Mehmet Abi kararıyla KALDIRILDI).
@@ -611,7 +611,7 @@ export function DeviceFlowChart({
           //   küçük kenara (min) bağlı → ekran köşesiyle örtüşür. Ayrıca ince BEZEL (gerçek ekran kenarı) + simetrik padding.
           const gRad = Math.min(gw, gh) * 0.30
           const gRnd = !!(ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect
-          ctx.fillStyle = 'rgb(50,53,59)' // ekran koyu camını eşle → statik rakamı gizle (çerçeve foto'dan kalır)
+          ctx.fillStyle = 'rgb(30,23,19)' // ekran camını BİREBİR eşle (foto-ölçüm medyan rgb) → statik ".200" tamamen gizlenir
           if (gRnd) { ctx.beginPath(); ctx.roundRect(gx, gy, gw, gh, gRad); ctx.fill() } else ctx.fillRect(gx, gy, gw, gh)
           // ince bezel — koyu kırmızımsı kenar (debimetredeki çerçeve mantığı; foto çerçevesini bozmadan ekran camı hissi)
           ctx.strokeStyle = 'rgba(120,40,46,0.45)'; ctx.lineWidth = 0.75
