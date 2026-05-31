@@ -262,11 +262,10 @@ function SweepLight() {
   return <pointLight ref={ref} position={[0, 3.2, 3]} color="#eaf3ff" intensity={3} distance={18} />
 }
 
-// Fareye gore yumusak kamera parallax'i - dokunulasi derinlik
+// SABİT kamera (Mehmet Abi: "alttaki grafik fare gezinmesiyle 3D oynamasın") — fare parallax'ı KALDIRILDI; kamera sabit konumda kilitli.
 function ParallaxRig() {
-  const target = useMemo(() => new THREE.Vector3(), [])
+  const target = useMemo(() => new THREE.Vector3(0, 2.5, 9), [])
   useFrame((state) => {
-    target.set(state.pointer.x * 1.6, 2.5 + state.pointer.y * 0.6, 9)
     state.camera.position.lerp(target, 0.045)
     state.camera.lookAt(0, 1.6, 0)
   })

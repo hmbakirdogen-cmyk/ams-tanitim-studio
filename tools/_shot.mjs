@@ -39,6 +39,16 @@ if (process.env.SEED) {
 await page.reload({ waitUntil: 'networkidle2', timeout: 60000 })
 // 4) IntroSplash + animasyon yerleşsin
 await new Promise((r) => setTimeout(r, 6000))
+// 4b) İsteğe bağlı mod (MODE=isolation → geri-akış/egzoz görünür): mod butonuna tıkla + animasyon otursun
+if (process.env.MODE) {
+  const labels = { normal: 'Normal Çalışma', standby: 'Tasarruf Modu', isolation: 'Hava Kesintisi' }
+  const txt = labels[process.env.MODE] || labels.isolation
+  await page.evaluate((tt) => {
+    const b = [...document.querySelectorAll('button')].find((x) => x.textContent && x.textContent.includes(tt))
+    if (b) b.click()
+  }, txt)
+  await new Promise((r) => setTimeout(r, 4500))
+}
 const CLIPS = {
   device: { x: 255, y: 112, width: 745, height: 360 },
   valve: { x: 760, y: 130, width: 240, height: 280 },
