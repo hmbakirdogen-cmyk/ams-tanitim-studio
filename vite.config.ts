@@ -43,6 +43,11 @@ export default defineConfig({
         // OFFLINE icin TUM varliklar onbellege alinir - JPG eklendi (urun/personel fotolari .jpg; yoksa offline gorunmezdi)
         globPatterns: ['**/*.{js,css,html,woff,woff2,svg,png,jpg,jpeg,webp,ico}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        // BAYAT CACHE'I KOKTEN BITIR: yeni SW aktif olunca eski precache'leri sil + hemen devral + bekleme.
+        // (Mehmet Abi "cok eski versiyon" gormesin -> deploy sonrasi sekme guncel icerige gecsin.)
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],

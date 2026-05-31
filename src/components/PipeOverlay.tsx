@@ -2,9 +2,10 @@
  * NE      : Pnomatik Hat grafiginin 2B ANLATIM katmani - mod (neden artip azaldigi) + her sensorun ANLIK degeri+birimi (boru
  *           sirasinda, cikis tarafinda) + ESIK durumu (esigin altinda/ustunde) + kisa aciklama. Cizgileri/borulari KAPATMAZ.
  * NEDEN   : Mehmet Abi: "grafik kendi basina bir sey ANLATSIN: mod, basinc<->debi, esik, anlik deger+birim hep net olsun".
- * NASIL   : Ust solda mod rozeti + neden notu (MODE_DESC). Sagda boru sirasiyla dikey deger kartlari (renk = boru rengi).
+ * NASIL   : Ust solda mod rozeti + neden notu (MODE_DESC). SOL dikey OPAK kartta anlik deger+birim (Mehmet Abi: "veriler pencerenin
+ *           soluna, ARKASINDA hareketli animasyon OLMASIN"): bg TAM opak -> akis animasyonu readout arkasinda gorunmez (renk = boru rengi).
  *           Esik verilirse 'esik: X' + ok (altinda/ustunde). force-dark-surface -> metin gunduz temasinda da net.
- * YAN ETKI: pointer-events yok (tiklamayi gecirir). Renkler metrics.ts ile birebir (kimlik bagi).
+ * YAN ETKI: pointer-events yok (tiklamayi gecirir). Renkler metrics.ts ile birebir (kimlik bagi). Veriler artik SOLDA (eskiden sagdaydi).
  */
 import { MODE_LABEL, MODE_DESC, MODE_COLOR, type Mode } from '@/data/types'
 import { ArrowDown, ArrowUp } from 'lucide-react'
@@ -71,26 +72,27 @@ export function PipeOverlay({
         <div className="text-[10px] text-[var(--ink-soft)]">{t('akış hızı + dolum = anlık değer')}</div>
       </div>
 
-      {/* SAG DIKEY: boru sirasinda anlik degerler (cikis tarafi). Renk = boru rengi. */}
-      <div className="absolute inset-y-0 right-3 flex flex-col justify-around py-20">
+      {/* SOL DIKEY (Mehmet Abi: cihaz penceresindeki veriler SAĞDAN SOLA alındı): anlık değerler OPAK kartta → ARKASINDA akış
+          animasyonu GÖRÜNMEZ. Mod rozetinin altında, dikey ortalı; sol-hizalı. Renk = boru rengi (kimlik bağı). */}
+      <div className="absolute left-3 top-1/2 flex -translate-y-1/2 flex-col gap-2.5 rounded-2xl border border-white/10 bg-[#050b18] px-3.5 py-3 shadow-[0_18px_50px_-20px_rgba(0,0,0,0.9)]">
         {metrics.map((m) => {
           const v = reading ? m.get(reading) : m.min
           const thr = thresholds[m.key]
           const below = thr ? v < thr.value : false
           return (
-            <div key={m.key} className="flex flex-col items-end">
+            <div key={m.key} className="flex flex-col items-start">
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
-                <span className="text-[11px] font-medium text-[var(--ink-soft)]" style={shadow}>{t(m.name)}</span>
+                <span className="text-[11px] font-medium text-[var(--ink-soft)]">{t(m.name)}</span>
               </div>
-              <div className="flex items-baseline gap-1" style={shadow}>
+              <div className="flex items-baseline gap-1">
                 <span className="num text-2xl font-bold leading-none text-white">{fmt(v, m.digits)}</span>
                 <span className="text-[11px] font-medium text-[var(--ink-soft)]">{m.unitShort}</span>
               </div>
               {thr && (
                 <div className="mt-0.5 flex items-center gap-1 text-[10px]" style={{ color: below ? '#FFB04D' : 'var(--c-saving)' }}>
                   {below ? <ArrowDown size={11} /> : <ArrowUp size={11} />}
-                  <span style={shadow}>{t('eşik')}: {thr.label}</span>
+                  <span>{t('eşik')}: {thr.label}</span>
                 </div>
               )}
             </div>

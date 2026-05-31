@@ -47,9 +47,11 @@ const REG_DISP: [number, number, number, number] = [0.198, 0.450, 0.073, 0.022] 
 const VALVE_CX = 0.74                            // tahliye valfi merkezi (image #1: sağ modül)
 const EXHAUST_CX = 0.76, EXHAUST_CY = 0.335      // egzoz = valf orta-ekseninin BİRAZ SAĞINDAKİ siyah parça (Mehmet Abi); hava AŞAĞI atılır
 // PDF LED konumlari (tum-foto orani; araştırma OMA1007/EXA1/VP): hub LCD altı 5'li satır + port LED + valf konnektör kırmızı + regülatör 2 yeşil
-const LED_VALVE: [number, number] = [0.72, 0.31]  // valf solenoid konnektör LED (image #1: sağ modül alt siyah konnektör) — KIRMIZI
-// VALF LED OYUĞU (Mehmet Abi: LED, gövdedeki DİKEY KAPSÜL oyuğun İÇİNDE, o oyuğun ŞEKLİNDE yanıp sönsün) — oyuk ölçüsü (tüm-foto oranı)
-const LED_VALVE_SLOT = { w: 0.011, h: 0.034 }     // dikey ince kapsül (genişlik«yükseklik); gözle nudge edilebilir
+// VALF LED — Mehmet Abi: "ışığın yeri, fotodan ÇIKARDIĞIN KALIBIN İÇİ" (tools/_sock.py orta modül alt konnektör soketi, x≈0.34–0.60).
+//   Eski konum (0.72,0.31) sağ modül GÖVDESİYDİ (yanlış). Doğru yer: orta "Hub" modülünün ALT konnektör soketinin sırtındaki dikey oyuk.
+const LED_VALVE: [number, number] = [0.505, 0.665] // orta modül alt konnektör soketi (foto-ölçüm, _sock kalıbı) — gözle nudge edilebilir
+// VALF LED OYUĞU (Mehmet Abi: LED, soketin sırtındaki DİKEY oyuğun İÇİNDE, o oyuğun ŞEKLİNDE yanıp sönsün) — oyuk ölçüsü (tüm-foto oranı)
+const LED_VALVE_SLOT = { w: 0.010, h: 0.026 }     // dikey ince kapsül (genişlik«yükseklik); gözle nudge edilebilir
 const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (image #1: ekranın ALTINDA, foto-ölçüm) — YEŞİL, devredeyken parlar
 
 const FLOW_COUNT = 224       // akan molekül sayısı — Mehmet Abi: çoğaltıldı (160→224)
@@ -595,10 +597,13 @@ export function DeviceFlowChart({
       const hub = displays[0]
       if (hub && ro2.length) {
         const rx = dx + hub.x * dw, ry = dy + hub.y * dh, rw = hub.w * dw, rh = hub.h * dh
-        const rad = rh * 0.16
+        // KÖŞE RADÜSÜ YENİDEN OPTİMİZE (Mehmet Abi): KÜÇÜK kenara (min) bağlı → ekranın gerçek köşesiyle örtüşür (yükseklik tek başına
+        //   sürüklemesin); regülatör ekranıyla AYNI mantık (oran 0.18). Çerçeve de aynı radüsle yuvarlak.
+        const rad = Math.min(rw, rh) * 0.18
         const rnd = !!(ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect
-        // koyu LCD cam (gerçek ekran gibi) + ince çerçeve — ikisi de YUVARLAK köşeli (fotodaki ekranla örtüşür)
-        ctx.fillStyle = 'rgba(3,8,16,0.80)'
+        // koyu LCD cam (gerçek ekran gibi) + ince çerçeve — ikisi de YUVARLAK köşeli (fotodaki ekranla örtüşür).
+        // TAM OPAK (Mehmet Abi: foto'nun statik çok-kolonlu değeri ".200/265" camdan SIZIP HAYALET yapıyordu → tam opak cam onu TAMAMEN gizler).
+        ctx.fillStyle = 'rgb(5,10,20)'
         if (rnd) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, rad); ctx.fill() } else ctx.fillRect(rx, ry, rw, rh)
         ctx.strokeStyle = 'rgba(110,150,200,0.55)'; ctx.lineWidth = 1
         if (rnd) { ctx.beginPath(); ctx.roundRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1, rad); ctx.stroke() } else ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1)
@@ -642,9 +647,16 @@ export function DeviceFlowChart({
           let pv = pv0.value.replace(',', '.')
           if (pv.startsWith('0.')) pv = pv.slice(1)
           const gx = dx + dw * REG_DISP[0], gy = dy + dh * REG_DISP[1], gw = dw * REG_DISP[2], gh = dh * REG_DISP[3]
+          // KÖŞE RADÜSÜ — debimetreyle AYNI optimizasyon (Mehmet Abi: "köşe radüsüne kadar uygula"): kırpma KALDIRILDI → oranlı,
+          //   küçük kenara (min) bağlı → ekran köşesiyle örtüşür. Ayrıca ince BEZEL (gerçek ekran kenarı) + simetrik padding.
+          const gRad = Math.min(gw, gh) * 0.30
+          const gRnd = !!(ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect
           ctx.fillStyle = 'rgb(50,53,59)' // ekran koyu camını eşle → statik rakamı gizle (çerçeve foto'dan kalır)
-          if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(gx, gy, gw, gh, Math.min(2, gh * 0.18)); ctx.fill() } else ctx.fillRect(gx, gy, gw, gh)
-          const fs = Math.max(7, Math.min(gh * 0.82, gw * 0.30))
+          if (gRnd) { ctx.beginPath(); ctx.roundRect(gx, gy, gw, gh, gRad); ctx.fill() } else ctx.fillRect(gx, gy, gw, gh)
+          // ince bezel — koyu kırmızımsı kenar (debimetredeki çerçeve mantığı; foto çerçevesini bozmadan ekran camı hissi)
+          ctx.strokeStyle = 'rgba(120,40,46,0.45)'; ctx.lineWidth = 0.75
+          if (gRnd) { ctx.beginPath(); ctx.roundRect(gx + 0.4, gy + 0.4, gw - 0.8, gh - 0.8, gRad); ctx.stroke() }
+          const fs = Math.max(7, Math.min(gh * 0.78, gw * 0.26))   // padding payı → rakam kenara değmez (debimetre gibi)
           // Regülatör TERS monteli (Mehmet Abi) → rakamlar 180° döndürülür; DAHA KOYU kırmızı.
           ctx.save()
           ctx.translate(gx + gw / 2, gy + gh / 2)

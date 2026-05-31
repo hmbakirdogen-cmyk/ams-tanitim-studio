@@ -3,6 +3,8 @@
  * NEDEN   : Onem hiyerarsisi: tasarruf mesaji ferah, prominent, koseye sikismadan; "her yerde 3D".
  * NASIL   : useSmoothNumber ile akan %; mod rengine gore rozet; Tilt3D ile fareyle egilir, ic elemanlar translateZ ile one cikar.
  *           % rakami SABIT GENISLIKTE (Mehmet Abi: "yazi degisince olcusu degismesin"): tabular-nums + min-genislik -> ziplamaz.
+ *           MOD BLOGU da SABIT YUKSEKLIKTE (Mehmet Abi: "mode degisince kartin olcusu degismesin"): mod aciklamasi (MODE_DESC)
+ *           modlar arasi 1-2 satir degisebiliyordu -> kart yuksekligi oynuyordu; alt blok h-[fixed]+overflow-hidden -> kart HEP ayni olcu.
  *           Arka planda hafif 3D DERINLIK: radyal vurgu + ust-ic isik + alt-ic golge (Tilt3D ile birlikte panel "yuzer" hisseder.
  * YAN ETKI: Saf gorsel; deger App'ten (reading.flow -> savingPercent).
  */
@@ -26,7 +28,7 @@ export function HeroKPI({ percent, mode }: { percent: number; mode: Mode }) {
       <div className="relative" style={{ transform: 'translateZ(22px)' }}>
         <div className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--ink-soft)]">{t('Anlık Tasarruf')}</div>
         <div
-          className="num mt-1 inline-flex items-baseline text-6xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
+          className="num mt-1 inline-flex items-baseline text-5xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
           style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)' }}
         >
           {/* SABİT GENİŞLİK: % işareti + sağa hizalı sabit-genişlik rakam alanı → ondalık/hane değişince blok ZIPLAMAZ */}

@@ -1,12 +1,24 @@
 # HANDOFF — AMS Tanıtım Stüdyosu
 
-**Son güncelleme:** 2026-05-30 (Cihaz Akışı TAM elden geçti — gerçek AMS40A görseli + venturi + egzoz + nem + regülatör LED/ekran)
+**Son güncelleme:** 2026-05-31 (İki grafiğe ORTAK ambiyans sahnesi — AmbientScene — eklendi + Canlı Panel sadeleştirildi; commit `7f22497`, push edildi → canlı)
 **Durum:** Çalışıyor + CANLI yayında. `npm run dev` → http://localhost:5180 · `npm run build` ✅ (offline).
 **Canlı:** https://hmbakirdogen-cmyk.github.io/ams-tanitim-studio/ · Repo (public): github.com/hmbakirdogen-cmyk/ams-tanitim-studio · **master push → otomatik deploy** (`.github/workflows/deploy.yml`, `VITE_BASE=/ams-tanitim-studio/`).
 **Giriş:** Halil İbrahim Karakelle · şifre **`smc`** (varsayılan avatar gömülü: `public/users/halil.jpg`).
 **Hitabet (CC↔kullanıcı):** **Mehmet Abi**.
 
-## 🟢 EN SON NEREDE KALDIK (2026-05-30) — "Cihaz Akışı" tam elden geçti (gerçek AMS40A görseli)
+## 🟢 EN SON NEREDE KALDIK (2026-05-31, 2. tur) — Canlı Panel UI turu + PWA bayat-cache KÖKTEN çözüldü
+**PWA (önemli):** "çok eski versiyon / akış gelmedi" tekrarlayan sorunu = bayat service worker. ÇÖZÜM: `main.tsx` `registerSW({immediate, onNeedRefresh:()=>updateSW(true)})` + `vite.config` workbox `cleanupOutdatedCaches/skipWaiting/clientsClaim` → yeni deploy gelince sekme KENDİLİĞİNDEN yenilenir. (İlk sefer eski SW için bir kez hard-refresh/gizli-pencere gerekir; sonra otomatik.) Tanı aracı: `tools/_shot.mjs` (puppeteer-core, login'i tohumla atlayıp Canlı Panel'i çeker — `SHOT=device|lcd|reg|socket|full`).
+**Canlı Panel UI (hepsi `npm run dev` + headless screenshot ile doğrulandı):**
+- **Cihaz penceresi readout'ları SAĞDAN SOLA** (`PipeOverlay`): opak `bg-[#050b18]` kart → ARKASINDA akış animasyonu görünmez (Mehmet Abi). Mod rozeti üstte, sol-hizalı.
+- **HeroKPI (Anlık Tasarruf):** mod değişince boyut DEĞİŞMEZ (alt mod bloğu sabit yükseklik) + sayı küçültüldü (text-6xl→5xl).
+- **Debimetre LCD:** köşe radüsü yeniden optimize (min-kenara oranlı 0.18) + statik ".200/265" HAYALETİ tam-opak camla (`rgb(5,10,20)`) tamamen gizlendi.
+- **Regülatör kırmızı ekranı:** debimetre paritesi — oranlı köşe radüsü (kırpma kaldırıldı) + ince bezel + padding.
+- **Valf LED'i:** sağ-modül gövdesinden (0.72,0.31 — YANLIŞTI) → **orta "Hub" modülü alt konnektör soketine** (`LED_VALVE=[0.505,0.665]`, `_sock.py` kalıbı). ⚠️ İZOLASYON modunda kırmızı yanışı GÖZLE doğrulanmalı (Mehmet onayı/nudge bekliyor — doğru oyuk mu?).
+
+## 🟢 ÖNCEKİ TUR (2026-05-31) — İki grafiğe ORTAK ambiyans sahnesi (AmbientScene)
+Mehmet Abi: *"iki grafiğin (Akış + Klasik) ortak arka planı; uçan parlak şeyler, teknolojik hava akış sistemine bakıyormuşuz gibi."* → **`AmbientScene.tsx`** (yeni): saf Canvas 2D, 60fps sabit havuz, derin boşluk + perspektif sistem ızgarası + yatay süzülen parlak hava zerreleri (parallax) + nefes alan glow küreleri; tema-duyarlı; `pointer-events` yok (tıklama panellere geçer). **Canlı debiyle hızlanır** (`LivePage` → `flowNorm`, `AmbientScene:71`). DeviceFlowChart kendi arka planını bıraktı (artık ortak sahne). Yanında Canlı Panel sadeleştirildi (LivePage −124 satır), MetricCard/Sparkline/LangSwitcher/HeroKPI rötuş, **SensorsPage kaldırıldı**. typecheck+build ✅ sıfır hata, **commit `7f22497` push edildi → canlı deploy**. SIRADAKİ: canlıda gözle bak, zerre yoğunluğu/renk son rötuş gerekirse.
+
+## 📦 ESKİ EN SON (2026-05-30) — "Cihaz Akışı" tam elden geçti (gerçek AMS40A görseli)
 Canlı Panel → "Akış" görünümü (`DeviceFlowChart.tsx`, saf Canvas 2D) bu oturumda baştan sona iyileştirildi. Mehmet Abi **tek tek yönlendirdi, her adım `npm run dev`'de onaylandı** (eski loop tuzağına girilmedi). Hepsi typecheck+build temiz.
 
 **Arka plan görseli:** Mehmet'in masaüstünden verdiği **gerçek AMS40A fotosu** (`1.jpg`) → `public/products/ams-flow.png`. Zemin **`tools/clean-image.py`** (Python + numpy/scipy/Pillow) ile TİTİZ temizlendi: dış zemin + KAPALI montaj delikleri + kablo-içi + parlak kenar halesi → şeffaf, "kırpılmış durmaz". Runtime'da ön-temiz PNG algılanır → flood-fill atlanır (alfa bozulmaz). **Giriş ekranı görseli ESKİ haline döndürüldü** (`ams-diagram.jpg`, object-cover). SMC afişi `ams-overview.jpg` repo'da duruyor ama KULLANILMIYOR.

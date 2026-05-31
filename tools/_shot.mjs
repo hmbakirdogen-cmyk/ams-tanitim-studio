@@ -1,0 +1,38 @@
+// Geçici tanı aracı: localhost:5180 Canlı Panel'i login'i tohumla atlayıp çeker (Mehmet Abi "locali kontrol et").
+import puppeteer from 'puppeteer-core'
+
+const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+const URL = 'http://localhost:5180/'
+const OUT = process.env.TEMP + '\\ams_live.png'
+
+// CLIP: 'device' = cihaz bölgesi (yüksek çöz), 'cards' = sağ kartlar, '' = tam ekran
+const MODE = process.env.SHOT || 'full'
+const browser = await puppeteer.launch({
+  executablePath: CHROME,
+  headless: 'new',
+  args: ['--no-first-run', '--no-default-browser-check', '--disable-gpu', '--hide-scrollbars'],
+  defaultViewport: { width: 1680, height: 1050, deviceScaleFactor: MODE === 'full' ? 1 : 2 },
+})
+const page = await browser.newPage()
+// 1) İlk yükleme: ensureSeed çalışsın (Karakelle kullanıcısı oluşsun)
+await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 })
+await new Promise((r) => setTimeout(r, 2500))
+// 2) Oturumu tohumla (login'i atla) — session düz string
+await page.evaluate(() => localStorage.setItem('ams_session_v1', 'karakelle'))
+// 3) Yeniden yükle → doğrudan Canlı Panel (default page 'live')
+await page.reload({ waitUntil: 'networkidle2', timeout: 60000 })
+// 4) IntroSplash + animasyon yerleşsin
+await new Promise((r) => setTimeout(r, 6000))
+const CLIPS = {
+  device: { x: 255, y: 112, width: 745, height: 360 },
+  valve: { x: 760, y: 130, width: 240, height: 280 },
+  reg: { x: 320, y: 230, width: 300, height: 200 },
+  lcd: { x: 720, y: 150, width: 230, height: 150 },
+  cards: { x: 1020, y: 108, width: 360, height: 600 },
+  socket: { x: 540, y: 250, width: 300, height: 200 },
+}
+const opts = { path: OUT }
+if (CLIPS[MODE]) opts.clip = CLIPS[MODE]
+await page.screenshot(opts)
+console.log('OK (' + MODE + ') -> ' + OUT)
+await browser.close()
