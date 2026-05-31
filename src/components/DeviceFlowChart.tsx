@@ -13,8 +13,8 @@
  *           Sıcaklık ayrıca boru boyunca ince "ısı tülü" olarak dünya-standart renkle görünür.
  *
  * CANLANDIRMA: Cihazın kendi dijital LCD'leri (hub: basınç/debi/sıcaklık) GERÇEK verilerle yazılır (her satır kendi renginde + birim).
- *           Modül LED'leri çalışma durumuna göre KENDİ renkleriyle yanıp söner (hub=yeşil RUN nabız + mavi COMM; regülatör=yeşil
- *           standby'da; valf=amber izolasyonda). Valf = SOFT-STARTER (kademeli verir/keser; ani değil) → yumuşak rampa.
+ *           REGÜLATÖR LED'i çalışma durumuna göre yeşil yanıp söner (standby'da parlar). (Valf LED'i kaldırıldı.)
+ *           Valf = SOFT-STARTER (kademeli verir/keser; ani değil) → yumuşak rampa.
  * NASIL   : Saf Canvas 2D, dt-bazlı (144Hz güvenli), sabit havuz (kare-başı tahsis yok), additive glow + motion-blur iz.
  *           Ekran dikdörtgenleri fotodan KOYU bağlı-bileşen taramasıyla tespit (tutmazsa FB_DISPLAYS fallback).
  * YAN ETKI: Offline (foto gömülü). Üstüne PipeOverlay biner (mod + anlık değer + eşik + giriş/çıkış + "devrede" rozeti).
@@ -46,12 +46,7 @@ const REG_FRAC: [number, number] = [0.155, 0.305] // standby/oransal regülatör
 const REG_DISP: [number, number, number, number] = [0.198, 0.450, 0.073, 0.022] // regülatör KIRMIZI dijital LCD (image #1, foto-ölçüm) [x,y,w,h]
 const VALVE_CX = 0.74                            // tahliye valfi merkezi (image #1: sağ modül)
 const EXHAUST_CX = 0.76, EXHAUST_CY = 0.335      // egzoz = valf orta-ekseninin BİRAZ SAĞINDAKİ siyah parça (Mehmet Abi); hava AŞAĞI atılır
-// PDF LED konumlari (tum-foto orani; araştırma OMA1007/EXA1/VP): hub LCD altı 5'li satır + port LED + valf konnektör kırmızı + regülatör 2 yeşil
-// VALF LED — Mehmet Abi: "ışığın yeri, fotodan ÇIKARDIĞIN KALIBIN İÇİ" (tools/_sock.py orta modül alt konnektör soketi, x≈0.34–0.60).
-//   Eski konum (0.72,0.31) sağ modül GÖVDESİYDİ (yanlış). Doğru yer: orta "Hub" modülünün ALT konnektör soketinin sırtındaki dikey oyuk.
-const LED_VALVE: [number, number] = [0.505, 0.665] // orta modül alt konnektör soketi (foto-ölçüm, _sock kalıbı) — gözle nudge edilebilir
-// VALF LED OYUĞU (Mehmet Abi: LED, soketin sırtındaki DİKEY oyuğun İÇİNDE, o oyuğun ŞEKLİNDE yanıp sönsün) — oyuk ölçüsü (tüm-foto oranı)
-const LED_VALVE_SLOT = { w: 0.010, h: 0.026 }     // dikey ince kapsül (genişlik«yükseklik); gözle nudge edilebilir
+// PDF LED konumu (tum-foto orani): SADECE regülatör POWER LED'i (valf LED'i Mehmet Abi kararıyla KALDIRILDI).
 const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (image #1: ekranın ALTINDA, foto-ölçüm) — YEŞİL, devredeyken parlar
 
 const FLOW_COUNT = 224       // akan molekül sayısı — Mehmet Abi: çoğaltıldı (160→224)
@@ -527,23 +522,9 @@ export function DeviceFlowChart({
       }
       ctx.globalCompositeOperation = 'source-over'
 
-      // 8) CİHAZ LED'LERİ — modüller çalışma durumuna göre KENDİ gerçek renkleriyle yanıp söner
-      //   hub: çalışıyor → YEŞİL nabız (her zaman aktif). regülatör: devredeyse (standby) yeşil. valf: izolasyonda amber.
-      const blink = 0.55 + 0.45 * Math.sin(now * 0.009)       // hizli nabiz (calisma kalp atisi)
-      const led = (cx: number, cy: number, rgb: string, on: number, r: number) => {
-        if (on < 0.05) return
-        ctx.globalCompositeOperation = 'lighter'
-        const g2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 3.2)
-        g2.addColorStop(0, `rgba(${rgb},${0.9 * on})`); g2.addColorStop(0.4, `rgba(${rgb},${0.35 * on})`); g2.addColorStop(1, `rgba(${rgb},0)`)
-        ctx.fillStyle = g2; ctx.beginPath(); ctx.arc(cx, cy, r * 3.2, 0, Math.PI * 2); ctx.fill()
-        ctx.globalCompositeOperation = 'source-over'
-        ctx.fillStyle = `rgba(${rgb},${Math.min(1, 0.5 + on)})`
-        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
-      }
-      const ledR = Math.max(1.5, dh * 0.011)
-      // SADECE İKİ LED (Mehmet Abi kararı): ORANSAL REGÜLATÖR + VALF. Hub status satırı (PWR/MODE/SIG) ve port LED'leri KALDIRILDI.
-      // REGÜLATÖR (oransal) güç/iletişim LED'i — devredeyken (standby/iso) yeşil nabız, boştayken sönük.
-      // REGÜLATÖR POWER/STATUS LED — KONUM SABİT (LED_REG); ÇOK KÜÇÜK + gerçekçi, YANIP SÖNER (Mehmet Abi).
+      // 8) CİHAZ LED'i — REGÜLATÖR güç/durum LED'i (valf LED'i kaldırıldı): devredeyse (standby) yeşil yanıp söner.
+      // SADECE REGÜLATÖR LED'i (Mehmet Abi: valf LED'i kaldırıldı). KONUM SABİT (LED_REG); ÇOK KÜÇÜK + gerçekçi, YANIP SÖNER.
+      //   Devredeyken (standby/iso) yeşil nabız, boştayken sönük.
       {
         const lx = dx + dw * LED_REG[0], ly = dy + dh * LED_REG[1]
         const rr0 = Math.max(0.9, dh * 0.0055)                  // çok küçük dot (gerçek LED ölçeği)
@@ -560,34 +541,7 @@ export function DeviceFlowChart({
           ctx.beginPath(); ctx.arc(lx, ly, rr0, 0, Math.PI * 2); ctx.fill()
         }
       }
-      // VALF LED'i — gövdedeki DİKEY KAPSÜL OYUĞUN İÇİNDE, o oyuğun ŞEKLİNDE (dikey kapsül) gerçek valf ışığı gibi yanıp söner (Mehmet Abi).
-      //   Önce oyuğun koyu yuvası çizilir (içine gömülü his) → üstüne kırmızı ışık dolar; enerjilenince (izolasyon) nabızla parlar.
-      {
-        const vlx = dx + dw * LED_VALVE[0], vly = dy + dh * LED_VALVE[1]
-        const sw = dw * LED_VALVE_SLOT.w, sh = dh * LED_VALVE_SLOT.h
-        const cap = Math.min(sw, sh) / 2                       // kapsül uç yarıçapı (tam yuvarlak uçlar)
-        const rnd2 = !!(ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect
-        const slot = () => { if (rnd2) { ctx.beginPath(); ctx.roundRect(vlx - sw / 2, vly - sh / 2, sw, sh, cap) } else { ctx.beginPath(); ctx.rect(vlx - sw / 2, vly - sh / 2, sw, sh) } }
-        // (a) OYUK YUVASI — koyu gömme (LED sönükken bile oyuk görünür → gerçekçi)
-        ctx.fillStyle = 'rgba(8,10,14,0.85)'; slot(); ctx.fill()
-        const vOn = sig.valve * (0.55 + 0.45 * blink)           // izolasyonda nabızla yan (gerçek solenoid sinyali)
-        if (vOn > 0.05) {
-          // (b) DIŞ GLOW — oyuktan taşan yumuşak kırmızı hale (additif)
-          ctx.globalCompositeOperation = 'lighter'
-          const g = ctx.createRadialGradient(vlx, vly, 0, vlx, vly, sh * 0.95)
-          g.addColorStop(0, `rgba(255,70,55,${0.5 * vOn})`); g.addColorStop(1, 'rgba(255,70,55,0)')
-          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(vlx, vly, sh * 0.95, 0, Math.PI * 2); ctx.fill()
-          ctx.globalCompositeOperation = 'source-over'
-          // (c) OYUK İÇİ DOLGU — kapsül şeklinde kırmızı ışık (LED'in kendisi; oyuk silüetiyle birebir)
-          ctx.fillStyle = `rgba(255,${Math.round(60 + 40 * blink)},${Math.round(48 + 20 * blink)},${Math.min(1, 0.55 + 0.5 * vOn)})`
-          slot(); ctx.fill()
-          // (d) parlak çekirdek (kapsül ekseninde dikey ışık çizgisi)
-          ctx.fillStyle = `rgba(255,180,170,${0.5 * vOn})`
-          ctx.beginPath()
-          if (rnd2) ctx.roundRect(vlx - sw * 0.18, vly - sh * 0.32, sw * 0.36, sh * 0.64, sw * 0.18); else ctx.rect(vlx - sw * 0.18, vly - sh * 0.32, sw * 0.36, sh * 0.64)
-          ctx.fill()
-        }
-      }
+      // VALF LED'i KALDIRILDI (Mehmet Abi: "led işini beceremedik, valf LED'iyle ilgili ne varsa temizle"). Tek gösterge: REGÜLATÖR LED'i.
 
       // 9) CİHAZ LCD'si (debimetre/hub ekranı) — Mehmet Abi: "ilk çalışırkenki dijital hali en iyisiydi" → o orijinal düzene dönüldü.
       //   Koyu LCD cam + 3 satır (Basınç/Debi/Sıcaklık) sağa yaslı BÜYÜK canlı rakam + birim; satır arası ayraç.
