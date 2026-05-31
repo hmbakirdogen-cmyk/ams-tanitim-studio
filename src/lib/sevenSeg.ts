@@ -25,11 +25,11 @@ const SEG: Record<string, string> = {
   '-': 'g',
 }
 
-// Cell oranlari (rakam yuksekligine gore) — GERCEK SMC 7-seg: rakam uzun/dik, segmentler kalin bar, haneler net ayrik.
-const DIGIT_W = 0.56 // rakam genisligi / yukseklik (dik/uzun → okunakli)
-const DOT_W = 0.30 // '.' icin dar cell
-const GAP = 0.16 // karakterler arasi bosluk / yukseklik
-const THICK = 0.135 // segment kalinligi / yukseklik (kalin bar)
+// Cell oranlari (rakam yuksekligine gore) — GERCEK SMC 7-seg: rakam DAR ve UZUN (foto: ferah, haneler net ayrik), kalin bar.
+const DIGIT_W = 0.46 // rakam genisligi / yukseklik (DAR/uzun → ferah, deger sutunu doldurmaz, merkez kanal kalir)
+const DOT_W = 0.24 // '.' icin dar cell
+const GAP = 0.13 // karakterler arasi bosluk / yukseklik
+const THICK = 0.13 // segment kalinligi / yukseklik
 
 /** Bir string'in toplam genisligi (px) — sag-yasli hizalama icin onceden olculur. */
 export function measureSevenSeg(text: string, h: number): number {
