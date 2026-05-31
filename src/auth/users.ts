@@ -120,8 +120,14 @@ export function updateProfile(id: string, patch: ProfilePatch): void {
   write(users)
 }
 
-export function removeUser(id: string): void {
-  write(read().filter((u) => u.id !== id))
+// SON YÖNETİCİYİ silmeyi ENGELLE (kendini-kilitleme koruması): hiç admin kalmazsa AdminUsers paneli/şifre tanımı kalıcı erişilemez olur
+// (ensureSeed yalnız users.length===0 iken çalışır). false dönerse silinmedi.
+export function removeUser(id: string): boolean {
+  const users = read()
+  const target = users.find((u) => u.id === id)
+  if (target?.role === 'admin' && users.filter((u) => u.role === 'admin').length <= 1) return false
+  write(users.filter((u) => u.id !== id))
+  return true
 }
 
 export async function verify(id: string, password: string): Promise<boolean> {
@@ -149,9 +155,15 @@ export function importUsers(json: string): { added: number; updated: number } {
   for (const raw of incoming) {
     const u = raw as Partial<User>
     if (!u || typeof u.id !== 'string' || typeof u.hash !== 'string' || typeof u.firstName !== 'string') continue // gecersiz kayit atla
+    // GÜVENLİK: rol/soyad DOĞRULA. Bozuk/kötü niyetli dosya yetki değiştiremesin; geçersiz rol → 'user'.
+    const role: Role = (u.role === 'admin' || u.role === 'user') ? u.role : 'user'
+    const lastName = typeof u.lastName === 'string' ? u.lastName : ''
     const idx = current.findIndex((x) => x.id === u.id)
-    if (idx >= 0) { current[idx] = { ...current[idx], ...(u as User) }; updated++ }
-    else { current.push(u as User); added++ }
+    if (idx >= 0) {
+      // MEVCUT kişinin ROLÜNÜ KORU → içe aktarılan dosya sessizce admin'i user'a düşüremez / kullanıcıyı admin yapamaz.
+      current[idx] = { ...current[idx], ...u, role: current[idx].role, lastName: lastName || current[idx].lastName }
+      updated++
+    } else { current.push({ ...(u as User), role, lastName }); added++ }
   }
   write(current)
   return { added, updated }

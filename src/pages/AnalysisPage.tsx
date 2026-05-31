@@ -148,7 +148,7 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                     <span className="text-sm font-semibold text-[var(--ink)]">{t(m.name)}</span>
                     <span className="ml-auto flex items-baseline gap-1">
                       <span className="num text-2xl font-bold text-white" style={{ textShadow: `0 0 18px ${m.color}66` }}>{fmt(s.cur, m.digits)}</span>
-                      <span className="text-xs text-[var(--ink-soft)]">{m.unitShort}</span>
+                      <span className="text-xs text-[var(--ink-soft)]">{t(m.unitShort)}</span>
                     </span>
                   </div>
                   <Sparkline values={series} color={m.color} min={m.min} max={m.max} height={50} />
@@ -157,7 +157,7 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                       <div key={label}>
                         <div className="text-[10px] text-[var(--ink-soft)]">{t(label)}</div>
                         <div className="num text-sm font-semibold text-white">
-                          {fmt(val, m.digits)} <span className="text-[10px] font-normal text-[var(--ink-soft)]">{m.unitShort}</span>
+                          {fmt(val, m.digits)} <span className="text-[10px] font-normal text-[var(--ink-soft)]">{t(m.unitShort)}</span>
                         </div>
                       </div>
                     ))}

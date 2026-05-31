@@ -93,7 +93,7 @@ export function PipeOverlay({
               </div>
               <div className="mt-0.5 flex items-baseline gap-1" style={shadow}>
                 <span className="num text-2xl font-bold leading-none text-[var(--ink)]">{fmt(v, m.digits)}</span>
-                <span className="text-[11px] font-medium text-[var(--ink-soft)]">{m.unitShort}</span>
+                <span className="text-[11px] font-medium text-[var(--ink-soft)]">{t(m.unitShort)}</span>
                 {thr && (
                   <span className="ml-0.5 flex items-center gap-0.5 text-[9px]" style={{ color: below ? '#FFB04D' : 'var(--c-saving)' }}>
                     {below ? <ArrowDown size={9} /> : <ArrowUp size={9} />}{thr.label}

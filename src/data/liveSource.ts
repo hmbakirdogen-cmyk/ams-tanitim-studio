@@ -73,14 +73,16 @@ export class LiveDataSource implements DataSource {
           if (d.settings && this.onDeviceSettings) this.onDeviceSettings(d.settings as Partial<DeviceSettings>)
           return
         }
-        const flow = Number(d.flow) || 0
-        const pressure = Number(d.pressure) || 0
+        // Number.isFinite → GERÇEK 0 ile geçersiz/eksik (NaN/undefined) ayrımı korunur; yalnız geçersiz değer 0'a düşer
+        const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
+        const flow = num(d.flow)
+        const pressure = num(d.pressure)
         const reading: Reading = {
           t: Date.now() - this.t0,
           flow,
           pressure,
-          temperature: Number(d.temperature) || 0,
-          humidity: Number(d.humidity) || 0,
+          temperature: num(d.temperature),
+          humidity: num(d.humidity),
           mode: (d.mode as Mode) ?? deriveMode(flow, pressure),
         }
         this.setStatus('connected')

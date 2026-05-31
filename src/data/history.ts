@@ -38,7 +38,10 @@ const round3 = (v: number) => Math.round(v * 1000) / 1000
 function read(src: HistorySource): Sample[] {
   try {
     const raw = localStorage.getItem(keyFor(src))
-    return raw ? (JSON.parse(raw) as Sample[]) : []
+    const parsed = raw ? JSON.parse(raw) : []
+    // YAPI DOĞRULA: bozuk/eski-şema veri NaN üretmesin (her örnek 6 sayılı tuple olmalı) → değilse boş başla
+    if (!Array.isArray(parsed) || !parsed.every((r) => Array.isArray(r) && r.length === 6 && r.every((n) => typeof n === 'number'))) return []
+    return parsed as Sample[]
   } catch {
     return []
   }
@@ -87,6 +90,8 @@ function ensureLoaded(src: HistorySource): Cache {
  */
 export function appendReading(src: HistorySource, r: Reading, absMs: number): void {
   const c = ensureLoaded(src)
+  // MONOTONLUK: saat geri giderse (DST/elle ayar) eski-zamanli ornek EKLENMESIN → rows daima artan kalir (grafik geriye sicramaz)
+  if (c.rows.length && absMs <= c.rows[c.rows.length - 1][0]) return
   const bucket = Math.floor(absMs / BUCKET_MS)
   if (bucket === c.lastBucket) return // ayni dakika -> seyrelt, atla
   c.lastBucket = bucket
@@ -108,7 +113,7 @@ export interface HistoryResult {
 export function queryHistory(src: HistorySource, startMs?: number, endMs?: number): HistoryResult {
   const c = ensureLoaded(src)
   const rows = c.rows
-  if (!rows.length) return { points: [], startedAt: startMs ?? rows[0]?.[0] ?? 0 }
+  if (!rows.length) return { points: [], startedAt: startMs ?? 0 } // rows boş → rows[0] ulaşılamazdı (ölü ifade kaldırıldı)
   const startedAt = rows[0][0]
   const s = startMs ?? startedAt
   const e = endMs ?? rows[rows.length - 1][0]

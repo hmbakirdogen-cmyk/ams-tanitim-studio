@@ -30,8 +30,9 @@ class SoundEngine {
 
   // Tek ton (yumusak zarf ile - tiklamasiz)
   private blip(freq: number, dur: number, type: OscillatorType = 'sine', vol = 0.12): void {
-    if (this.muted || !this.master) return
-    const ctx = this.ensure()
+    if (this.muted) return
+    const ctx = this.ensure() // master'i garanti olusturur → İLK etkilesim sesi de calar (eski '!this.master' guard'i onu yutuyordu)
+    if (!this.master) return
     const t = ctx.currentTime
     const osc = ctx.createOscillator()
     const g = ctx.createGain()

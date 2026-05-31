@@ -46,7 +46,7 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
     const onLeave = () => { ptr.tx = 0; ptr.ty = 0 }
     // dokunma panellere gitsin diye listener WINDOW'da (canvas pointer-events:none)
     window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerleave', onLeave)
+    window.addEventListener('blur', onLeave)
 
     // SABİT HAVUZLAR (kare-başı tahsis yok)
     // Yatay akış zerreleri: x ilerler; lane = dikey bant; dep = derinlik (0 uzak/küçük/yavaş → 1 yakın/iri/hızlı)
@@ -139,7 +139,7 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
     return () => {
       cancelAnimationFrame(raf); ro.disconnect()
       window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerleave', onLeave)
+      window.removeEventListener('blur', onLeave)
     }
   }, [])
 

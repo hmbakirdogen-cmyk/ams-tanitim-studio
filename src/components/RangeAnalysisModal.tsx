@@ -168,7 +168,7 @@ export function RangeAnalysisModal({
                 <div className="mb-2 flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: m.color, boxShadow: `0 0 10px ${m.color}` }} />
                   <span className="text-sm font-semibold text-white">{t(m.name)}</span>
-                  <span className="ml-auto text-[11px] text-[var(--ink-soft)]">{m.unitShort}</span>
+                  <span className="ml-auto text-[11px] text-[var(--ink-soft)]">{t(m.unitShort)}</span>
                 </div>
                 <Sparkline values={downsample(series)} color={m.color} min={m.min} max={m.max} height={48} />
                 <div className="mt-2 grid grid-cols-3 gap-2">
@@ -176,7 +176,7 @@ export function RangeAnalysisModal({
                     <div key={label}>
                       <div className="text-[10px] text-[var(--ink-soft)]">{t(label)}</div>
                       <div className="num text-sm font-semibold text-white">
-                        {fmt(val, m.digits)} <span className="text-[10px] font-normal text-[var(--ink-soft)]">{m.unitShort}</span>
+                        {fmt(val, m.digits)} <span className="text-[10px] font-normal text-[var(--ink-soft)]">{t(m.unitShort)}</span>
                       </div>
                     </div>
                   ))}

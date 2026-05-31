@@ -52,7 +52,7 @@ export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; hist
         {/* 2) Baskın değer */}
         <div className="relative mt-1 flex items-baseline gap-1" style={{ transform: 'translateZ(18px)' }}>
           <span className={`num ${NUM_SIZE.xs} font-bold leading-none text-white tabular-nums`} style={{ textShadow: `0 0 18px ${def.color}66` }}>{text}</span>
-          <span className="text-[10px] font-medium text-[var(--ink-soft)]">{def.unitShort}</span>
+          <span className="text-[10px] font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
         </div>
         {/* 3) Trend + EKSEN GÖSTERGESİ (Mehmet Abi: hareket + eksenler ne ifade ediyor): canlı nokta+nabız (hareket);
             SOL Y-ekseni = değer aralığı (max üst / min alt, birimiyle); ALT X-ekseni = zaman (geçmiş → şimdi). Ferah, kalabalıksız. */}
@@ -69,7 +69,7 @@ export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; hist
           </div>
           {/* X EKSENİ: zaman yönü + Y ekseni birimi (eksenlerin ne ifade ettiği net) */}
           <div className="mt-1 flex items-center justify-between text-[8px] uppercase tracking-wide text-[var(--ink-soft)]/80">
-            <span>{def.unitShort}</span>
+            <span>{t(def.unitShort)}</span>
             <span>← {t('zaman')} · {t('şimdi')} →</span>
           </div>
         </div>
@@ -99,7 +99,7 @@ export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; hist
         >
           {text}
         </span>
-        <span className="text-xs font-medium text-[var(--ink-soft)]">{def.unitShort}</span>
+        <span className="text-xs font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
       </div>
 
       {/* Kendi mini canli grafigi - her veri kendi karakterini gosterir */}

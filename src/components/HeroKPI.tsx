@@ -37,12 +37,14 @@ export function HeroKPI({ percent, mode }: { percent: number; mode: Mode }) {
         </div>
         <div className="mt-2 text-xs text-[var(--ink-soft)]">{t('Normal çalışmaya göre daha az hava tüketimi')}</div>
       </div>
-      <div style={{ transform: 'translateZ(12px)' }}>
+      {/* MOD BLOĞU SABİT YÜKSEKLİK (Mehmet Abi: mod değişince kart boyu DEĞİŞMESİN → alttaki kartlar kaymasın):
+          MODE_DESC modlar arası 1-2 satır oynuyordu; h-[3.6em]+overflow-hidden ile blok hep aynı → kart HEP aynı ölçü. */}
+      <div className="h-[3.6em] overflow-hidden" style={{ transform: 'translateZ(12px)' }}>
         <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: c, boxShadow: `0 0 10px ${c}` }} />
-          <span className="text-base font-semibold text-white">{t(MODE_LABEL[mode])}</span>
+          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c, boxShadow: `0 0 10px ${c}` }} />
+          <span className="truncate text-base font-semibold text-white">{t(MODE_LABEL[mode])}</span>
         </div>
-        <div className="mt-0.5 text-xs text-[var(--ink-soft)]">{t(MODE_DESC[mode])}</div>
+        <div className="mt-0.5 text-xs leading-snug text-[var(--ink-soft)]">{t(MODE_DESC[mode])}</div>
       </div>
     </Tilt3D>
   )

@@ -125,6 +125,12 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
   animation: ring-pulse 1.8s ease-out infinite;
 }
 
+/* --- Hareket azaltma (a11y / WCAG 2.3.3): kullanici "reduced motion" istediyse SONSUZ CSS animasyonlarini durdur --- */
+/* (sinif-hedefli → transition/tema-gecisi BOZULMAZ; r3f WebGL sahne ayri katman, bu media query onu etkilemez.) */
+@media (prefers-reduced-motion: reduce) {
+  .smc-logo-glow, .animate-aurora, .animate-live, .animate-float, .live-ring::after { animation: none !important; }
+}
+
 /* --- Ince scrollbar (gerekirse) --- */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: rgba(126,170,230,0.25); border-radius: 8px; }

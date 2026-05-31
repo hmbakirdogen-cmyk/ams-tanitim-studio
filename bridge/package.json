@@ -1,0 +1,15 @@
+{
+  "name": "ams-opcua-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AMS Tanitim Studio — yerel OPC UA <-> WebSocket koprusu (offline, tek makine)",
+  "main": "opcua-bridge.mjs",
+  "scripts": {
+    "start": "node opcua-bridge.mjs"
+  },
+  "dependencies": {
+    "node-opcua": "2.133.0",
+    "ws": "8.18.0"
+  }
+}

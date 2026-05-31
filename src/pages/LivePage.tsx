@@ -21,8 +21,10 @@ import { useMetrics, type MetricDef, type MetricKey } from '@/data/metrics'
 import { savingPercent } from '@/lib/savings'
 import { useSensorVisibility } from '@/data/sensorVisibility'
 import { useDeviceSettings } from '@/data/deviceSettings'
+import { useEconomy } from '@/data/economy'
 import { fmtInt, fmt2 } from '@/lib/format'
 import { useLang } from '@/i18n'
+import { useMemo } from 'react'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
 export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
@@ -31,9 +33,12 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   const metrics = useMetrics() // aktif modele gore reaktif (debi/basinc olcegi modelle gelir)
   const byKey = Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<MetricKey, MetricDef>
   const { visible } = useSensorVisibility()
-  const visibleMetrics = metrics.filter((m) => visible[m.key])
+  // visibleMetrics MEMO'lu → referans yalnız model/görünürlük değişince değişir (tik başına yeni referans + gereksiz sort/sampleY çöpü önlenir).
+  const visibleMetrics = useMemo(() => metrics.filter((m) => visible[m.key]), [metrics, visible])
   const mode = reading?.mode ?? 'normal'
-  const percent = reading ? savingPercent(reading.flow) : 0
+  // Tasarruf % = AKTİF MODEL baseline'ına göre (SavingsPage + demoSource ile birebir tutarlı; eski sabit 1800 yerine economy.baselineFlow).
+  const { economy } = useEconomy()
+  const percent = reading ? savingPercent(reading.flow, economy.baselineFlow) : 0
   // Ortak AmbientScene için akış hızı 0..1 (canlı veriyle hava zerreleri hızlanır) — debi metriğinin kendi ölçeğine normalize
   const flowNorm = reading && byKey.flow
     ? Math.max(0, Math.min(1, (byKey.flow.get(reading) - byKey.flow.min) / (byKey.flow.max - byKey.flow.min)))
@@ -42,8 +47,8 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   // ESIK degerleri (Urun Ayarlari'ndan) - PipeOverlay'de okunabilir etiket (anlik deger + birim)
   const { settings: dev } = useDeviceSettings()
   const thrInfo: Record<string, { value: number; label: string } | undefined> = {
-    flow: byKey.flow ? { value: dev.standbyThreshold, label: `${fmtInt(dev.standbyThreshold)} ${byKey.flow.unitShort}` } : undefined,
-    pressure: byKey.pressure ? { value: dev.standbyPressure, label: `${fmt2(dev.standbyPressure)} ${byKey.pressure.unitShort}` } : undefined,
+    flow: byKey.flow ? { value: dev.standbyThreshold, label: `${fmtInt(dev.standbyThreshold)} ${t(byKey.flow.unitShort)}` } : undefined,
+    pressure: byKey.pressure ? { value: dev.standbyPressure, label: `${fmt2(dev.standbyPressure)} ${t(byKey.pressure.unitShort)}` } : undefined,
   }
 
   // Kibar, kurumsal ama sicak karsilama - kisiye ismiyle ([Soyad] Bey)
@@ -75,7 +80,8 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             {/* AKIŞ — cihaz büyük; 3D AmbientScene CİHAZIN HEMEN ARKASINDA (panel içinde, ilk katman) → DeviceFlowChart şeffaf üstüne biner */}
             <div className="glass relative min-h-0 flex-[3] overflow-hidden rounded-3xl">
               <AmbientScene theme={theme} flow={flowNorm} />
-              <DeviceFlowChart reading={reading} metrics={visibleMetrics} mode={mode} theme={theme} />
+              {/* Cihaz görseli TÜM sensörlerin tek-doğruluk gösterimi → TAM metrics (gizleme yalnız kart/overlay'de; LCD satırları kaymaz) */}
+              <DeviceFlowChart reading={reading} metrics={metrics} mode={mode} theme={theme} />
               <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} theme={theme} />
             </div>
             {/* KLASİK — akışın ALTINDA, tam orantılı; SABİT ~16 sn'lik canlı range (Mehmet Abi: zaman çubuğu/tarih ölçeği KALDIRILDI) */}

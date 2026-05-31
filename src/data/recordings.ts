@@ -33,7 +33,7 @@ function read(): Recording[] {
   }
 }
 function write(list: Recording[]): void {
-  localStorage.setItem(KEY, JSON.stringify(list))
+  try { localStorage.setItem(KEY, JSON.stringify(list)) } catch { /* offline / kota dolu - sessizce gec (history.ts/connection.ts deseniyle hizali) */ }
 }
 
 export function listRecordings(): Recording[] {

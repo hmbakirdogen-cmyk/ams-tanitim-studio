@@ -1,7 +1,21 @@
 # HANDOFF — AMS Tanıtım Stüdyosu
 
-**Son güncelleme:** 2026-05-31 (İki grafiğe ORTAK ambiyans sahnesi — AmbientScene — eklendi + Canlı Panel sadeleştirildi; commit `7f22497`, push edildi → canlı)
-**Durum:** Çalışıyor + CANLI yayında. `npm run dev` → http://localhost:5180 · `npm run build` ✅ (offline).
+**Son güncelleme:** 2026-05-31 (TÜM PROGRAM derin denetim — 24+9 ajan — + 30+ düzeltme; grafik geniş pencere/perspektif; köprü sertleştirme. Hepsi push edildi → canlı)
+**Durum:** Çalışıyor + CANLI yayında. `npm run dev` → http://localhost:5180 · `npm run build` ✅ (offline). typecheck+build sıfır hata.
+
+## 🟢 EN SON NEREDE KALDIK (2026-05-31, 3. tur) — DERİN DENETİM + 30+ DÜZELTME + grafik optimizasyonu
+**Çok-ajanlı denetim** (Workflow, 12 dilim × denetim+adversaryal-doğrula): **60 doğrulanmış bulgu, KRİTİK YOK.** Hepsi düzeltildi (aşağıda). Kritik olanlar:
+- **DeviceFlowChart metrik eşleme:** LivePage artık DeviceFlowChart'a TAM `metrics` geçiriyor (eskiden `visibleMetrics` → sensör gizlenince regülatör/hub LCD index kayıp yanlış metrik/birim gösteriyordu). readoutRef anahtar-bazlı.
+- **Tasarruf %:** LivePage `savingPercent(flow, economy.baselineFlow)` (eskiden sabit 1800 → model değişince yanlıştı; SavingsPage ile tutarlı).
+- **useSmoothNumber:** hedefe oturunca rAF DURUR (boşta sonsuz 60fps yanmıyordu).
+- **Auth güvenlik:** `removeUser` SON YÖNETİCİYİ silmez (boolean) + AdminUsers son-admin sil-butonu gizli; `importUsers` rol/soyad doğrular + mevcut rolü korur; AdminUsers şifre alanları `type=password`.
+- **Köprü (`bridge/opcua-bridge.mjs`) baştan sertleştirildi:** WS **127.0.0.1** (ağdan yetkisiz cihaz yazımı engellendi), kendini-zamanlayan okuma (çakışma yok), ardışık-hata sayacı+yeniden bağlan, StatusCode kontrolü (Bad→uyarı), session-yok'ta uygulamaya hata, cleanup race düzeltildi, `bridge/package.json` (sabit sürüm) + `baslat.bat` ws kontrolü.
+**Grafik (Hero3DChart) — Mehmet Abi istekleri:**
+- Fare ile 3D oynamıyor (kamera sabit). Perspektif YUMUŞATILDI (kamera z 9→13, fov 42→30) → "şimdi" uçları daha hizalı. `SPAN_X` 17→21 (uçlar panel kenarına/"şimdi"ye uzanır).
+- **GENİŞ zaman penceresi** (Mehmet Abi sevdi): `L` 200→600, `MAX_POINTS` 210→620 → **~48 sn** pencere (eskiden 16sn). Not: arka-plan sekmede tarayıcı throttle ettiği için ~56sn görünebiliyordu; artık kalıcı geniş.
+**Diğer düzeltmeler (düşük):** ölü kod (TopBar silindi, react-router-dom kaldırıldı, registerSW sadeleşti, `label`/`displays` temizliği), perf (sampleY çift-hesap, visibleMetrics memo), i18n (`unitShort` t() ile tüm tüketicilerde → l/dak EN/JA çevrilir; %-etiketi dile göre), dayanıklılık (recordings/history try-catch + monotonluk + şekil-doğrulama, liveSource Number.isFinite, sound ilk-ses guard, AmbientScene blur, clipboard fallback, backup TAM-değiştir, reduced-motion a11y, HeroKPI mod bloğu SABİT yükseklik → kartlar kaymaz).
+**⏳ KALAN düşük-öncelik (opsiyonel, yeni pencere):** sensorVisibility'yi paylaşımlı-store'a çevir (sayfalar arası anlık yansısın); metrics temp/humidity max'ı canlı cihaz için genişlet; birkaç bayat yorum (App muted, connection mobil-override, demoSource standby 0.2, deviceSettings lastFromDevice tek-atışlık, AdminUsers transferMsg yeri); şifre saltsız SHA-256 (demo geçidi, kabul edilmiş).
+**Açık görsel kararı (Mehmet Abi'ye):** Geri-dönüş/egzoz animasyon optimizasyonu — yön sorulmuştu (1: aşağı-dön, 3: jete dikişsiz), bekliyor. Grafik perspektifi "çok düz mü" diye Mehmet bakacak.
 **Canlı:** https://hmbakirdogen-cmyk.github.io/ams-tanitim-studio/ · Repo (public): github.com/hmbakirdogen-cmyk/ams-tanitim-studio · **master push → otomatik deploy** (`.github/workflows/deploy.yml`, `VITE_BASE=/ams-tanitim-studio/`).
 **Giriş:** Halil İbrahim Karakelle · şifre **`smc`** (varsayılan avatar gömülü: `public/users/halil.jpg`).
 **Hitabet (CC↔kullanıcı):** **Mehmet Abi**.

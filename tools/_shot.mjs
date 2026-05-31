@@ -58,6 +58,7 @@ const CLIPS = {
   socket: { x: 540, y: 250, width: 300, height: 200 },
   low: { x: 430, y: 300, width: 420, height: 175 },
   scrub: { x: 18, y: 958, width: 980, height: 50 },
+  chart: { x: 20, y: 690, width: 980, height: 320 },
 }
 const opts = { path: OUT }
 if (CLIPS[MODE]) opts.clip = CLIPS[MODE]

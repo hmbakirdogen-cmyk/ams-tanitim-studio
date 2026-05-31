@@ -77,9 +77,10 @@ export function useAuth(): Auth {
   )
 
   const removeUser = useCallback(
-    (id: string) => {
-      store.removeUser(id)
-      refresh()
+    (id: string): boolean => {
+      const ok = store.removeUser(id) // son yönetici korumalı → false dönebilir
+      if (ok) refresh()
+      return ok
     },
     [refresh],
   )

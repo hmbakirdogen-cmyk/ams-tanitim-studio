@@ -375,7 +375,7 @@ const EN: Record<string, string> = {
   // Cihaz Akisi gorunumu (DeviceFlowChart / PipeOverlay devreye-girme)
   'Regülatör devrede': 'Regulator engaged',
   'Valf devrede': 'Valve engaged',
-  // Mobil engel (MobileBlocked) + TopBar
+  // Mobil engel (MobileBlocked)
   'Bu tanıtım uygulaması şu anda': 'This showcase app currently runs',
   'yalnızca bilgisayarda': 'only on a computer',
   'çalışmaktadır. Lütfen bir': '. Please open it on a',
@@ -764,7 +764,7 @@ const JA: Record<string, string> = {
   // Cihaz Akisi gorunumu (DeviceFlowChart / PipeOverlay devreye-girme)
   'Regülatör devrede': 'レギュレータ作動中',
   'Valf devrede': 'バルブ作動中',
-  // Mobil engel (MobileBlocked) + TopBar
+  // Mobil engel (MobileBlocked)
   'Bu tanıtım uygulaması şu anda': 'このショーケースアプリは現在',
   'yalnızca bilgisayarda': 'コンピューターのみ',
   'çalışmaktadır. Lütfen bir': 'で動作します。次の機器で開いてください：',

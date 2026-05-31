@@ -30,7 +30,8 @@ function windowSpanSec(history: Reading[]): number {
 }
 
 export function ChartOverlay({ reading, history = [], metrics = METRICS }: { reading: Reading | null; history?: Reading[]; metrics?: MetricDef[] }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
+  const pct = (g: number) => (lang === 'tr' ? `%${g}` : `${g}%`) // yüzde yazımı dile göre (TR: %50, EN/JA: 50%)
   const elapsed = fmtElapsed(reading?.t ?? 0)
   const spanSec = windowSpanSec(history)
   return (
@@ -57,7 +58,7 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
                 <span className="h-2 w-2 rounded-full" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
                 <span className="text-[11px] font-medium text-[var(--ink-soft)]">{t(m.name)}</span>
                 <span className="num text-sm font-bold text-white">{txt}</span>
-                <span className="text-[10px] text-[var(--ink-soft)]">{m.unitShort}</span>
+                <span className="text-[10px] text-[var(--ink-soft)]">{t(m.unitShort)}</span>
               </div>
             )
           })}
@@ -77,7 +78,7 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
         {LEVELS.map((g) => (
           <div key={g} className="absolute inset-x-12 flex items-center" style={{ top: `${100 - g}%` }}>
             <span className="-translate-y-1/2 rounded bg-[#04060f]/40 px-1 text-[10px] font-medium text-[var(--ink)]" style={shadow}>
-              %{g}
+              {pct(g)}
             </span>
             <div className="ml-2 h-px flex-1" style={{ background: 'var(--hair)' }} />
           </div>

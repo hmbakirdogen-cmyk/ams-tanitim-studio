@@ -19,12 +19,15 @@ if errorlevel 1 (
   exit /b 1
 )
 
-REM 2) Bagimliliklar (node-opcua, ws) - sadece ILK calistirmada yuklenir
-if not exist "node_modules\node-opcua" (
+REM 2) Bagimliliklar (node-opcua + ws) - sadece ILK calistirmada yuklenir (ikisi de kontrol edilir, sabit surumler package.json'da)
+if not exist "node_modules\node-opcua" goto :install
+if not exist "node_modules\ws" goto :install
+goto :run
+:install
   echo [KURULUM] Ilk calistirma: gerekli paketler yukleniyor ^(node-opcua, ws^)...
   echo Bu yalnizca BIR KEZ ve internet gerektirir. Sonrasi tamamen cevrimdisi calisir.
   echo.
-  call npm install node-opcua ws
+  call npm install
   if errorlevel 1 (
     echo.
     echo [HATA] Paket kurulumu basarisiz. Internet baglantisini kontrol edip tekrar deneyin.
@@ -33,6 +36,7 @@ if not exist "node_modules\node-opcua" (
   )
 )
 
+:run
 REM 3) Kopruyu baslat - BU PENCERE ACIK KALSIN
 echo.
 echo [HAZIR] Kopru baslatiliyor... Uygulamada "Canli Moda Gec" diyebilirsiniz.

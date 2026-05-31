@@ -30,15 +30,26 @@ const NODE_FIELDS: { key: keyof NodeIds; label: string }[] = [
 ]
 
 // Kopyalanabilir komut satiri
+// Pano fallback (Clipboard API yoksa: offline/file:// / güvenli olmayan bağlam) → gizli textarea + execCommand('copy')
+function fallbackCopy(text: string): boolean {
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'
+    document.body.appendChild(ta); ta.focus(); ta.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(ta)
+    return ok
+  } catch { return false }
+}
+
 function Cmd({ text }: { text: string }) {
   const { t } = useLang()
   const [done, setDone] = useState(false)
   const copy = () => {
-    navigator.clipboard?.writeText(text).then(() => {
-      sound.click()
-      setDone(true)
-      window.setTimeout(() => setDone(false), 1300)
-    })
+    const ok = () => { sound.click(); setDone(true); window.setTimeout(() => setDone(false), 1300) }
+    // Güvenli bağlam (https/canlı) → Clipboard API. OFFLINE/file:// gibi yerde clipboard yoksa → textarea+execCommand fallback (sessiz başarısız olmasın).
+    if (navigator.clipboard?.writeText) { navigator.clipboard.writeText(text).then(ok).catch(() => fallbackCopy(text) && ok()) }
+    else if (fallbackCopy(text)) ok()
   }
   return (
     <div className="flex items-center gap-2 rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2">

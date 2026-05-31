@@ -24,6 +24,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { asset } from '@/lib/asset'
 import type { Reading, Mode } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
+import { useLang } from '@/i18n'
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
 
@@ -88,26 +89,29 @@ export function DeviceFlowChart({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const { t } = useLang() // cihaz LCD birimleri (l/dak) dil-uyumlu yazılsın (i18n: MPa/°C/% evrensel)
 
   const byKey = useMemo(() => Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<string, MetricDef>, [metrics])
   // Anlik hedef degerler + her sensorun KENDI rengi (metrics.ts → tek dogruluk) — her render guncellenir
   const targetRef = useRef({ flow: 0, pressure: 0, temp: 0, hum: 0, mode })
-  const colorRef = useRef({ flow: [46, 155, 255], pressure: [54, 224, 200], hum: [124, 224, 255] as number[] })
+  // GEÇİCİ varsayılan RGB (metrics gelene kadar); satır 101-103'te metrics.ts renkleriyle (tek doğruluk) üzerine yazılır.
+  const colorRef = useRef<{ flow: number[]; pressure: number[]; hum: number[] }>({ flow: [46, 155, 255], pressure: [54, 224, 200], hum: [124, 224, 255] })
   // Cihaz LCD'lerine basilacak GERÇEK rakamlar (deger + birim + renk) — PDF: hub ekrani basinc/debi/sicaklik gosterir
-  const readoutRef = useRef<{ label: string; value: string; unit: string; rgb: number[] }[]>([])
+  const readoutRef = useRef<{ value: string; unit: string; rgb: number[] }[]>([])
   {
     const nv = (k: string) => { const m = byKey[k]; return !m || !reading ? 0 : clamp01((m.get(reading) - m.min) / (m.max - m.min)) }
     targetRef.current = { flow: nv('flow'), pressure: nv('pressure'), temp: nv('temperature'), hum: nv('humidity'), mode }
     if (byKey.flow) colorRef.current.flow = hexRGB(byKey.flow.color)
     if (byKey.pressure) colorRef.current.pressure = hexRGB(byKey.pressure.color)
     if (byKey.humidity) colorRef.current.hum = hexRGB(byKey.humidity.color)
-    // Ekran satirlari (hub LCD): PDF sirasi basinc / debi / sicaklik
+    // Ekran satirlari (hub LCD): PDF sirasi basinc / debi / sicaklik. ANAHTAR-bazli (byKey.*) — sensor gizlense bile satirlar kaymaz;
+    // LivePage tam metrics gecirir (gorunurluk yalniz kart/overlay'de), birim t() ile cevrilir (l/dak EN/JA).
     const fmt = (m: MetricDef | undefined) => {
       if (!m || !reading) return null
       const v = m.get(reading)
-      return { label: m.name, value: new Intl.NumberFormat('tr-TR', { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(v), unit: m.unitShort, rgb: hexRGB(m.color) }
+      return { value: new Intl.NumberFormat('tr-TR', { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(v), unit: t(m.unitShort), rgb: hexRGB(m.color) }
     }
-    readoutRef.current = [fmt(byKey.pressure), fmt(byKey.flow), fmt(byKey.temperature)].filter(Boolean) as { label: string; value: string; unit: string; rgb: number[] }[]
+    readoutRef.current = [fmt(byKey.pressure), fmt(byKey.flow), fmt(byKey.temperature)].filter(Boolean) as { value: string; unit: string; rgb: number[] }[]
   }
   const themeRef = useRef(theme)
   themeRef.current = theme
@@ -124,8 +128,8 @@ export function DeviceFlowChart({
     let deviceCanvas: HTMLCanvasElement | null = null
     let devAR = 1
     const meas = { axis: FB_AXIS, pipe: FB_PIPE, inX: FB_IN, outX: FB_OUT }
-    // Tespit edilen dijital ekran dikdortgenleri (tum-foto orani 0..1)
-    let displays: { x: number; y: number; w: number; h: number }[] = FB_DISPLAYS
+    // Dijital ekran dikdortgenleri (tum-foto orani 0..1) — SABIT foto-olcum (otomatik tespit kaldirildi → const)
+    const displays: { x: number; y: number; w: number; h: number }[] = FB_DISPLAYS
     img.onload = () => {
       devAR = img.width / img.height
       const oc = document.createElement('canvas')
@@ -638,7 +642,7 @@ export function DeviceFlowChart({
       raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
-    return () => { cancelAnimationFrame(raf); ro.disconnect() }
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); img.onload = null } // foto gec yuklenirse unmount sonrasi bos is yapmasin (closure serbest)
   }, [])
 
   return (

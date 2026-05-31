@@ -55,11 +55,18 @@ export function importAll(json: string): ImportResult {
   if (!parsed || parsed.kind !== 'ams-backup' || !data || typeof data !== 'object') {
     throw new Error('Geçersiz yedek dosyası')
   }
+  // TAM DEĞİŞTİR (onay metni "TÜM veriler DEĞİŞTİRİLECEK" der): önce mevcut ams_ anahtarlarını temizle (oturum hariç) →
+  //   yedekte OLMAYAN artık anahtarlar kalmaz, birebir geri yükleme olur (eski davranış "üzerine birleştir"di → tutarsızdı).
+  const toClear: string[] = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)
+    if (k && k.startsWith(PREFIX) && !SKIP.has(k)) toClear.push(k)
+  }
+  toClear.forEach((k) => { try { localStorage.removeItem(k) } catch { /* offline - sessizce gec */ } })
   let keys = 0
   for (const [k, v] of Object.entries(data)) {
     if (typeof k === 'string' && k.startsWith(PREFIX) && !SKIP.has(k) && typeof v === 'string') {
-      localStorage.setItem(k, v)
-      keys++
+      try { localStorage.setItem(k, v); keys++ } catch { /* kota dolu - sessizce gec */ }
     }
   }
   return { mode: 'full', keys, users: countUsersIn(data as Record<string, string>) }

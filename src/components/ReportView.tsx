@@ -196,7 +196,7 @@ export function ReportView({
                         <div key={label}>
                           <div className="text-[10px] text-slate-400">{t(label)}</div>
                           <div className="num text-sm font-semibold text-slate-900">
-                            {fmt(val, m.digits)} <span className="text-[10px] font-normal text-slate-400">{m.unitShort}</span>
+                            {fmt(val, m.digits)} <span className="text-[10px] font-normal text-slate-400">{t(m.unitShort)}</span>
                           </div>
                         </div>
                       ))}

@@ -13,7 +13,7 @@ import { useConnection, setConnStatus } from '@/data/connection'
 import { appendReading } from '@/data/history'
 import { applyDeviceSettingsFromDevice, getDeviceSettings, subscribeDeviceSettings, wasLastChangeFromDevice } from '@/data/deviceSettings'
 
-const MAX_POINTS = 210 // grafikte tutulan son okuma sayisi (akan grafik; L=200 → ~16 sn pencere icin yeterli tampon)
+const MAX_POINTS = 620 // grafikte tutulan son okuma sayisi (akan grafik; L=600 → ~48 sn pencere icin yeterli tampon)
 const LOG_MAX = 4500 // analiz/kayit icin daha uzun gunluk (~6 dk @80ms tik)
 
 export interface LiveState {

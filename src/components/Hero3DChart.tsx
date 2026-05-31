@@ -26,9 +26,9 @@ import type { Reading } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 
 // --- Sahne sabitleri ---
-const SPAN_X = 17 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis(16sn)" (sol) kenara kadar.
+const SPAN_X = 21 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis(16sn)" (sol) PANEL KENARINA kadar (Mehmet Abi: uclar "simdi"ye degsin).
 const MAX_H = 4.0 // normalize deger -> yukseklik
-const L = 200 // ekran penceresi nokta sayisi (~16 sn @80ms tik; Mehmet Abi: sabit 16 sn range) + boru boyu cozunurlugu (puruzsuz)
+const L = 600 // ekran penceresi nokta sayisi (~48 sn @80ms tik) — Mehmet Abi GENIS zaman penceresini sevdi (sekme arkaplandayken gordugu ~56sn gibi); kalici/kontrollu
 const RADIAL = 12 // boru kesit cozunurlugu (yuvarlak)
 const TWO_PI = Math.PI * 2
 
@@ -99,7 +99,8 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
   const tubeRadius = Math.max(0.04, m.width * 0.62) // daha ince boru (gercek tel/boru hissi)
 
   const yRef = useRef<number[]>(new Array(L).fill(0.2))
-  const targetRef = useRef<number[]>(sampleY(history, m))
+  // useRef argümanı her render değerlendirilir ama yok sayılır → boş başlat; sampleY YALNIZ useMemo'da koşar (tik başına çift hesap önlenir).
+  const targetRef = useRef<number[]>([])
   targetRef.current = useMemo(() => sampleY(history, m), [history, m])
 
   // Yeniden kullanilan egri noktalari (kare basi tahsis yok)
@@ -262,9 +263,10 @@ function SweepLight() {
   return <pointLight ref={ref} position={[0, 3.2, 3]} color="#eaf3ff" intensity={3} distance={18} />
 }
 
-// SABİT kamera (Mehmet Abi: "alttaki grafik fare gezinmesiyle 3D oynamasın") — fare parallax'ı KALDIRILDI; kamera sabit konumda kilitli.
+// SABİT kamera (Mehmet Abi: "fare ile 3D oynamasın") — kamera GERİ alındı (z 9→13) → perspektif yumuşadı: tüplerin "şimdi" (sağ)
+//   uçları artık tek hatta daha iyi hizalanır (Mehmet Abi: "çubuklar şimdi'den başlamıyor gibi"); Z-derinlik (katmanlar) korunur.
 function ParallaxRig() {
-  const target = useMemo(() => new THREE.Vector3(0, 2.5, 9), [])
+  const target = useMemo(() => new THREE.Vector3(0, 2.4, 13), [])
   useFrame((state) => {
     state.camera.position.lerp(target, 0.045)
     state.camera.lookAt(0, 1.6, 0)
@@ -291,7 +293,7 @@ export function Hero3DChart({
     <Canvas
       dpr={[1, 2]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
-      camera={{ position: [0, 2.5, 9], fov: 42 }}
+      camera={{ position: [0, 2.4, 13], fov: 30 }}
     >
       <fog attach="fog" args={[fogColor, 12, 28]} />
       <ambientLight intensity={0.5} />
