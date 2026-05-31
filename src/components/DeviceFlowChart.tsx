@@ -123,12 +123,13 @@ export function DeviceFlowChart({
     if (byKey.pressure) colorRef.current.pressure = hexRGB(byKey.pressure.color)
     if (byKey.humidity) colorRef.current.hum = hexRGB(byKey.humidity.color)
     // Ham degerler (cizimde gercek cihaz cozunurlugu ile bicimlenir: basinc 3 hane, debi tam, sicaklik 1 hane).
-    // ANA EKRAN 2-RENK: operasyon disinda (standby/izolasyon = debi set-esige inip cikis aktif) KIRMIZI; aksi YESIL.
+    // ANA EKRAN 2-RENK (SMC marketing/kilavuz uyumu): NORMAL + STANDBY = YESIL (izleme); sadece IZOLASYON (hava kesildi,
+    //   esik/alarm durumu = cikis aktif) KIRMIZI. Onceden standby de kirmiziydi; gercek ekranda standby YESIL kaliyor (foto 05/06).
     readoutRef.current = {
       pressure: reading ? reading.pressure : null,
       flow: reading ? reading.flow : null,
       temp: reading ? reading.temperature : null,
-      mainRed: mode !== 'normal',
+      mainRed: mode === 'isolation',
     }
   }
   const themeRef = useRef(theme)

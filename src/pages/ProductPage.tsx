@@ -34,10 +34,10 @@ const MODES: { icon: LucideIcon; color: string; title: string; desc: string }[] 
 ]
 
 const COMPONENTS: { icon: LucideIcon; color: string; title: string; desc: string; img: string; imgB?: string }[] = [
-  { icon: Cpu, color: '#2E9BFF', title: 'Hava Yönetim Merkezi', desc: 'Debi, basınç ve sıcaklığı ölçer; üst sisteme veri iletir, regülatör ve valfi yönetir (EXA1).', img: 'products/exa1-hub.jpg' },
-  // Regulator modele gore: Tip A -> elektro-pnomatik (ITV), Tip B -> elle ayar (AR)
-  { icon: Gauge, color: '#36E0C8', title: 'Bekleme Regülatörü', desc: 'Basıncı uzaktan (elektro-pnömatik) veya elle ayarlayarak bekleme basıncına düşürür.', img: 'products/regulator-itv.jpg', imgB: 'products/regulator-ar.jpg' },
-  { icon: Wind, color: '#7CE0FF', title: 'Tahliye Valfi', desc: 'Üç yollu solenoid valf; havayı keser, kalan basıncı güvenle boşaltır (yumuşak başlatma seçeneği).', img: 'products/valve-vp.jpg' },
+  { icon: Cpu, color: '#2E9BFF', title: 'Hava Yönetim Merkezi', desc: 'Debi, basınç ve sıcaklığı ölçer; üst sisteme veri iletir, regülatör ve valfi yönetir (EXA1).', img: 'products/exa1-hub-hd.png' },
+  // Regulator modele gore: Tip A -> elektro-pnomatik (ITV), Tip B -> elle ayar (AR). HD: resmi SMC CAD render (seffaf, yuksek-coz).
+  { icon: Gauge, color: '#36E0C8', title: 'Bekleme Regülatörü', desc: 'Basıncı uzaktan (elektro-pnömatik) veya elle ayarlayarak bekleme basıncına düşürür.', img: 'products/regulator-itv-hd.png', imgB: 'products/regulator-ar.jpg' },
+  { icon: Wind, color: '#7CE0FF', title: 'Tahliye Valfi', desc: 'Üç yollu solenoid valf; havayı keser, kalan basıncı güvenle boşaltır (yumuşak başlatma seçeneği).', img: 'products/valve-vp-hd.png' },
 ]
 
 const CONNECT: { icon: LucideIcon; label: string }[] = [
@@ -90,11 +90,11 @@ export function ProductPage() {
               {t('Air Management System; ekipman beklemedeyken hava basıncını otomatik düşürür ya da keser. Debi, basınç ve sıcaklığı sürekli ölçer; enerji tasarrufunu görünür kılar. Endüstri 4.0 ve kestirimci bakım için doğrudan veri iletişimi sunar.')}
             </p>
           </div>
-          {/* GERCEK SMC urun gorseli (giris sayfasiyla AYNI) - hucreyi DOLDURUR (object-cover), belirgin/net/yuksek kalite */}
-          <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424]">
+          {/* GERCEK SMC urun fotosu (resmi SMC galeri, acili gercek fotograf) - hucreyi DOLDURUR (object-cover). Beyaz studyo zemin. */}
+          <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--hair)] bg-gradient-to-br from-white to-[#e9f1fa]">
             <img
-              src={asset('products/ams-diagram.jpg')}
-              alt="SMC Hava Yönetim Sistemi — fabrika hattında gerçek ürün"
+              src={asset('products/ams-hero.jpg')}
+              alt="SMC Hava Yönetim Sistemi — gerçek ürün fotoğrafı (resmi SMC)"
               className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
             />
@@ -160,7 +160,7 @@ export function ProductPage() {
         <Reveal>
           <Tilt3D className="glass mb-4 grid grid-cols-1 items-center gap-5 overflow-hidden rounded-2xl p-5 lg:grid-cols-[1.15fr_1fr]" max={4}>
             <div className="overflow-hidden rounded-xl border border-[var(--hair)]" style={{ background: 'linear-gradient(150deg,#ffffff,#e9f1fa)' }}>
-              <img src={asset('products/ams-system.jpg')} alt="SMC AMS — komple ünite (yakından, yüksek çözünürlük)" className="mx-auto max-h-[300px] w-full object-contain p-4" loading="lazy" />
+              <img src={asset('products/ams-system-hd.png')} alt="SMC AMS — komple ünite (resmi SMC CAD, yüksek çözünürlük)" className="mx-auto max-h-[300px] w-full object-contain p-4" loading="lazy" />
             </div>
             <div style={{ transform: 'translateZ(14px)' }}>
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--smc-bright)]">{t('Komple Ünite')} · {model.code}</div>
