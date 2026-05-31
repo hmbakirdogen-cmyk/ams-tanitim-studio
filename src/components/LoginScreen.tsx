@@ -75,9 +75,6 @@ export function LoginScreen({ auth }: { auth: Auth }) {
               style={{ objectPosition: '50% 50%' }}
               loading="lazy"
             />
-            {/* okunabilirlik için alttan hafif koyu gradyan (rozet/slogan netliği) */}
-            <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(4,10,22,0.55), transparent 38%)' }} />
-            <div className="absolute bottom-2.5 left-0 right-0 z-10 text-center text-[10.5px] font-semibold tracking-[0.14em] text-white/85" style={{ textShadow: '0 1px 8px rgba(0,0,0,0.7)' }}>EXPERTISE — PASSION — AUTOMATION</div>
           </div>
 
           {/* SAG: personel girisi */}
