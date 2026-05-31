@@ -2,6 +2,8 @@
  * NE      : Mesaj kahramani panel - anlik tasarruf yuzdesi (buyuk) + o anki calisma modu rozeti. 3D derinlikli (Tilt3D).
  * NEDEN   : Onem hiyerarsisi: tasarruf mesaji ferah, prominent, koseye sikismadan; "her yerde 3D".
  * NASIL   : useSmoothNumber ile akan %; mod rengine gore rozet; Tilt3D ile fareyle egilir, ic elemanlar translateZ ile one cikar.
+ *           % rakami SABIT GENISLIKTE (Mehmet Abi: "yazi degisince olcusu degismesin"): tabular-nums + min-genislik -> ziplamaz.
+ *           Arka planda hafif 3D DERINLIK: radyal vurgu + ust-ic isik + alt-ic golge (Tilt3D ile birlikte panel "yuzer" hisseder.
  * YAN ETKI: Saf gorsel; deger App'ten (reading.flow -> savingPercent).
  */
 import { useSmoothNumber } from '@/hooks/useSmoothNumber'
@@ -16,17 +18,20 @@ export function HeroKPI({ percent, mode }: { percent: number; mode: Mode }) {
   const c = MODE_COLOR[mode]
   return (
     <Tilt3D className="glass relative flex h-full flex-col justify-between overflow-hidden rounded-2xl p-6">
+      {/* 3D DERİNLİK arka planı: radyal tasarruf-yeşili vurgu + ust-ic isik / alt-ic golge (panel boşlukta yüzer hissi) */}
       <div
-        className="absolute -right-10 -top-10 h-36 w-36 rounded-full opacity-25 blur-3xl"
-        style={{ background: 'var(--c-saving)' }}
+        className="pointer-events-none absolute inset-0"
+        style={{ background: 'radial-gradient(120% 90% at 78% -10%, rgba(65,224,138,0.16), transparent 60%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -22px 40px -24px rgba(0,0,0,0.55)' }}
       />
-      <div style={{ transform: 'translateZ(22px)' }}>
+      <div className="relative" style={{ transform: 'translateZ(22px)' }}>
         <div className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--ink-soft)]">{t('Anlık Tasarruf')}</div>
         <div
-          className="num mt-1 text-6xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
+          className="num mt-1 inline-flex items-baseline text-6xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
           style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)' }}
         >
-          %{fmt1(p)}
+          {/* SABİT GENİŞLİK: % işareti + sağa hizalı sabit-genişlik rakam alanı → ondalık/hane değişince blok ZIPLAMAZ */}
+          <span>%</span>
+          <span className="inline-block text-right tabular-nums" style={{ minWidth: '2.6ch' }}>{fmt1(p)}</span>
         </div>
         <div className="mt-2 text-xs text-[var(--ink-soft)]">{t('Normal çalışmaya göre daha az hava tüketimi')}</div>
       </div>

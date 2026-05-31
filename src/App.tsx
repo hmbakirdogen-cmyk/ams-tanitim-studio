@@ -16,7 +16,6 @@ import { MobileBlocked } from './components/MobileBlocked'
 import { AdminUsers } from './components/AdminUsers'
 import { ProfileEditor } from './components/ProfileEditor'
 import { LivePage } from './pages/LivePage'
-import { SensorsPage } from './pages/SensorsPage'
 import { AnalysisPage } from './pages/AnalysisPage'
 import { SavingsPage } from './pages/SavingsPage'
 import { ProductPage } from './pages/ProductPage'
@@ -107,7 +106,6 @@ export default function App() {
                 transition={{ duration: 0.35, ease: 'easeOut' }}
               >
                 {page === 'live' && <LivePage data={data} greetName={auth.user.firstName} theme={theme} />}
-                {page === 'sensors' && <SensorsPage data={data} />}
                 {page === 'analysis' && <AnalysisPage data={data} />}
                 {page === 'savings' && <SavingsPage data={data} />}
                 {page === 'product' && <ProductPage />}

@@ -29,13 +29,18 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
 
 // Cihaz canvas'i neredeyse doldurur (kirpilmis icerik → cok BUYUK)
 const DEV_FILL = 0.985
+// KABLO KIRPMA (Mehmet Abi): alttan sarkan kabloyu kes → cihaza yer açılır. Çizilen kaynak yükseklik oranı (üst kısım).
+const CABLE_CROP = 0.74
+// CİHAZI AŞAĞI AL (Mehmet Abi: bu kadar yukarıda olmasın). Görünen bölge dikey ORTALANIR + bu kadar (H oranı) aşağı kayar.
+const DEV_DROP = 0.02
 // DEBİMETRE ODAKLI hafif zoom (Mehmet Abi): dış çerçeve/oranlar SABİT, içerik LCD'ye doğru birazcık büyür
 const ZOOM = 1.12
 const FOCUS_U = 0.49, FOCUS_V = 0.205   // debimetre LCD merkezi (zoom odağı; image #1)
 // Fallback port ekseni/capi/uclari (olcum tutmazsa)
 const FB_AXIS = 0.19, FB_PIPE = 0.06, FB_IN = 0.03, FB_OUT = 0.95  // image #1 (AMS40A): hava yolu ÜSTTE (yatay manifold)
-// Fallback dijital ekran dikdortgenleri (tum-foto orani) — tespit tutmazsa (hub LCD + ikincil)
-const FB_DISPLAYS = [{ x: 0.41, y: 0.165, w: 0.16, h: 0.095 }]  // image #1: üst-orta dijital monitör LCD
+// Hub LCD camı (tum-foto orani) — FOTO-ÖLÇÜM (tools/_lcdalign.py: morfolojik kapama + en büyük koyu bileşen → gerçek cam sınırı).
+//   Mehmet Abi: "overlay ölçüleri gerçek ekranla TAM örtüşsün" → değerler artık ekranın TAM içinde (eski kutu sağdan tuşlara taşıyordu).
+const FB_DISPLAYS = [{ x: 0.4304, y: 0.1742, w: 0.1414, h: 0.0842 }]  // image #1: üst-orta dijital monitör LCD (gerçek camla BİREBİR — foto-ölçüm; Mehmet Abi onayladı)
 // PDF'e gore modul bolgeleri (tum-foto x/y orani)
 const REG_FRAC: [number, number] = [0.155, 0.305] // standby/oransal regülatör — regüle hücresi (Mehmet Abi: biraz genişletildi)
 const REG_DISP: [number, number, number, number] = [0.198, 0.450, 0.073, 0.022] // regülatör KIRMIZI dijital LCD (image #1, foto-ölçüm) [x,y,w,h]
@@ -43,6 +48,8 @@ const VALVE_CX = 0.74                            // tahliye valfi merkezi (image
 const EXHAUST_CX = 0.76, EXHAUST_CY = 0.335      // egzoz = valf orta-ekseninin BİRAZ SAĞINDAKİ siyah parça (Mehmet Abi); hava AŞAĞI atılır
 // PDF LED konumlari (tum-foto orani; araştırma OMA1007/EXA1/VP): hub LCD altı 5'li satır + port LED + valf konnektör kırmızı + regülatör 2 yeşil
 const LED_VALVE: [number, number] = [0.72, 0.31]  // valf solenoid konnektör LED (image #1: sağ modül alt siyah konnektör) — KIRMIZI
+// VALF LED OYUĞU (Mehmet Abi: LED, gövdedeki DİKEY KAPSÜL oyuğun İÇİNDE, o oyuğun ŞEKLİNDE yanıp sönsün) — oyuk ölçüsü (tüm-foto oranı)
+const LED_VALVE_SLOT = { w: 0.011, h: 0.034 }     // dikey ince kapsül (genişlik«yükseklik); gözle nudge edilebilir
 const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (image #1: ekranın ALTINDA, foto-ölçüm) — YEŞİL, devredeyken parlar
 
 const FLOW_COUNT = 224       // akan molekül sayısı — Mehmet Abi: çoğaltıldı (160→224)
@@ -161,7 +168,7 @@ export function DeviceFlowChart({
         let minX = Wp, maxX = 0, minY = Hp, maxY = 0
         for (let p = 0; p < N; p++) if (a[p * 4 + 3] > 40) { const x = p % Wp, y = (p - x) / Wp; if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y }
         if (maxX > minX && maxY > minY) {
-          const cw = maxX - minX + 1, ch = maxY - minY + 1
+          const cw = maxX - minX + 1   // içerik genişliği (port x oranları için); yükseklik kullanılmıyordu → kaldırıldı (ölü değişken)
           const alpha = (x: number, y: number) => a[(y * Wp + x) * 4 + 3]
           const measurePort = (xc: number) => {
             let bottom = -1
@@ -184,32 +191,9 @@ export function DeviceFlowChart({
             meas.outX = (maxX - cw * 0.012) / Wp
           }
 
-          // DİJİTAL EKRAN tespiti: KOYU (display cami) dikdörtgen bölgeler. Bağlı-bileşen (4-yön) ile kümele, makul kutuları al.
-          const isDark = (p: number) => { const i = p * 4; return a[i + 3] > 60 && a[i] < 95 && a[i + 1] < 105 && a[i + 2] < 115 }
-          const lab = new Int32Array(N).fill(-1)
-          const boxes: { x0: number; y0: number; x1: number; y1: number; n: number }[] = []
-          const qs: number[] = []
-          for (let p = 0; p < N; p++) {
-            if (lab[p] !== -1 || !isDark(p)) continue
-            const id = boxes.length
-            let x0 = Wp, y0 = Hp, x1 = 0, y1 = 0, cnt = 0
-            lab[p] = id; qs.length = 0; qs.push(p)
-            while (qs.length) {
-              const q = qs.pop()!
-              const x = q % Wp, y = (q - x) / Wp
-              if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; cnt++
-              const nb = [x > 0 ? q - 1 : -1, x < Wp - 1 ? q + 1 : -1, y > 0 ? q - Wp : -1, y < Hp - 1 ? q + Wp : -1]
-              for (const r of nb) if (r >= 0 && lab[r] === -1 && isDark(r)) { lab[r] = id; qs.push(r) }
-            }
-            boxes.push({ x0, y0, x1, y1, n: cnt })
-          }
-          // Ekran adayi: alanin makul kismini dolduran, ust-orta bolgede, kare-ish dikdortgenler
-          const cand = boxes
-            .map((b) => ({ x: b.x0, y: b.y0, w: b.x1 - b.x0 + 1, h: b.y1 - b.y0 + 1, n: b.n }))
-            .filter((b) => b.w > Wp * 0.05 && b.h > Hp * 0.03 && b.w < Wp * 0.32 && b.h < Hp * 0.30 && b.n > b.w * b.h * 0.45)
-            .sort((p, q) => q.w * q.h - p.w * p.h)
-            .slice(0, 3)
-          if (cand.length) displays = cand.map((b) => ({ x: b.x / Wp, y: b.y / Hp, w: b.w / Wp, h: b.h / Hp }))
+          // DİJİTAL EKRAN tespiti KALDIRILDI (Mehmet Abi): otomatik koyu-kutu tespiti bazen sağ modüldeki SİYAH KONNEKTÖRÜ "ekran"
+          //   sanıp canlı değerleri (basınç/debi...) ÜRÜN DIŞINA, sağ-üst köşeye UÇURUYORDU. Artık hub LCD'si tek doğruluk olan
+          //   SABİT foto-ölçümlü konuma (FB_DISPLAYS = gerçek üst-orta monitör) kilitli → değerler HER ZAMAN ürünün gerçek ekranında.
         }
       } catch { /* taint → orijinal goster, fallback oranlar */ }
     }
@@ -234,7 +218,10 @@ export function DeviceFlowChart({
 
     let W = 0, H = 0, dpr = 1
     const resize = () => {
-      dpr = Math.min(2, window.devicePixelRatio || 1)
+      // ÇÖZÜNÜRLÜK (Mehmet Abi: debimetre dijital karakterleri daha NET): tavan 2→3.
+      //   cap yalnız ÜST sınır → standart ekranda (dpr≈1–1.5) hiçbir değişiklik/maliyet yok; yüksek-DPI ekranda (2–3x,
+      //   4K/retina) canvas native çözünürlüğe çıkar → LCD rakamları + akış keskinleşir. Foto/akış da yararlanır.
+      dpr = Math.min(3, window.devicePixelRatio || 1)
       W = wrap.clientWidth; H = wrap.clientHeight
       canvas.width = Math.max(1, Math.round(W * dpr)); canvas.height = Math.max(1, Math.round(H * dpr))
       canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
@@ -296,9 +283,17 @@ export function DeviceFlowChart({
       ctx.fillStyle = dark ? 'rgba(6,10,22,0.32)' : 'rgba(225,235,247,0.40)'
       ctx.fillRect(0, 0, W, H)
 
-      let dw0 = W * DEV_FILL, dh0 = dw0 / devAR
-      if (dh0 > H * DEV_FILL) { dh0 = H * DEV_FILL; dw0 = dh0 * devAR }
-      const dx0 = (W - dw0) / 2, dy0 = (H - dh0) / 2
+      // CİHAZ ÖLÇÜ+KONUM: kablo kırpıldığı için GÖRÜNEN bölge = üst CABLE_CROP. Bu GÖRÜNEN bölgeyi panele BÜYÜK contain-fit oturt
+      //   (Mehmet Abi: ürünü büyüt) → tam görsel yüksekliği görünenin 1/CABLE_CROP'u (≈%35 daha iri). Görünen bölge dikey ORTALANIR
+      //   + DEV_DROP kadar aşağı (bu kadar yukarıda olmasın). visAR = görünen bölgenin en/boy oranı.
+      const visAR = devAR / CABLE_CROP
+      let visW = W * DEV_FILL
+      let visH = visW / visAR
+      if (visH > H * DEV_FILL) { visH = H * DEV_FILL; visW = visH * visAR }
+      const dw0 = visW
+      const dh0 = visH / CABLE_CROP                       // tam görsel yüksekliği (görünen = üst CABLE_CROP'u)
+      const dx0 = (W - dw0) / 2
+      const dy0 = (H - visH) / 2 + H * DEV_DROP           // görünen bölge dikey ortalı + biraz aşağı (kırpılan kablo boşluğu yukarı taşmaz)
       // DEBİMETRE ODAKLI zoom: odağı (LCD) ekranda SABİT tutarak içeriği ZOOM kadar büyüt → dış çerçeve ölçüsü değişmez
       const fpx = dx0 + FOCUS_U * dw0, fpy = dy0 + FOCUS_V * dh0
       const dw = dw0 * ZOOM, dh = dh0 * ZOOM
@@ -313,8 +308,16 @@ export function DeviceFlowChart({
       const exOx = dx + dw * EXHAUST_CX, exOy = dy + dh * EXHAUST_CY
       const markR = Math.min(dw, dh) * 0.11
 
-      // 1) GERÇEK CİHAZ FOTOSU — ARKA PLAN, TAM görünür (atlanmaz). Tüm animasyon bunun üstüne biner.
-      if (deviceCanvas) { ctx.globalAlpha = 1; ctx.drawImage(deviceCanvas, dx, dy, dw, dh) }
+      // 0) ARKA SAHNE artık ORTAK AmbientScene bileşeninde (iki grafik paylaşır) — burada çizilmez (Mehmet Abi).
+
+      // 1) GERÇEK CİHAZ FOTOSU — ARKA PLAN. Tüm animasyon bunun üstüne biner.
+      //   KABLO KIRPMA: kaynağın ALT (1−CABLE_CROP) kadarı (sarkan kablo) çizilmez. Kaynak-dikdörtgeni üst CABLE_CROP'tan alıp
+      //   HEDEFE dh*CABLE_CROP yüksekliğinde basarız → ölçek 1:1 korunur; tüm iç ölçüm sabitleri (REG/VALVE/LED/EXHAUST, y<0.5) kaymaz.
+      if (deviceCanvas) {
+        ctx.globalAlpha = 1
+        const srcH = Math.round(deviceCanvas.height * CABLE_CROP)
+        ctx.drawImage(deviceCanvas, 0, 0, deviceCanvas.width, srcH, dx, dy, dw, dh * CABLE_CROP)
+      }
 
       // 2) BORU + giris/cikis hortumu (UÇTAN UCA, port ile AYNI EKSEN+ÇAP). Debi renginde hafif kenar.
       const grad = ctx.createLinearGradient(0, top, 0, bot)
@@ -545,53 +548,87 @@ export function DeviceFlowChart({
         const regBlink = (now % 1150) < 820 ? 1 : 0.06          // ~0.87Hz yanıp sönme (açık ~0.82s / kapalı ~0.33s)
         const lit = (0.3 + 0.7 * sig.reg) * regBlink            // devredeyken parlak; her durumda yanıp söner
         if (lit > 0.05) {
+          // DAHA ZAYIF + GERÇEKÇİ (Mehmet Abi): glow yarıçap+alfa kısıldı (2.4→1.9, 0.5→0.28); çekirdek sönük yeşil, taban parlaklık düşük.
           ctx.globalCompositeOperation = 'lighter'
-          const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr0 * 2.4)
-          g.addColorStop(0, `rgba(90,245,150,${0.5 * lit})`); g.addColorStop(1, 'rgba(90,245,150,0)')
-          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(lx, ly, rr0 * 2.4, 0, Math.PI * 2); ctx.fill()
+          const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr0 * 1.9)
+          g.addColorStop(0, `rgba(70,210,120,${0.28 * lit})`); g.addColorStop(1, 'rgba(70,210,120,0)')
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(lx, ly, rr0 * 1.9, 0, Math.PI * 2); ctx.fill()
           ctx.globalCompositeOperation = 'source-over'
-          ctx.fillStyle = `rgba(150,255,180,${Math.min(1, 0.5 + lit)})`
+          ctx.fillStyle = `rgba(120,225,150,${Math.min(0.85, 0.3 + 0.55 * lit)})`
           ctx.beginPath(); ctx.arc(lx, ly, rr0, 0, Math.PI * 2); ctx.fill()
         }
       }
-      // VALF solenoid konnektör LED'i — KIRMIZI; enerjilenince (izolasyon) soft-start ile yumuşak yanar.
-      led(dx + dw * LED_VALVE[0], dy + dh * LED_VALVE[1], '255,60,48', sig.valve * (0.6 + 0.4 * blink), ledR)
+      // VALF LED'i — gövdedeki DİKEY KAPSÜL OYUĞUN İÇİNDE, o oyuğun ŞEKLİNDE (dikey kapsül) gerçek valf ışığı gibi yanıp söner (Mehmet Abi).
+      //   Önce oyuğun koyu yuvası çizilir (içine gömülü his) → üstüne kırmızı ışık dolar; enerjilenince (izolasyon) nabızla parlar.
+      {
+        const vlx = dx + dw * LED_VALVE[0], vly = dy + dh * LED_VALVE[1]
+        const sw = dw * LED_VALVE_SLOT.w, sh = dh * LED_VALVE_SLOT.h
+        const cap = Math.min(sw, sh) / 2                       // kapsül uç yarıçapı (tam yuvarlak uçlar)
+        const rnd2 = !!(ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect
+        const slot = () => { if (rnd2) { ctx.beginPath(); ctx.roundRect(vlx - sw / 2, vly - sh / 2, sw, sh, cap) } else { ctx.beginPath(); ctx.rect(vlx - sw / 2, vly - sh / 2, sw, sh) } }
+        // (a) OYUK YUVASI — koyu gömme (LED sönükken bile oyuk görünür → gerçekçi)
+        ctx.fillStyle = 'rgba(8,10,14,0.85)'; slot(); ctx.fill()
+        const vOn = sig.valve * (0.55 + 0.45 * blink)           // izolasyonda nabızla yan (gerçek solenoid sinyali)
+        if (vOn > 0.05) {
+          // (b) DIŞ GLOW — oyuktan taşan yumuşak kırmızı hale (additif)
+          ctx.globalCompositeOperation = 'lighter'
+          const g = ctx.createRadialGradient(vlx, vly, 0, vlx, vly, sh * 0.95)
+          g.addColorStop(0, `rgba(255,70,55,${0.5 * vOn})`); g.addColorStop(1, 'rgba(255,70,55,0)')
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(vlx, vly, sh * 0.95, 0, Math.PI * 2); ctx.fill()
+          ctx.globalCompositeOperation = 'source-over'
+          // (c) OYUK İÇİ DOLGU — kapsül şeklinde kırmızı ışık (LED'in kendisi; oyuk silüetiyle birebir)
+          ctx.fillStyle = `rgba(255,${Math.round(60 + 40 * blink)},${Math.round(48 + 20 * blink)},${Math.min(1, 0.55 + 0.5 * vOn)})`
+          slot(); ctx.fill()
+          // (d) parlak çekirdek (kapsül ekseninde dikey ışık çizgisi)
+          ctx.fillStyle = `rgba(255,180,170,${0.5 * vOn})`
+          ctx.beginPath()
+          if (rnd2) ctx.roundRect(vlx - sw * 0.18, vly - sh * 0.32, sw * 0.36, sh * 0.64, sw * 0.18); else ctx.rect(vlx - sw * 0.18, vly - sh * 0.32, sw * 0.36, sh * 0.64)
+          ctx.fill()
+        }
+      }
 
-      // 9) CİHAZ LCD'si (debimetre/hub ekranı) — SMC EXA1 düzenine BİREBİR yakın, HER HÜCRE CANLI VERİ.
-      //   Gerçek ekran: koyu zemin, sol küçük etiket, sağda büyük rakam + birim; satırlar: Basınç(MPa) · Debi(L/min) · Sıcaklık(°C).
+      // 9) CİHAZ LCD'si (debimetre/hub ekranı) — Mehmet Abi: "ilk çalışırkenki dijital hali en iyisiydi" → o orijinal düzene dönüldü.
+      //   Koyu LCD cam + 3 satır (Basınç/Debi/Sıcaklık) sağa yaslı BÜYÜK canlı rakam + birim; satır arası ayraç.
+      //   KÖŞE RADÜSÜ (Mehmet Abi: "köşesindeki radüslere kadar tam örtüşsün"): gerçek ekran köşeleri belirgin yuvarlak → rad=rh*0.16;
+      //   çerçeve de roundRect (kare strokeRect KALDIRILDI → köşeler birebir oturur).
       const ro2 = readoutRef.current
       const hub = displays[0]
       if (hub && ro2.length) {
         const rx = dx + hub.x * dw, ry = dy + hub.y * dh, rw = hub.w * dw, rh = hub.h * dh
-        const rad = Math.min(4, rh * 0.1)
-        // koyu LCD cam (gerçek ekran gibi) + ince çerçeve
+        const rad = rh * 0.16
+        const rnd = !!(ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect
+        // koyu LCD cam (gerçek ekran gibi) + ince çerçeve — ikisi de YUVARLAK köşeli (fotodaki ekranla örtüşür)
         ctx.fillStyle = 'rgba(3,8,16,0.80)'
-        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, rad); ctx.fill() } else ctx.fillRect(rx, ry, rw, rh)
-        ctx.strokeStyle = 'rgba(110,150,200,0.55)'; ctx.lineWidth = 1; ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1)
+        if (rnd) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, rad); ctx.fill() } else ctx.fillRect(rx, ry, rw, rh)
+        ctx.strokeStyle = 'rgba(110,150,200,0.55)'; ctx.lineWidth = 1
+        if (rnd) { ctx.beginPath(); ctx.roundRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1, rad); ctx.stroke() } else ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1)
         const rows = ro2.slice(0, 3)
-        const padX = rw * 0.07
-        const lh = (rh - rh * 0.06) / rows.length
+        // KONUM OPTİMİZE (Mehmet Abi): satırlar dikey ortalı + ekran içine simetrik PADDING (üst/alt eşit) → ekran kenarına yapışmaz.
+        const padX = rw * 0.10                       // yatay iç boşluk (biraz arttı → rakam kenara değmez)
+        const padY = rh * 0.10                       // dikey iç boşluk (üst+alt eşit → satırlar dikey ortalı)
+        const lh = (rh - padY * 2) / rows.length
         ctx.textBaseline = 'middle'
         for (let i = 0; i < rows.length; i++) {
-          const r = rows[i], cy = ry + rh * 0.03 + lh * (i + 0.5)
+          const r = rows[i], cy = ry + padY + lh * (i + 0.5)
           const [rr, gg, bb] = r.rgb
           // ayraç çizgi (satırlar arası, gerçek segment ekran hissi)
-          if (i > 0) { ctx.strokeStyle = 'rgba(120,160,210,0.18)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(rx + padX, ry + rh * 0.03 + lh * i); ctx.lineTo(rx + rw - padX, ry + rh * 0.03 + lh * i); ctx.stroke() }
-          // BÜYÜK CANLI rakam + birim (Mehmet Abi: DAHA BÜYÜK/okunaklı). P/Q/T etiketi KALDIRILDI → rakama yer; birim metriği ayırt eder.
-          const fs = Math.max(9, Math.min(lh * 0.84, rw * 0.24))
-          const uf = Math.max(6, fs * 0.44)
+          if (i > 0) { ctx.strokeStyle = 'rgba(120,160,210,0.18)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(rx + padX, ry + padY + lh * i); ctx.lineTo(rx + rw - padX, ry + padY + lh * i); ctx.stroke() }
+          // CANLI rakam + birim — Mehmet Abi: "çok az da olsa küçült" → fs oranları biraz düşürüldü (lh*0.84→0.72, rw*0.24→0.205); okunaklı kalır.
+          const fs = Math.max(8, Math.min(lh * 0.72, rw * 0.205))
+          const uf = Math.max(6, fs * 0.46)
           ctx.font = `600 ${uf}px ui-monospace, Menlo, monospace`
           const uw = ctx.measureText(r.unit).width
           const ux = rx + rw - padX - uw            // birim sağa yaslı; rakam ONUN soluna ölçülerek konumlanır (taşma yok)
           ctx.font = `800 ${fs}px ui-monospace, Menlo, monospace`
           ctx.textAlign = 'right'
-          ctx.shadowColor = `rgba(${rr},${gg},${bb},0.95)`; ctx.shadowBlur = fs * 0.5
-          ctx.fillStyle = `rgb(${rr},${gg},${bb})`
-          ctx.fillText(r.value, ux - fs * 0.18, cy)
+          // SÖNÜK (Mehmet Abi: çok ışık saçmasın): glow kısıldı (0.5→0.18, alfa 0.95→0.45) + rakam rengi hafif düşürüldü (×0.86)
+          ctx.shadowColor = `rgba(${rr},${gg},${bb},0.45)`; ctx.shadowBlur = fs * 0.18
+          ctx.fillStyle = `rgb(${Math.round(rr * 0.86)},${Math.round(gg * 0.86)},${Math.round(bb * 0.86)})`
+          ctx.fillText(r.value, ux - fs * 0.22, cy)
           ctx.shadowBlur = 0
           ctx.font = `600 ${uf}px ui-monospace, Menlo, monospace`
           ctx.textAlign = 'left'
-          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.9)`
+          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.72)`
           ctx.fillText(r.unit, ux, cy)
         }
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
@@ -614,10 +651,14 @@ export function DeviceFlowChart({
           ctx.rotate(Math.PI)
           ctx.font = `800 ${fs}px ui-monospace, Menlo, monospace`
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-          ctx.shadowColor = 'rgba(150,14,8,0.9)'; ctx.shadowBlur = fs * 0.45
-          ctx.fillStyle = 'rgb(176,22,12)'
+          // VİŞNE KIRMIZISI + SÖNÜK (Mehmet Abi): turuncu-kırmızıdan koyu, mora çalan kızıla; debimetreyle AYNI optimizasyon
+          //   (glow kısık: 0.4→0.16 + alfa 0.85→0.4 → çok ışık saçmaz). İki geçiş: yumuşak hale + keskin çekirdek (net okunur).
+          ctx.shadowColor = 'rgba(120,8,28,0.4)'; ctx.shadowBlur = fs * 0.16
+          ctx.fillStyle = 'rgba(150,18,42,0.55)'
           ctx.fillText(pv, 0, 0)
           ctx.shadowBlur = 0
+          ctx.fillStyle = 'rgb(158,20,46)'   // vişne kırmızısı çekirdek
+          ctx.fillText(pv, 0, 0)
           ctx.restore()
         }
       }

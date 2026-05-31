@@ -6,7 +6,7 @@
  */
 import { useEffect, useState } from 'react'
 import {
-  LayoutDashboard, Activity, LineChart, PiggyBank, Package, SlidersHorizontal, Database,
+  LayoutDashboard, LineChart, PiggyBank, Package, SlidersHorizontal, Database,
   Radio, Wifi, Volume2, VolumeX, LogOut, Users, Sun, Moon,
   type LucideIcon,
 } from 'lucide-react'
@@ -20,11 +20,11 @@ import { Avatar } from './Avatar'
 import type { User } from '@/auth/users'
 import type { Theme } from '@/hooks/useTheme'
 
-export type Page = 'live' | 'sensors' | 'analysis' | 'savings' | 'product' | 'settings' | 'records'
+// 'sensors' (Sensör Detayları) KALDIRILDI (Mehmet Abi): veriler artık Canlı Panel sağ blokta — ayrı sekme gereksiz.
+export type Page = 'live' | 'analysis' | 'savings' | 'product' | 'settings' | 'records'
 
 const NAV: { id: Page; label: string; icon: LucideIcon }[] = [
   { id: 'live', label: 'Canlı Panel', icon: LayoutDashboard },
-  { id: 'sensors', label: 'Sensör Detayları', icon: Activity },
   { id: 'analysis', label: 'Geçmiş Analizi', icon: LineChart },
   { id: 'savings', label: 'Tasarruf Analizi', icon: PiggyBank },
   { id: 'product', label: 'Ürün & Teknoloji', icon: Package },
