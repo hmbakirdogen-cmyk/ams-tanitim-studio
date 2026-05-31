@@ -1,9 +1,20 @@
 # HANDOFF — AMS Tanıtım Stüdyosu
 
-**Son güncelleme:** 2026-05-31 (4. tur — KALAN düşük-öncelik kapatıldı: sensorVisibility paylaşımlı-store + 2 bayat yorum; açık görsel kararları karara bağlandı. Hepsi push → canlı)
+**Son güncelleme:** 2026-05-31 (5. tur — HUB LCD'si BİREBİR GERÇEK: 2×2 grid + gerçek 7-segment LED + dinamik 2-renk + totalizer. Push → canlı)
 **Durum:** Çalışıyor + CANLI yayında. `npm run dev` → http://localhost:5180 · `npm run build` ✅ (offline). typecheck+build sıfır hata.
 
-## 🟢 EN SON NEREDE KALDIK (2026-05-31, 4. tur) — KALAN düşük-öncelik kapatıldı + açık kararlar karara bağlandı
+## 🟢 EN SON NEREDE KALDIK (2026-05-31, 5. tur) — HUB LCD ekranı BİREBİR GERÇEK (debimetre dijital ekranı)
+Mehmet Abi: *"debimetrenin gerçek ekranını birebir yakala; kullanıcı gerçek ekrana bakıyormuş gibi hissetsin, her şeyiyle."* + *"renk değişimi var, set değere ulaşınca."* → **SMC kullanım kılavuzu (om_ams_20-30-40-60) + EXA1 hub kılavuzu + Mehmet'in foto + PF3A yakın çekim** araştırıldı, hub LCD'si baştan yazıldı:
+- **GERÇEK DÜZEN (2×2 grid):** ANA EKRAN (üst): SOL=Basınç **MPa**, SAĞ=Anlık debi **L/min**. ALT EKRAN (alt): SOL=Sıcaklık **°C**, SAĞ=Toplam debi **L**. (Kılavuz s.19 birebir.)
+- **DİNAMİK 2-RENK (kılavuz: "main display = 2 colour display"):** Ana ekran (basınç+debi) operasyonda **YEŞİL**, çıkış aktifken (debi set-eşiğe inip standby/izolasyona geçince) **KIRMIZI**. Alt ekran (sıcaklık+toplam) hep **TURUNCU** ("sub display"). Bu, Mehmet'in gözlemlediği renk değişimi.
+- **GERÇEK 7-SEGMENT LED:** yeni `src/lib/sevenSeg.ts` (keskin köşeli, tam-açıklıklı bar segmentler; blob değil). Glow ÇOK kısık → keskin/okunur (Mehmet: "rakamlar karışıyordu, birimler okunmuyordu" → düzeldi).
+- **RAKAMLAR HİZALI + birimler kendi yerinde** (Mehmet: "rakamlar birbirine hizalı, birimler farklı yerlerde"): üst satır rakamları AYNI Y, alt satır AYNI Y; MPa üstte, L/min·°C·L altta. Tek-boy rakam (gerçek cihaz).
+- **TOTALIZER:** Toplam debi (L) kalıcı biriktirici (`ams_accum_l_v1`, model debisinden tohumlu; kullanım kılavuzu s.98: "güç kesilince son kayıttan devam"). Her kare flow×dt/60 L birikir.
+- **Operation LED:** üst-ortada, çıkış ON'da (standby/izolasyon) yanar (kılavuz: "indicates output status of OUT").
+- **Birimler GERÇEK cihazda SABİT** (MPa/L/min/°C/L — donanım sabiti); cihaz LCD'sinde i18n KALDIRILDI (uygulama kartları/overlay hâlâ t() ile çevrili).
+typecheck+build ✅ sıfır hata. Headless screenshot ile yeşil+kırmızı+cihaz-geneli doğrulandı. **SIRADAKİ:** Mehmet canlıda/localde gözle bakacak; ikon şeridi (T/↻/II) ve renk tonları gerekirse son rötuş.
+
+## 🟢 ÖNCEKİ TUR (2026-05-31, 4. tur) — KALAN düşük-öncelik kapatıldı + açık kararlar karara bağlandı
 Mehmet Abi: *"sen hepsini kafana göre sıraya koy ve hallet."* → açık işler sıralanıp çözüldü:
 - **sensorVisibility = PAYLAŞILAN STORE** (`useSyncExternalStore`, deviceSettings deseni): eskiden her sayfa kendi `useState`'iydi → Ürün Ayarları'nda sensör aç/kapat Canlı Panel'e ancak reload'da yansıyordu; **artık ANLIK** yansır. Hook imzası aynı (`{visible, toggle, showAll}`) → tüketici sayfalar değişmedi. `getSensorVisibility()` React-dışı okuma eklendi.
 - **2 bayat yorum belgelendi:** `demoSource` standby.pressure=0.2 = yer tutucu (tickte `s.standbyPressure` ile ezilir); `deviceSettings.wasLastChangeFromDevice` senkron-dağıtım bağımlılığı not edildi. (App muted yorumu doğruydu; connection mobil-override yorumu zaten yok → dokunulmadı.)

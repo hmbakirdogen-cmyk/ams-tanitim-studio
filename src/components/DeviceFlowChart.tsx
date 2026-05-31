@@ -24,7 +24,8 @@ import { useEffect, useMemo, useRef } from 'react'
 import { asset } from '@/lib/asset'
 import type { Reading, Mode } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
-import { useLang } from '@/i18n'
+import { getActiveModel } from '@/data/model'
+import { drawSevenSeg, measureSevenSeg, type RGB } from '@/lib/sevenSeg'
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
 
@@ -55,6 +56,23 @@ const FLOW_LANES = 14        // paralel laminar şerit; aynı şeritteki molekü
 const MOLE_COUNT = 120   // regülatör sıkışma molekülleri — Mehmet Abi: daha çok kendini belli etsin (çoğaltıldı)
 const DROPLET_MAX = 60
 const PUFF_COUNT = 80   // egzoz jeti yoğunluğu — Mehmet Abi: izler bindirsin (bağlantılı/sürekli görünsün)
+
+// --- HUB LCD RENKLERİ (GERÇEK SMC AMS hub ekranı — Mehmet Abi fotosu + kullanım kılavuzu om_ams_20-30-40-60, sayfa 19) ---
+//   ANA EKRAN (üst satır: basınç MPa + anlık debi L/min) = "2 colour display": OPERASYON modunda YEŞİL; çıkış aktifken
+//   (debi set-eşiğe inip standby/izolasyona geçince) KIRMIZI. ALT EKRAN (alt satır: sıcaklık °C + toplam debi L) = TURUNCU (tek renk).
+const LCD_GREEN: RGB = [42, 226, 90]   // ana ekran normal (LED yeşili)
+const LCD_RED: RGB = [255, 58, 46]     // ana ekran çıkış-aktif (LED kırmızısı)
+const LCD_AMBER: RGB = [255, 118, 30]  // alt ekran (LED turuncusu)
+
+// --- Toplam debi TOTALIZER (kalıcı biriktirici) — gerçek cihaz: güç kesilince son kayıttan devam eder (om sayfa 98). ---
+//   Demo'da her kare flow(l/dak)*dt/60 L biriktirilir; localStorage'da kalıcı (oturumlar arası BÜYÜR). Foto'daki "2400 L" gibi
+//   inandırıcı 4-6 haneli bir değer gösterir. İlk açılışta model debisinden tohumlanır (büyük model = büyük totalizer).
+const ACCUM_KEY = 'ams_accum_l_v1'
+function loadAccum(seed: number): number {
+  try { const r = localStorage.getItem(ACCUM_KEY); if (r != null) { const n = parseFloat(r); if (Number.isFinite(n) && n >= 0) return n } } catch { /* offline */ }
+  return seed
+}
+function saveAccum(v: number): void { try { localStorage.setItem(ACCUM_KEY, String(Math.round(v))) } catch { /* offline */ } }
 
 // DÜNYA STANDARDI sıcaklık rampası (mavi→kırmızı; Turbo-türevi, renk körü güvenli)
 const TEMP_STOPS: { t: number; c: [number, number, number] }[] = [
@@ -89,29 +107,29 @@ export function DeviceFlowChart({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
-  const { t } = useLang() // cihaz LCD birimleri (l/dak) dil-uyumlu yazılsın (i18n: MPa/°C/% evrensel)
 
   const byKey = useMemo(() => Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<string, MetricDef>, [metrics])
   // Anlik hedef degerler + her sensorun KENDI rengi (metrics.ts → tek dogruluk) — her render guncellenir
   const targetRef = useRef({ flow: 0, pressure: 0, temp: 0, hum: 0, mode })
   // GEÇİCİ varsayılan RGB (metrics gelene kadar); satır 101-103'te metrics.ts renkleriyle (tek doğruluk) üzerine yazılır.
   const colorRef = useRef<{ flow: number[]; pressure: number[]; hum: number[] }>({ flow: [46, 155, 255], pressure: [54, 224, 200], hum: [124, 224, 255] })
-  // Cihaz LCD'lerine basilacak GERÇEK rakamlar (deger + birim + renk) — PDF: hub ekrani basinc/debi/sicaklik gosterir
-  const readoutRef = useRef<{ value: string; unit: string; rgb: number[] }[]>([])
+  // Hub LCD'sine basilacak GERÇEK ham degerler + ana ekran 2-renk durumu. Birim/renk/cozunurluk cizimde GERCEK cihaza gore
+  //   sabittir (MPa/L/min/°C/L; ust=yesil-kirmizi, alt=turuncu) — kullanim kilavuzu om_ams_20-30-40-60. Toplam debi totalizer'dan.
+  const readoutRef = useRef<{ pressure: number | null; flow: number | null; temp: number | null; mainRed: boolean }>({ pressure: null, flow: null, temp: null, mainRed: false })
   {
     const nv = (k: string) => { const m = byKey[k]; return !m || !reading ? 0 : clamp01((m.get(reading) - m.min) / (m.max - m.min)) }
     targetRef.current = { flow: nv('flow'), pressure: nv('pressure'), temp: nv('temperature'), hum: nv('humidity'), mode }
     if (byKey.flow) colorRef.current.flow = hexRGB(byKey.flow.color)
     if (byKey.pressure) colorRef.current.pressure = hexRGB(byKey.pressure.color)
     if (byKey.humidity) colorRef.current.hum = hexRGB(byKey.humidity.color)
-    // Ekran satirlari (hub LCD): PDF sirasi basinc / debi / sicaklik. ANAHTAR-bazli (byKey.*) — sensor gizlense bile satirlar kaymaz;
-    // LivePage tam metrics gecirir (gorunurluk yalniz kart/overlay'de), birim t() ile cevrilir (l/dak EN/JA).
-    const fmt = (m: MetricDef | undefined) => {
-      if (!m || !reading) return null
-      const v = m.get(reading)
-      return { value: new Intl.NumberFormat('tr-TR', { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(v), unit: t(m.unitShort), rgb: hexRGB(m.color) }
+    // Ham degerler (cizimde gercek cihaz cozunurlugu ile bicimlenir: basinc 3 hane, debi tam, sicaklik 1 hane).
+    // ANA EKRAN 2-RENK: operasyon disinda (standby/izolasyon = debi set-esige inip cikis aktif) KIRMIZI; aksi YESIL.
+    readoutRef.current = {
+      pressure: reading ? reading.pressure : null,
+      flow: reading ? reading.flow : null,
+      temp: reading ? reading.temperature : null,
+      mainRed: mode !== 'normal',
     }
-    readoutRef.current = [fmt(byKey.pressure), fmt(byKey.flow), fmt(byKey.temperature)].filter(Boolean) as { value: string; unit: string; rgb: number[] }[]
   }
   const themeRef = useRef(theme)
   themeRef.current = theme
@@ -243,10 +261,18 @@ export function DeviceFlowChart({
       ctx.globalCompositeOperation = 'source-over'
     }
 
+    // TOTALIZER (toplam debi L) — kalıcı; ilk açılışta model debisinden tohumlanır (inandırıcı 4 haneli başlangıç).
+    let accumL = loadAccum(Math.round(getActiveModel().baselineFlow))
+    let accumSaveT = 0   // periyodik kalıcılaştırma sayacı (saniye)
+
     let raf = 0, last = performance.now()
     const draw = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       const t = targetRef.current
+      // Toplam debi biriktir: anlık debi(l/dak) × dt(sn)/60 = geçen litre. Her ~3 sn kalıcılaştır (gerçek cihaz: son kayıttan devam).
+      accumL += (readoutRef.current.flow ?? 0) * dt / 60
+      accumSaveT += dt
+      if (accumSaveT >= 3) { saveAccum(accumL); accumSaveT = 0 }
       const k = Math.min(1, dt * 4)
       sig.flow += (t.flow - sig.flow) * k; sig.pressure += (t.pressure - sig.pressure) * k
       sig.temp += (t.temp - sig.temp) * k; sig.hum += (t.hum - sig.hum) * k
@@ -550,55 +576,92 @@ export function DeviceFlowChart({
       }
       // VALF LED'i KALDIRILDI (Mehmet Abi: "led işini beceremedik, valf LED'iyle ilgili ne varsa temizle"). Tek gösterge: REGÜLATÖR LED'i.
 
-      // 9) CİHAZ LCD'si (debimetre/hub ekranı) — Mehmet Abi: "ilk çalışırkenki dijital hali en iyisiydi" → o orijinal düzene dönüldü.
-      //   Koyu LCD cam + 3 satır (Basınç/Debi/Sıcaklık) sağa yaslı BÜYÜK canlı rakam + birim; satır arası ayraç.
-      //   KÖŞE RADÜSÜ (Mehmet Abi: "köşesindeki radüslere kadar tam örtüşsün"): gerçek ekran köşeleri belirgin yuvarlak → rad=rh*0.16;
-      //   çerçeve de roundRect (kare strokeRect KALDIRILDI → köşeler birebir oturur).
+      // 9) HUB LCD'si (debimetre ekranı) — GERÇEK SMC AMS hub ekranı BİREBİR (Mehmet Abi fotosu + kullanım kılavuzu
+      //   om_ams_20-30-40-60, sayfa 19): 2×2 grid + 7-segment LED (sevenSeg.ts), TAM OPAK siyah cam (foto'nun statik değerini gizler).
+      //   ANA EKRAN (ÜST): SOL=Basınç MPa, SAĞ=Anlık debi L/min → "2 colour display": OPERASYONda YEŞİL, çıkış aktifken
+      //   (debi set-eşiğe inip standby/izolasyona geçince) KIRMIZI. ALT EKRAN (ALT): SOL=Sıcaklık °C, SAĞ=Toplam debi L → TURUNCU.
+      //   Operation LED üst-ortada çıkış ON'da yanar. Birimler GERÇEK cihazda SABİT (MPa/L/min/°C/L — i18n YOK; donanım sabiti).
       const ro2 = readoutRef.current
       const hub = displays[0]
-      if (hub && ro2.length) {
+      if (hub) {
         const rx = dx + hub.x * dw, ry = dy + hub.y * dh, rw = hub.w * dw, rh = hub.h * dh
-        // KÖŞE RADÜSÜ YENİDEN OPTİMİZE (Mehmet Abi): KÜÇÜK kenara (min) bağlı → ekranın gerçek köşesiyle örtüşür (yükseklik tek başına
-        //   sürüklemesin); regülatör ekranıyla AYNI mantık (oran 0.18). Çerçeve de aynı radüsle yuvarlak.
         const rad = Math.min(rw, rh) * 0.18
         const rnd = !!(ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect
-        // koyu LCD cam (gerçek ekran gibi) + ince çerçeve — ikisi de YUVARLAK köşeli (fotodaki ekranla örtüşür).
-        // TAM OPAK (Mehmet Abi: foto'nun statik çok-kolonlu değeri ".200/265" camdan SIZIP HAYALET yapıyordu → tam opak cam onu TAMAMEN gizler).
-        ctx.fillStyle = 'rgb(5,10,20)'
+        ctx.fillStyle = 'rgb(6,9,13)'
         if (rnd) { ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, rad); ctx.fill() } else ctx.fillRect(rx, ry, rw, rh)
-        ctx.strokeStyle = 'rgba(110,150,200,0.55)'; ctx.lineWidth = 1
+        ctx.strokeStyle = 'rgba(110,150,200,0.5)'; ctx.lineWidth = 1
         if (rnd) { ctx.beginPath(); ctx.roundRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1, rad); ctx.stroke() } else ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1)
-        const rows = ro2.slice(0, 3)
-        // KONUM OPTİMİZE (Mehmet Abi): satırlar dikey ortalı + ekran içine simetrik PADDING (üst/alt eşit) → ekran kenarına yapışmaz.
-        const padX = rw * 0.10                       // yatay iç boşluk (biraz arttı → rakam kenara değmez)
-        const padY = rh * 0.10                       // dikey iç boşluk (üst+alt eşit → satırlar dikey ortalı)
-        const lh = (rh - padY * 2) / rows.length
-        ctx.textBaseline = 'middle'
-        for (let i = 0; i < rows.length; i++) {
-          const r = rows[i], cy = ry + padY + lh * (i + 0.5)
-          const [rr, gg, bb] = r.rgb
-          // ayraç çizgi (satırlar arası, gerçek segment ekran hissi)
-          if (i > 0) { ctx.strokeStyle = 'rgba(120,160,210,0.18)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(rx + padX, ry + padY + lh * i); ctx.lineTo(rx + rw - padX, ry + padY + lh * i); ctx.stroke() }
-          // CANLI rakam + birim — SAĞA YASLI (Mehmet Abi: "debimetre ekranı yazılar sağa yaslı olmalı"): grup sağ kenara (padX payı ile).
-          const fs = Math.max(8, Math.min(lh * 0.72, rw * 0.205))
-          const uf = Math.max(6, fs * 0.46)
-          const gap = fs * 0.22
-          ctx.font = `800 ${fs}px ui-monospace, Menlo, monospace`
-          const vw = ctx.measureText(r.value).width
-          ctx.font = `600 ${uf}px ui-monospace, Menlo, monospace`
-          const uw = ctx.measureText(r.unit).width
-          const startX = rx + Math.max(padX, rw - padX - (vw + gap + uw))   // value+unit grubu SAĞA yaslı (taşmazsa)
-          ctx.textAlign = 'left'
-          // CANLI rakam — SÖNÜK glow (Mehmet Abi: çok ışık saçmasın); rakam rengi hafif düşük (×0.86)
-          ctx.font = `800 ${fs}px ui-monospace, Menlo, monospace`
-          ctx.shadowColor = `rgba(${rr},${gg},${bb},0.45)`; ctx.shadowBlur = fs * 0.18
-          ctx.fillStyle = `rgb(${Math.round(rr * 0.86)},${Math.round(gg * 0.86)},${Math.round(bb * 0.86)})`
-          ctx.fillText(r.value, startX, cy)
+
+        const mainCol: RGB = ro2.mainRed ? LCD_RED : LCD_GREEN
+        // Mehmet Abi: "gerçek küçük ekranda her şey net" → DAR padding (rakamlar ekranı DOLDURUR), TEK BOY rakam, GLOW ÇOK KISIK (keskin).
+        const pad = Math.min(rw, rh) * 0.05
+        const ix = rx + pad, iy = ry + pad, iw = rw - pad * 2, ih = rh - pad * 2
+        const colW = iw / 2, rowH = ih / 2
+        const iconW = iw * 0.065                     // sağdaki ikon şeridi genişliği (debinin sağında)
+        const GLOW = 0.12                            // LED hâlesi ÇOK KISIK → rakamlar keskin, birbirine karışmaz (gerçek LED gibi)
+        // GERÇEK cihaz çözünürlüğü ile değer string'leri
+        const pStr = ro2.pressure != null ? ro2.pressure.toFixed(3) : '---'   // basınç 0.200
+        const fStr = ro2.flow != null ? String(Math.round(ro2.flow)) : '---'  // anlık debi 300
+        const tStr = ro2.temp != null ? ro2.temp.toFixed(1) : '---'           // sıcaklık 26.5
+        const aStr = String(Math.floor(accumL) % 1000000)                     // toplam debi 2400 (totalizer)
+        // sağa-yaslı kenarlar
+        const lRight = ix + colW - iw * 0.02                 // sol kolon değer sağ kenarı
+        const rRight = ix + iw - iw * 0.01                   // sağ kolon değer sağ kenarı
+        const fRight = rRight - iconW                        // anlık debi (ikon şeridine pay bırakır)
+        // TEK BOY rakam (gerçek cihaz: tüm 7-seg AYNI boyut) — en dar sığan hücreyi baz al (hepsi sığar + tutarlı görünür)
+        const hBudget = rowH * 0.66                          // rakam yükseklik bütçesi (BÜYÜK; etikete pay)
+        const fitH = (str: string, colAvail: number) => Math.min(hBudget, colAvail / Math.max(0.001, measureSevenSeg(str, 1)))
+        const digH = Math.min(
+          fitH(pStr, colW - iw * 0.03),
+          fitH(fStr, colW - iconW - iw * 0.02),
+          fitH(tStr, colW - iw * 0.03),
+          fitH(aStr, colW - iw * 0.02),
+        )
+        // DİKEY HİZA (Mehmet Abi: "rakamlar birbirine göre HİZALI; birimler kendi yerlerinde"):
+        //   ÜST satır rakamları (basınç + debi) AYNI Y; ALT satır rakamları (sıcaklık + toplam) AYNI Y. Birimler bu hizaya göre:
+        //   MPa basıncın ÜSTÜNDE; L/min debinin ALTINDA; °C sıcaklığın ALTINDA; L toplamın ALTINDA (gerçek foto düzeni).
+        const uf = Math.max(6, digH * 0.5)           // birim fontu — rakama ORANLI (gerçek cihaz gibi; okunur ama rakamla yarışmaz)
+        const topNumY = iy + uf * 1.12               // üst satır rakam ÜST-Y (üstte MPa'ya yer) — basınç+debi AYNI hizada
+        const botNumY = iy + rowH + (rowH - digH - uf * 1.15) * 0.5   // alt satır rakam (altta birime yer; dikey ortalı) — AYNI hizada
+
+        const unit = (txt: string, ux: number, uy: number, col: RGB, align: CanvasTextAlign) => {
+          ctx.font = `700 ${uf}px ui-sans-serif, system-ui, sans-serif`
+          ctx.textAlign = align; ctx.textBaseline = 'alphabetic'
+          ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},0.96)`   // net/parlak — birim okunur
+          ctx.fillText(txt, ux, uy)
+        }
+
+        // TL: Basınç — rakam ANA renk; "MPa" değerin ÜSTÜNDE-solunda (foto)
+        drawSevenSeg(ctx, pStr, lRight, topNumY, digH, mainCol, { glow: GLOW, align: 'right' })
+        unit('MPa', lRight - measureSevenSeg(pStr, digH), topNumY - uf * 0.3, mainCol, 'left')
+        // TR: Anlık debi — basınçla AYNI hizada; "L/min" ALTINDA-sağında; ikon şeridi en sağda
+        drawSevenSeg(ctx, fStr, fRight, topNumY, digH, mainCol, { glow: GLOW, align: 'right' })
+        unit('L/min', fRight, topNumY + digH + uf * 0.98, mainCol, 'right')
+        // BL: Sıcaklık — TURUNCU; "°C" değerin ALTINDA-sağında
+        drawSevenSeg(ctx, tStr, lRight, botNumY, digH, LCD_AMBER, { glow: GLOW, align: 'right' })
+        unit('°C', lRight, botNumY + digH + uf * 0.98, LCD_AMBER, 'right')
+        // BR: Toplam debi (totalizer) — sıcaklıkla AYNI hizada; "L" değerin ALTINDA-sağında
+        drawSevenSeg(ctx, aStr, rRight, botNumY, digH, LCD_AMBER, { glow: GLOW, align: 'right' })
+        unit('L', rRight, botNumY + digH + uf * 0.98, LCD_AMBER, 'right')
+
+        // Operation LED — üst-ortada küçük nokta; çıkış ON (standby/izolasyon) yanar (foto/kılavuz: "indicates output status of OUT")
+        {
+          const lx = rx + rw / 2, ly = ry + rh * 0.085, lr = Math.max(1, rh * 0.03)
+          if (ro2.mainRed) { ctx.shadowColor = 'rgba(255,80,40,0.8)'; ctx.shadowBlur = lr * 2.4; ctx.fillStyle = 'rgba(255,84,44,0.95)' }
+          else ctx.fillStyle = 'rgba(90,110,120,0.32)'
+          ctx.beginPath(); ctx.arc(lx, ly, lr, 0, Math.PI * 2); ctx.fill()
           ctx.shadowBlur = 0
-          // birim — rakamın hemen sağında
-          ctx.font = `600 ${uf}px ui-monospace, Menlo, monospace`
-          ctx.fillStyle = `rgba(${rr},${gg},${bb},0.72)`
-          ctx.fillText(r.unit, startX + vw + gap, cy)
+        }
+        // Sağ ikon şeridi (foto: debinin sağında dikey) — kutu / dairesel-ok (toplam) / kutu; küçük, ana renk (sönük → rakamla yarışmaz)
+        {
+          const cxi = ix + iw - iconW * 0.5, bw = iconW * 0.78, bh = rowH * 0.13
+          ctx.strokeStyle = `rgba(${mainCol[0]},${mainCol[1]},${mainCol[2]},0.55)`; ctx.lineWidth = Math.max(0.5, bh * 0.16)
+          const y0 = topNumY + digH * 0.04
+          if (rnd) { ctx.beginPath(); ctx.roundRect(cxi - bw / 2, y0, bw, bh, bh * 0.22); ctx.stroke() }
+          const cyA = y0 + bh * 1.7, rA = bh * 0.55
+          ctx.beginPath(); ctx.arc(cxi, cyA, rA, Math.PI * 0.4, Math.PI * 1.8); ctx.stroke()   // dairesel ok (accumulate/toplam)
+          const y2 = cyA + rA + bh * 0.5
+          if (rnd) { ctx.beginPath(); ctx.roundRect(cxi - bw / 2, y2, bw, bh, bh * 0.22); ctx.stroke() }
         }
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
       }
@@ -606,9 +669,9 @@ export function DeviceFlowChart({
       // 9b) REGÜLATÖR KIRMIZI dijital ekranı CANLI — orijinal yapı KORUNUR (foto çerçeve/etiketler kalır); statik ".200" gizlenip
       //   yerine CANLI basınç (MPa, kırmızı 7-seg, lider sıfırsız ".62" stili) yazılır. Mehmet Abi: "kendi göstergesi ama canlı".
       {
-        const pv0 = readoutRef.current[0]
-        if (pv0) {
-          let pv = pv0.value.replace(',', '.')
+        const pPa = readoutRef.current.pressure
+        if (pPa != null) {
+          let pv = pPa.toFixed(2)             // regülatör ekranı: MPa, 2 hane (kendi çözünürlüğü)
           if (pv.startsWith('0.')) pv = pv.slice(1)
           const gx = dx + dw * REG_DISP[0], gy = dy + dh * REG_DISP[1], gw = dw * REG_DISP[2], gh = dh * REG_DISP[3]
           // KÖŞE RADÜSÜ — debimetreyle AYNI optimizasyon (Mehmet Abi: "köşe radüsüne kadar uygula"): kırpma KALDIRILDI → oranlı,
@@ -642,7 +705,7 @@ export function DeviceFlowChart({
       raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); img.onload = null } // foto gec yuklenirse unmount sonrasi bos is yapmasin (closure serbest)
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); img.onload = null; saveAccum(accumL) } // foto gec yuklenirse unmount sonrasi bos is yapmasin; totalizer son degeri kalici
   }, [])
 
   return (

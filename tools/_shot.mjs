@@ -53,7 +53,7 @@ const CLIPS = {
   device: { x: 255, y: 112, width: 745, height: 360 },
   valve: { x: 760, y: 130, width: 240, height: 280 },
   reg: { x: 320, y: 230, width: 300, height: 200 },
-  lcd: { x: 720, y: 150, width: 230, height: 150 },
+  lcd: { x: 712, y: 158, width: 252, height: 205 },
   cards: { x: 1020, y: 108, width: 360, height: 600 },
   socket: { x: 540, y: 250, width: 300, height: 200 },
   low: { x: 430, y: 300, width: 420, height: 175 },
