@@ -1,9 +1,17 @@
 # HANDOFF — AMS Tanıtım Stüdyosu
 
-**Son güncelleme:** 2026-05-31 (TÜM PROGRAM derin denetim — 24+9 ajan — + 30+ düzeltme; grafik geniş pencere/perspektif; köprü sertleştirme. Hepsi push edildi → canlı)
+**Son güncelleme:** 2026-05-31 (4. tur — KALAN düşük-öncelik kapatıldı: sensorVisibility paylaşımlı-store + 2 bayat yorum; açık görsel kararları karara bağlandı. Hepsi push → canlı)
 **Durum:** Çalışıyor + CANLI yayında. `npm run dev` → http://localhost:5180 · `npm run build` ✅ (offline). typecheck+build sıfır hata.
 
-## 🟢 EN SON NEREDE KALDIK (2026-05-31, 3. tur) — DERİN DENETİM + 30+ DÜZELTME + grafik optimizasyonu
+## 🟢 EN SON NEREDE KALDIK (2026-05-31, 4. tur) — KALAN düşük-öncelik kapatıldı + açık kararlar karara bağlandı
+Mehmet Abi: *"sen hepsini kafana göre sıraya koy ve hallet."* → açık işler sıralanıp çözüldü:
+- **sensorVisibility = PAYLAŞILAN STORE** (`useSyncExternalStore`, deviceSettings deseni): eskiden her sayfa kendi `useState`'iydi → Ürün Ayarları'nda sensör aç/kapat Canlı Panel'e ancak reload'da yansıyordu; **artık ANLIK** yansır. Hook imzası aynı (`{visible, toggle, showAll}`) → tüketici sayfalar değişmedi. `getSensorVisibility()` React-dışı okuma eklendi.
+- **2 bayat yorum belgelendi:** `demoSource` standby.pressure=0.2 = yer tutucu (tickte `s.standbyPressure` ile ezilir); `deviceSettings.wasLastChangeFromDevice` senkron-dağıtım bağımlılığı not edildi. (App muted yorumu doğruydu; connection mobil-override yorumu zaten yok → dokunulmadı.)
+- **Açık görsel kararları karara bağlandı** (aşağıda, KALAN bölümünde): egzoz = mevcut dikişsiz jet hali korundu; grafik perspektifi mevcut bırakıldı (ikisi de Mehmet'in gözüne).
+- **metrics temp/humidity max = BİLEREK ERTELENDİ:** şimdi genişletmek demo grafik ölçeğini bozar; canlı cihaz yok → donanımda model/bağlantı-duyarlı yapılacak.
+typecheck+build ✅ sıfır hata → push → canlı deploy.
+
+## 🟢 ÖNCEKİ TUR (2026-05-31, 3. tur) — DERİN DENETİM + 30+ DÜZELTME + grafik optimizasyonu
 **Çok-ajanlı denetim** (Workflow, 12 dilim × denetim+adversaryal-doğrula): **60 doğrulanmış bulgu, KRİTİK YOK.** Hepsi düzeltildi (aşağıda). Kritik olanlar:
 - **DeviceFlowChart metrik eşleme:** LivePage artık DeviceFlowChart'a TAM `metrics` geçiriyor (eskiden `visibleMetrics` → sensör gizlenince regülatör/hub LCD index kayıp yanlış metrik/birim gösteriyordu). readoutRef anahtar-bazlı.
 - **Tasarruf %:** LivePage `savingPercent(flow, economy.baselineFlow)` (eskiden sabit 1800 → model değişince yanlıştı; SavingsPage ile tutarlı).
@@ -14,8 +22,8 @@
 - Fare ile 3D oynamıyor (kamera sabit). Perspektif YUMUŞATILDI (kamera z 9→13, fov 42→30) → "şimdi" uçları daha hizalı. `SPAN_X` 17→21 (uçlar panel kenarına/"şimdi"ye uzanır).
 - **GENİŞ zaman penceresi** (Mehmet Abi sevdi): `L` 200→600, `MAX_POINTS` 210→620 → **~48 sn** pencere (eskiden 16sn). Not: arka-plan sekmede tarayıcı throttle ettiği için ~56sn görünebiliyordu; artık kalıcı geniş.
 **Diğer düzeltmeler (düşük):** ölü kod (TopBar silindi, react-router-dom kaldırıldı, registerSW sadeleşti, `label`/`displays` temizliği), perf (sampleY çift-hesap, visibleMetrics memo), i18n (`unitShort` t() ile tüm tüketicilerde → l/dak EN/JA çevrilir; %-etiketi dile göre), dayanıklılık (recordings/history try-catch + monotonluk + şekil-doğrulama, liveSource Number.isFinite, sound ilk-ses guard, AmbientScene blur, clipboard fallback, backup TAM-değiştir, reduced-motion a11y, HeroKPI mod bloğu SABİT yükseklik → kartlar kaymaz).
-**⏳ KALAN düşük-öncelik (opsiyonel, yeni pencere):** sensorVisibility'yi paylaşımlı-store'a çevir (sayfalar arası anlık yansısın); metrics temp/humidity max'ı canlı cihaz için genişlet; birkaç bayat yorum (App muted, connection mobil-override, demoSource standby 0.2, deviceSettings lastFromDevice tek-atışlık, AdminUsers transferMsg yeri); şifre saltsız SHA-256 (demo geçidi, kabul edilmiş).
-**Açık görsel kararı (Mehmet Abi'ye):** Geri-dönüş/egzoz animasyon optimizasyonu — yön sorulmuştu (1: aşağı-dön, 3: jete dikişsiz), bekliyor. Grafik perspektifi "çok düz mü" diye Mehmet bakacak.
+**⏳ KALAN düşük-öncelik (opsiyonel, yeni pencere):** metrics temp/humidity max'ı canlı cihaz için genişlet (BİLEREK ERTELENDİ — şu an genişletmek demo grafik ölçeğini bozar; donanım gelince model/bağlantı-duyarlı yap); şifre saltsız SHA-256 (demo geçidi, kabul edilmiş).
+**Açık görsel kararları (Mehmet Abi gözle son söz):** (1) Egzoz/geri-dönüş animasyonu — kod zaten DİKİŞSİZ jet hali (yatay→bezier dirsek→dik iniş→portta sönüp jet devralır); körlemesine değiştirilmedi, mevcut hal korundu. (2) Grafik perspektifi "çok düz mü" — estetik, mevcut hal (z=13/fov=30) bırakıldı; istersen tek satır.
 **Canlı:** https://hmbakirdogen-cmyk.github.io/ams-tanitim-studio/ · Repo (public): github.com/hmbakirdogen-cmyk/ams-tanitim-studio · **master push → otomatik deploy** (`.github/workflows/deploy.yml`, `VITE_BASE=/ams-tanitim-studio/`).
 **Giriş:** Halil İbrahim Karakelle · şifre **`smc`** (varsayılan avatar gömülü: `public/users/halil.jpg`).
 **Hitabet (CC↔kullanıcı):** **Mehmet Abi**.

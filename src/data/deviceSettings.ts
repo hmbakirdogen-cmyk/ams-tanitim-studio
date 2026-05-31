@@ -44,7 +44,9 @@ let lastFromDevice = false
 export function getDeviceSettings(): DeviceSettings {
   return current
 }
-// En son uygulanan degisiklik cihaz kaynakli miydi (echo write engelleme)
+// En son uygulanan degisiklik cihaz kaynakli miydi (echo write engelleme).
+// NOT: SENKRON dinleyici dagitimina dayanir -> commit() listener'lari hemen cagirir, flag o an dogru commit'i yansitir.
+// useLiveReadings bunu subscribe icinde SENKRON okur (await/setTimeout YOK); async okunursa en son commit'in degeri donerdi.
 export function wasLastChangeFromDevice(): boolean {
   return lastFromDevice
 }

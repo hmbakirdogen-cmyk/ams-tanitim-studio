@@ -22,6 +22,7 @@ function targetsForModel(m: AmsModel): Record<Mode, Targets> {
   const d = defaultsForModel(m)
   return {
     normal: { flow: m.baselineFlow, pressure: d.workingPressure, temperature: 24.5, humidity: 46 },
+    // standby.pressure = yer tutucu: tickte HER ZAMAN s.standbyPressure (kullanici ayari) ile ezilir (asagi bkz.) -> burada gercek deger degil
     standby: { flow: Math.max(m.flowMin, Math.round(m.baselineFlow * 0.12)), pressure: 0.2, temperature: 23.5, humidity: 47 },
     isolation: { flow: Math.max(0, Math.round(m.flowMin * 0.2)), pressure: 0.02, temperature: 23.0, humidity: 47 },
   }
