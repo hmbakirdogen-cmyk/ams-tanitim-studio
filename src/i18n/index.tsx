@@ -47,9 +47,6 @@ const EN: Record<string, string> = {
   'CANLI · YOK': 'LIVE · OFFLINE',
   'CANLI · …': 'LIVE · …',
   'CANLI': 'LIVE',
-  'Şu an': 'Now',
-  'Canlıya dön': 'Back to live',
-  'Zaman çubuğu': 'Time scrubber',
   // Veri kaynagi rozeti - ipucu (tooltip)
   'Örnek/simülasyon verisi — gerçek cihaza bağlı değil': 'Sample/simulation data — not connected to a real device',
   'Gerçek cihaza bağlanılıyor…': 'Connecting to the real device…',
@@ -439,9 +436,6 @@ const JA: Record<string, string> = {
   'CANLI · YOK': 'ライブ · オフライン',
   'CANLI · …': 'ライブ · …',
   'CANLI': 'ライブ',
-  'Şu an': '現在',
-  'Canlıya dön': 'ライブに戻る',
-  'Zaman çubuğu': 'タイムスライダー',
   // Veri kaynagi rozeti - ipucu (tooltip)
   'Örnek/simülasyon verisi — gerçek cihaza bağlı değil': 'サンプル／シミュレーションデータ — 実機に接続されていません',
   'Gerçek cihaza bağlanılıyor…': '実機に接続しています…',

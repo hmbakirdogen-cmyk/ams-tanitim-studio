@@ -575,7 +575,7 @@ export function DeviceFlowChart({
           const [rr, gg, bb] = r.rgb
           // ayraç çizgi (satırlar arası, gerçek segment ekran hissi)
           if (i > 0) { ctx.strokeStyle = 'rgba(120,160,210,0.18)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(rx + padX, ry + padY + lh * i); ctx.lineTo(rx + rw - padX, ry + padY + lh * i); ctx.stroke() }
-          // CANLI rakam + birim — ekranda YATAY ORTALI (Mehmet Abi: değerler sağa yaslıydı, sol yarı boş kalıyordu → grup ortalanır, dengeli).
+          // CANLI rakam + birim — SAĞA YASLI (Mehmet Abi: "debimetre ekranı yazılar sağa yaslı olmalı"): grup sağ kenara (padX payı ile).
           const fs = Math.max(8, Math.min(lh * 0.72, rw * 0.205))
           const uf = Math.max(6, fs * 0.46)
           const gap = fs * 0.22
@@ -583,7 +583,7 @@ export function DeviceFlowChart({
           const vw = ctx.measureText(r.value).width
           ctx.font = `600 ${uf}px ui-monospace, Menlo, monospace`
           const uw = ctx.measureText(r.unit).width
-          const startX = rx + Math.max(padX, (rw - (vw + gap + uw)) / 2)   // value+unit grubu ekranda ORTALI (taşmazsa)
+          const startX = rx + Math.max(padX, rw - padX - (vw + gap + uw))   // value+unit grubu SAĞA yaslı (taşmazsa)
           ctx.textAlign = 'left'
           // CANLI rakam — SÖNÜK glow (Mehmet Abi: çok ışık saçmasın); rakam rengi hafif düşük (×0.86)
           ctx.font = `800 ${fs}px ui-monospace, Menlo, monospace`
