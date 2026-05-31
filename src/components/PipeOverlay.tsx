@@ -72,22 +72,22 @@ export function PipeOverlay({
         <div className="text-[10px] text-[var(--ink-soft)]">{t('akış hızı + dolum = anlık değer')}</div>
       </div>
 
-      {/* SOL DIKEY (Mehmet Abi: cihaz penceresindeki veriler SAĞDAN SOLA alındı): anlık değerler OPAK kartta → ARKASINDA akış
-          animasyonu GÖRÜNMEZ. Mod rozetinin altında, dikey ortalı; sol-hizalı. Renk = boru rengi (kimlik bağı). */}
-      <div className="absolute left-3 top-1/2 flex -translate-y-1/2 flex-col gap-1.5 rounded-xl border border-white/10 bg-[#050b18] px-2.5 py-2 shadow-[0_18px_50px_-20px_rgba(0,0,0,0.9)]">
+      {/* SOL-ALT anlık değerler (Mehmet Abi: akışın ALTINDA temiz bölgede → DIŞ ÇERÇEVE YOK; değerler HİYERARŞİK/İRİ yüzer.
+          2 sütun grid; ad küçük (ikincil) + İRİ beyaz değer (birincil) + birim/eşik küçük. text-shadow → çerçevesiz okunaklı. */}
+      <div className="absolute bottom-7 left-3 grid grid-cols-2 gap-x-6 gap-y-2.5">
         {metrics.map((m) => {
           const v = reading ? m.get(reading) : m.min
           const thr = thresholds[m.key]
           const below = thr ? v < thr.value : false
           return (
             <div key={m.key} className="flex flex-col items-start leading-none">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" style={shadow}>
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: m.color, boxShadow: `0 0 6px ${m.color}` }} />
-                <span className="text-[10px] font-medium text-[var(--ink-soft)]">{t(m.name)}</span>
+                <span className="text-[11px] font-medium text-[var(--ink-soft)]">{t(m.name)}</span>
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="num text-lg font-bold leading-none text-white">{fmt(v, m.digits)}</span>
-                <span className="text-[10px] font-medium text-[var(--ink-soft)]">{m.unitShort}</span>
+              <div className="mt-0.5 flex items-baseline gap-1" style={shadow}>
+                <span className="num text-2xl font-bold leading-none text-white">{fmt(v, m.digits)}</span>
+                <span className="text-[11px] font-medium text-[var(--ink-soft)]">{m.unitShort}</span>
                 {thr && (
                   <span className="ml-0.5 flex items-center gap-0.5 text-[9px]" style={{ color: below ? '#FFB04D' : 'var(--c-saving)' }}>
                     {below ? <ArrowDown size={9} /> : <ArrowUp size={9} />}{thr.label}

@@ -87,27 +87,28 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
         ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.fill()
       }
 
-      // 2) PERSPEKTİF SİSTEM IZGARASI — derinliğe kaçan ince çizgiler (hava kanalı/sistem hissi); çok soluk → ferah
-      ctx.lineWidth = 1
+      // 2) PERSPEKTİF SİSTEM IZGARASI — derinliğe kaçan çizgiler (3D "hava kanalı/sistem" hissi). Mehmet Abi: "güzel 3D arka plan kaybolmuş"
+      //   → ızgara BELİRGİNLEŞTİRİLDİ (alpha ~2×, çizgi biraz kalın) ki cihaz net bir 3B derinlikte dursun (yine ferah, 60fps).
+      ctx.lineWidth = 1.15
       for (let i = 1; i <= 10; i++) {
         const f = i / 10
         const yy = horizon + Math.pow(f, 2.1) * (H - horizon) * 1.1
         if (yy > H + 4) break
-        ctx.strokeStyle = `rgba(${col},${(dark ? 0.10 : 0.08) * (1 - f * 0.5)})`
+        ctx.strokeStyle = `rgba(${col},${(dark ? 0.20 : 0.15) * (1 - f * 0.5)})`
         ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke()
         const yu = horizon - Math.pow(f, 2.1) * horizon * 1.05   // ufuk ÜSTÜ simetrik (tavan kanalı)
-        ctx.strokeStyle = `rgba(${col},${(dark ? 0.07 : 0.05) * (1 - f * 0.5)})`
+        ctx.strokeStyle = `rgba(${col},${(dark ? 0.14 : 0.10) * (1 - f * 0.5)})`
         ctx.beginPath(); ctx.moveTo(0, yu); ctx.lineTo(W, yu); ctx.stroke()
       }
       const spread = W * 0.9
       for (let i = -6; i <= 6; i++) {
-        ctx.strokeStyle = `rgba(${col},${(dark ? 0.08 : 0.06) * (1 - Math.abs(i) / 8)})`
+        ctx.strokeStyle = `rgba(${col},${(dark ? 0.18 : 0.13) * (1 - Math.abs(i) / 8)})`   // derinliğe kaçan dikey çizgiler = en güçlü 3B ipucu
         ctx.beginPath(); ctx.moveTo(cxC + (i / 6) * spread * 0.1, horizon); ctx.lineTo(cxC + (i / 6) * spread, H); ctx.stroke()
       }
-      // ufuk ışık bandı (derinlik kapanışı)
-      const hg = ctx.createLinearGradient(0, horizon - H * 0.14, 0, horizon + H * 0.06)
-      hg.addColorStop(0, `rgba(${col},0)`); hg.addColorStop(0.6, `rgba(${col},${dark ? 0.09 : 0.05})`); hg.addColorStop(1, `rgba(${col},0)`)
-      ctx.fillStyle = hg; ctx.fillRect(0, horizon - H * 0.14, W, H * 0.2)
+      // ufuk ışık bandı (derinlik kapanışı) — belirginleştirildi
+      const hg = ctx.createLinearGradient(0, horizon - H * 0.16, 0, horizon + H * 0.08)
+      hg.addColorStop(0, `rgba(${col},0)`); hg.addColorStop(0.6, `rgba(${col},${dark ? 0.16 : 0.09})`); hg.addColorStop(1, `rgba(${col},0)`)
+      ctx.fillStyle = hg; ctx.fillRect(0, horizon - H * 0.16, W, H * 0.22)
 
       // 3) YATAY SÜZÜLEN HAVA ZERRELERİ — "uçan parlak ışıklar"; akış soldan sağa. Derinlik (fDep) → boyut/parlaklık/hız/parallax.
       ctx.lineCap = 'round'

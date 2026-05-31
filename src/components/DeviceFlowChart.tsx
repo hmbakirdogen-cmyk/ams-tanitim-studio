@@ -461,7 +461,10 @@ export function DeviceFlowChart({
 
       // 5) DEVREYE GİRME halkalari — regülatör (BASINÇ renginde) / valf (turuncu-amber)
       const pulse = now * 0.006
-      // Regülatör DEVREDE göstergesi ARTIK kendi POWER LED'inde (aşağıda led(LED_REG)) — yüzen halka kaldırıldı (Mehmet Abi: ışık kendi yerinde).
+      // Regülatör DEVREYE GİRME halkaları (Mehmet Abi: "valf devreye girince olan yuvarlak animasyonların hepsi regülatörde de olsun") —
+      //   TEAL ("Regülatör devrede" rengi), regüle hücresi merkezinde, sig.reg yoğunluğunda. Valfle AYNI drawEngage; farklı faz (sync olmasın).
+      const regCx = (regX0 + regX1) / 2
+      drawEngage(regCx, axisY, '54,224,200', sig.reg, pulse, markR)                          // regülatör halkası — devredeyken (standby) parlar
       drawEngage(valveCx + dw * 0.045, valveCy, '255,150,40', sig.valve, pulse + 1.5, markR) // valf halkası biraz SAĞ (flow sınırı/egzoz dokunulmadan)
 
       // 6) NEM — havada SÜSPANSE su buharı/mikro-damlacık (NEM renginde): akışLA birlikte (sol→sağ) sürüklenir, boru kesitine
