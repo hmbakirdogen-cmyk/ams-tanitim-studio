@@ -61,23 +61,23 @@ export function LoginScreen({ auth }: { auth: Auth }) {
         initial={{ opacity: 0, y: 18, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="glass w-full max-w-5xl rounded-3xl p-6 sm:p-8"
+        className="glass w-full max-w-3xl rounded-3xl p-6 sm:p-8"
       >
-        <div className="grid gap-6 lg:grid-cols-2 lg:items-center lg:gap-10">
-          {/* SOL: MUHTEŞEM tanıtım görseli — resmi SMC whitepaper hero: tam AMS montajı (canlı ekranlı) mavi fabrika salonu fonunda.
-              Arka planı KENDİ İÇİNDE (Mehmet Abi: "arka planlı hazır görsel"). object-cover; ~1280px (RAM-dostu, keskin). */}
-          <div className="relative h-52 overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424] sm:h-60 lg:h-[380px]">
-            <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS {t('Hava Yönetim Sistemi')}</span>
-            <img
-              src={asset('products/ams-scene-hero.jpg')}
-              alt="SMC AMS — Hava Yönetim Sistemi (gerçek fabrika ortamında, canlı ekran)"
-              className="absolute inset-0 h-full w-full object-cover"
-              style={{ objectPosition: '50% 50%' }}
-              loading="lazy"
-            />
-          </div>
+        {/* USTTE TAM-GENISLIK BANNER hero — Mehmet Abi: "resmin BUTUNUNU gormek isterim".
+            Kutu en-boy orani GORSELE uydurulur (1280x318 ~ 4:1) -> object-cover kropu icerigi KESMEZ;
+            tum panorama gorunur, bosluk/letterbox olmaz. Eskiden 2-kolon dar kutu ortasini kesiyordu. */}
+        <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424]" style={{ aspectRatio: '1280 / 318' }}>
+          <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS {t('Hava Yönetim Sistemi')}</span>
+          <img
+            src={asset('products/ams-scene-hero.jpg')}
+            alt="SMC AMS — Hava Yönetim Sistemi (gerçek fabrika ortamında, canlı ekran)"
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
+          />
+        </div>
 
-          {/* SAG: personel girisi */}
+        <div className="mt-6">
+          {/* ALTTA: personel girisi */}
           <div>
             <div className="flex flex-col items-center text-center">
               <SmcLogo size={92} withText={false} slogan />

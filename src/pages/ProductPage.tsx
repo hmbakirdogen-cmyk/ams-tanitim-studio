@@ -77,28 +77,29 @@ export function ProductPage() {
       <PageHeader title="Ürün & Teknoloji" subtitle="SMC Hava Yönetim Sistemi — AMS20/30/40/60 Serisi" />
       {/* not: const dizilerdeki (CAPABILITIES/MODES/COMPONENTS/CONNECT/SPECS) Turkce metinler render'da t() ile cevrilir */}
 
-      {/* Hero */}
+      {/* Hero — Mehmet Abi: "resmin BUTUNUNU gormek isterim" -> metin USTTE, gorsel ALTTA TAM-GENISLIK BANNER.
+          Kutu en-boy orani gorsele uydurulur (1280x414 ~ 3.1:1) -> object-cover kropu panoramayi KESMEZ (tum sahne gorunur). */}
       <Reveal>
-        <Tilt3D className="glass relative grid grid-cols-1 gap-6 overflow-hidden rounded-3xl p-8 lg:grid-cols-[1.3fr_1fr]" max={4}>
+        <Tilt3D className="glass relative flex flex-col gap-6 overflow-hidden rounded-3xl p-8" max={4}>
           <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--smc)' }} />
           <div style={{ transform: 'translateZ(20px)' }}>
             <SmcLogo size={80} withText={false} />
             <h2 className="mt-5 text-4xl font-extrabold leading-tight text-white">
               {t('Boşa giden havayı')} <span className="text-[var(--c-saving)] glow-text" style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)' }}>{t('%62’ye kadar')}</span> {t('azaltın')}
             </h2>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--ink-soft)]">
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--ink-soft)]">
               {t('Air Management System; ekipman beklemedeyken hava basıncını otomatik düşürür ya da keser. Debi, basınç ve sıcaklığı sürekli ölçer; enerji tasarrufunu görünür kılar. Endüstri 4.0 ve kestirimci bakım için doğrudan veri iletişimi sunar.')}
             </p>
           </div>
-          {/* MUHTEŞEM hero — resmi SMC Endüstri 4.0 sahnesi: hub + veri-akışı ışık çizgileri (arka planı içinde). object-cover, ~1280px (RAM-dostu). */}
-          <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#070e1c]">
+          {/* MUHTEŞEM hero banner — resmi SMC Endüstri 4.0 sahnesi: hub + veri-akışı ışık çizgileri (arka planı içinde). */}
+          <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#070e1c]" style={{ aspectRatio: '1280 / 414', transform: 'translateZ(10px)' }}>
             <img
               src={asset('products/ams-industry40.jpg')}
               alt="SMC Hava Yönetim Sistemi — Endüstri 4.0 / OPC UA veri iletişimi"
               className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
             />
-            {/* Etiket okunabilirligi icin hafif koyu gradyan (alt + ust kose) */}
+            {/* Etiket okunabilirligi icin hafif koyu gradyan (alt kose) */}
             <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(4,12,26,0.6), transparent 42%)' }} />
             <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>{model.code}</span>
             <span className="absolute bottom-3 right-3 z-10 text-[11px] font-semibold text-white" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.8)' }}>
