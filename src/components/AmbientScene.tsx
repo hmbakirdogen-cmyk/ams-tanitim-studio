@@ -10,9 +10,9 @@
  */
 import { useEffect, useRef } from 'react'
 
-// Akış zerresi (yatay süzülen parlak ışık) sayısı + derinlik kıvılcımı sayısı (ölçülü → ferah, 60fps)
-const FLOW_N = 70
-const GLOW_N = 3
+// Akış zerresi (yatay süzülen parlak ışık) sayısı + derinlik kıvılcımı sayısı (Mehmet Abi: cihaz arkasında DAHA BELİRGİN/güzel → arttırıldı; yine 60fps/ferah)
+const FLOW_N = 96
+const GLOW_N = 4
 
 export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 'light'; flow?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -83,7 +83,7 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
         const gr = Math.min(W, H) * (0.22 + 0.06 * i)
         const c = i % 2 === 0 ? col : teal
         const rg = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr)
-        rg.addColorStop(0, `rgba(${c},${dark ? 0.10 : 0.06})`); rg.addColorStop(1, `rgba(${c},0)`)
+        rg.addColorStop(0, `rgba(${c},${dark ? 0.13 : 0.07})`); rg.addColorStop(1, `rgba(${c},0)`)
         ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.fill()
       }
 
@@ -120,7 +120,7 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
         const x = fX[i] * (W + 80) - 40 + ox + depPar
         const y = fLane[i] * H + oy * (0.4 + dep) + Math.sin(now * 0.0006 + i) * 2
         const sz = 0.5 + dep * 2.0
-        const a = (dark ? 0.18 : 0.12) + dep * (dark ? 0.5 : 0.3)
+        const a = (dark ? 0.22 : 0.14) + dep * (dark ? 0.55 : 0.32)
         const len = 4 + dep * 22 * (0.4 + fl)               // hızlı/yakın = uzun iz (akış hissi)
         const c = i % 5 === 0 ? teal : col                   // çoğu mavi, arada teal kıvılcım
         ctx.strokeStyle = `rgba(${c},${a * 0.5})`; ctx.lineWidth = sz

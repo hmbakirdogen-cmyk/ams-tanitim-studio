@@ -74,27 +74,26 @@ export function PipeOverlay({
 
       {/* SOL DIKEY (Mehmet Abi: cihaz penceresindeki veriler SAĞDAN SOLA alındı): anlık değerler OPAK kartta → ARKASINDA akış
           animasyonu GÖRÜNMEZ. Mod rozetinin altında, dikey ortalı; sol-hizalı. Renk = boru rengi (kimlik bağı). */}
-      <div className="absolute left-3 top-1/2 flex -translate-y-1/2 flex-col gap-2.5 rounded-2xl border border-white/10 bg-[#050b18] px-3.5 py-3 shadow-[0_18px_50px_-20px_rgba(0,0,0,0.9)]">
+      <div className="absolute left-3 top-1/2 flex -translate-y-1/2 flex-col gap-1.5 rounded-xl border border-white/10 bg-[#050b18] px-2.5 py-2 shadow-[0_18px_50px_-20px_rgba(0,0,0,0.9)]">
         {metrics.map((m) => {
           const v = reading ? m.get(reading) : m.min
           const thr = thresholds[m.key]
           const below = thr ? v < thr.value : false
           return (
-            <div key={m.key} className="flex flex-col items-start">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
-                <span className="text-[11px] font-medium text-[var(--ink-soft)]">{t(m.name)}</span>
+            <div key={m.key} className="flex flex-col items-start leading-none">
+              <div className="flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: m.color, boxShadow: `0 0 6px ${m.color}` }} />
+                <span className="text-[10px] font-medium text-[var(--ink-soft)]">{t(m.name)}</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="num text-2xl font-bold leading-none text-white">{fmt(v, m.digits)}</span>
-                <span className="text-[11px] font-medium text-[var(--ink-soft)]">{m.unitShort}</span>
+                <span className="num text-lg font-bold leading-none text-white">{fmt(v, m.digits)}</span>
+                <span className="text-[10px] font-medium text-[var(--ink-soft)]">{m.unitShort}</span>
+                {thr && (
+                  <span className="ml-0.5 flex items-center gap-0.5 text-[9px]" style={{ color: below ? '#FFB04D' : 'var(--c-saving)' }}>
+                    {below ? <ArrowDown size={9} /> : <ArrowUp size={9} />}{thr.label}
+                  </span>
+                )}
               </div>
-              {thr && (
-                <div className="mt-0.5 flex items-center gap-1 text-[10px]" style={{ color: below ? '#FFB04D' : 'var(--c-saving)' }}>
-                  {below ? <ArrowDown size={11} /> : <ArrowUp size={11} />}
-                  <span>{t('eşik')}: {thr.label}</span>
-                </div>
-              )}
             </div>
           )
         })}

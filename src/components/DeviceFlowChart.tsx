@@ -572,23 +572,26 @@ export function DeviceFlowChart({
           const [rr, gg, bb] = r.rgb
           // ayraç çizgi (satırlar arası, gerçek segment ekran hissi)
           if (i > 0) { ctx.strokeStyle = 'rgba(120,160,210,0.18)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(rx + padX, ry + padY + lh * i); ctx.lineTo(rx + rw - padX, ry + padY + lh * i); ctx.stroke() }
-          // CANLI rakam + birim — Mehmet Abi: "çok az da olsa küçült" → fs oranları biraz düşürüldü (lh*0.84→0.72, rw*0.24→0.205); okunaklı kalır.
+          // CANLI rakam + birim — ekranda YATAY ORTALI (Mehmet Abi: değerler sağa yaslıydı, sol yarı boş kalıyordu → grup ortalanır, dengeli).
           const fs = Math.max(8, Math.min(lh * 0.72, rw * 0.205))
           const uf = Math.max(6, fs * 0.46)
+          const gap = fs * 0.22
+          ctx.font = `800 ${fs}px ui-monospace, Menlo, monospace`
+          const vw = ctx.measureText(r.value).width
           ctx.font = `600 ${uf}px ui-monospace, Menlo, monospace`
           const uw = ctx.measureText(r.unit).width
-          const ux = rx + rw - padX - uw            // birim sağa yaslı; rakam ONUN soluna ölçülerek konumlanır (taşma yok)
+          const startX = rx + Math.max(padX, (rw - (vw + gap + uw)) / 2)   // value+unit grubu ekranda ORTALI (taşmazsa)
+          ctx.textAlign = 'left'
+          // CANLI rakam — SÖNÜK glow (Mehmet Abi: çok ışık saçmasın); rakam rengi hafif düşük (×0.86)
           ctx.font = `800 ${fs}px ui-monospace, Menlo, monospace`
-          ctx.textAlign = 'right'
-          // SÖNÜK (Mehmet Abi: çok ışık saçmasın): glow kısıldı (0.5→0.18, alfa 0.95→0.45) + rakam rengi hafif düşürüldü (×0.86)
           ctx.shadowColor = `rgba(${rr},${gg},${bb},0.45)`; ctx.shadowBlur = fs * 0.18
           ctx.fillStyle = `rgb(${Math.round(rr * 0.86)},${Math.round(gg * 0.86)},${Math.round(bb * 0.86)})`
-          ctx.fillText(r.value, ux - fs * 0.22, cy)
+          ctx.fillText(r.value, startX, cy)
           ctx.shadowBlur = 0
+          // birim — rakamın hemen sağında
           ctx.font = `600 ${uf}px ui-monospace, Menlo, monospace`
-          ctx.textAlign = 'left'
           ctx.fillStyle = `rgba(${rr},${gg},${bb},0.72)`
-          ctx.fillText(r.unit, ux, cy)
+          ctx.fillText(r.unit, startX + vw + gap, cy)
         }
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
       }
