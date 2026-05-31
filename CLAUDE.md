@@ -20,7 +20,7 @@ Vite + React + TS + Tailwind v4 + Framer Motion + **three/@react-three/fiber/dre
 - Sayfalar `src/pages/`, paylaşılan bileşenler `src/components/`, veri/iş mantığı `src/data` + `src/lib` + `src/hooks`.
 
 ## KATİ kurallar (carried)
-- Hitabet daima **"[Soyad] Bey"** (uygulama içinde de; kibar‑kurumsal‑sıcak). Mehmet Bey ile **CC** tonu.
+- **Hitabet (ÇAKIŞMADA BU GEÇERLİ):** Kullanıcıya **DAİMA "Mehmet Abi"** de; ben kendimi **"CC"** olarak konumlarım (sıcak/samimi CC tonu). Kullanıcı için **"Bakırdöğen Bey"/"Mehmet Bey" KULLANMA.** — "[Soyad] Bey" kuralı YALNIZCA **uygulama İÇİNDEKİ** SMC personeli hitabı içindir (örn. arayüzde "Halil İbrahim Bey"); sohbette kullanıcı = Mehmet Abi.
 - Her edit'te **blok yorum**: NE+NEDEN+NASIL+YAN ETKİ.
 - **Push öncesi** tam tarama: `npm run typecheck` + `npm run build` (sıfır hata).
 - **Birimi olan her sayının yanında birimi** görünür; **kafa karıştıran kısaltma yok** (büyük değerler kompakt: 1,2 Mn ₺).
