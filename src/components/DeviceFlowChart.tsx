@@ -600,8 +600,8 @@ export function DeviceFlowChart({
         const rowH = ih / 2
         const GLOW = 0.1                             // LED hâlesi ÇOK KISIK → keskin, haneler karışmaz
         const iconW = iw * 0.085                     // sağ ikon şeridi (HER İKİ sağ değer bunu bırakır → debi & toplam HİZALI)
-        const cgap = iw * 0.07                       // MERKEZ KANAL (sol/sağ sütun arası ferah boşluk)
-        const lMargin = iw * 0.04                    // sol kenar payı
+        const cgap = iw * 0.09                       // MERKEZ KANAL (sol/sağ sütun arası ferah boşluk — gerçek foto)
+        const lMargin = iw * 0.05                    // sol kenar payı
         // GERÇEK cihaz çözünürlüğü ile değer string'leri
         const pStr = ro2.pressure != null ? ro2.pressure.toFixed(3) : '---'   // basınç 0.200
         const fStr = ro2.flow != null ? String(Math.round(ro2.flow)) : '---'  // anlık debi 300
@@ -613,13 +613,14 @@ export function DeviceFlowChart({
         const leftAvail = lRight - (ix + lMargin)            // sol değerin sığacağı genişlik
         const rightAvail = rRight - (ix + iw * 0.5 + cgap * 0.5)
         // TEK BOY rakam (gerçek cihaz: tüm 7-seg AYNI boyut) — en dar sığan değeri baz al; rakam DAR olduğu için değer yarıyı DOLDURMAZ
-        const hBudget = rowH * 0.58                          // rakam yükseklik bütçesi (uzun ama etikete pay)
+        const hBudget = rowH * 0.50                          // rakam yükseklik bütçesi (gerçek scale + bol üst/alt + satır arası boşluk)
         const fitH = (str: string, avail: number) => Math.min(hBudget, avail / Math.max(0.001, measureSevenSeg(str, 1)))
         const digH = Math.min(fitH(pStr, leftAvail), fitH(tStr, leftAvail), fitH(fStr, rightAvail), fitH(aStr, rightAvail))
-        // DİKEY: üst satır (basınç+debi) AYNI Y; alt satır (sıcaklık+toplam) AYNI Y. Satırlar yarılarında dikey ortalı → satırlar arası FERAH boşluk.
-        const uf = Math.max(6, digH * 0.42)          // birim fontu — rakama oranlı, küçük (gerçek cihaz: rakamla yarışmaz)
-        const topNumY = iy + (rowH - digH) * 0.52    // üst satır rakam (üstte MPa'ya pay)
-        const botNumY = iy + rowH + (rowH - digH) * 0.40  // alt satır rakam (altta °C/L'ye pay)
+        // DİKEY KONUM (gerçek foto-oran): üst satır rakamları AYNI Y, alt satır AYNI Y. Bol üst/alt kenar boşluğu + satırlar
+        //   arası birim (L/min, °C/L) için NET boşluk (üst-üste binmesin). Konumlar iç-yükseklik (ih) oranı olarak.
+        const uf = Math.max(6, digH * 0.40)          // birim fontu — küçük (gerçek cihaz: rakamla yarışmaz, gaplere sığar)
+        const topNumY = iy + ih * 0.17               // üst satır rakam ÜST-Y (üstte MPa + kenar boşluğu)
+        const botNumY = iy + ih * 0.585              // alt satır rakam ÜST-Y (satır arası L/min'e net boşluk; altta °C/L + kenar)
 
         const unit = (txt: string, ux: number, uy: number, col: RGB, align: CanvasTextAlign) => {
           ctx.font = `700 ${uf}px ui-sans-serif, system-ui, sans-serif`

@@ -25,11 +25,13 @@ const SEG: Record<string, string> = {
   '-': 'g',
 }
 
-// Cell oranlari (rakam yuksekligine gore) — GERCEK SMC 7-seg: rakam DAR ve UZUN (foto: ferah, haneler net ayrik), kalin bar.
-const DIGIT_W = 0.46 // rakam genisligi / yukseklik (DAR/uzun → ferah, deger sutunu doldurmaz, merkez kanal kalir)
-const DOT_W = 0.24 // '.' icin dar cell
-const GAP = 0.13 // karakterler arasi bosluk / yukseklik
-const THICK = 0.13 // segment kalinligi / yukseklik
+// Cell oranlari — GERCEK SMC 7-seg foto-ÖLÇÜM: rakam yuksekligi ekranin ~%27'si, hane en-boy ~0.40 (DAR/uzun), hane arasi DAR.
+// Foto: "0.200" tum string genisligi / rakam-yuksekligi ~1.9 → measureSevenSeg("0.200",1)≈2.0 hedefi. Dar font = ayni genislikte
+// DAHA UZUN rakam (gercek scale) + ferah merkez kanal. Haneler dar oldugu icin kucuk bosluk yeterli (net ayrik).
+const DIGIT_W = 0.40 // rakam genisligi / yukseklik (DAR/uzun — gercek aspect)
+const DOT_W = 0.20 // '.' icin dar cell
+const GAP = 0.09 // karakterler arasi bosluk / yukseklik (dar — gercek foto)
+const THICK = 0.12 // segment kalinligi / yukseklik
 
 /** Bir string'in toplam genisligi (px) — sag-yasli hizalama icin onceden olculur. */
 export function measureSevenSeg(text: string, h: number): number {
