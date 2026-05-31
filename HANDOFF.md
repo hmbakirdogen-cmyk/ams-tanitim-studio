@@ -1,9 +1,21 @@
 # HANDOFF — AMS Tanıtım Stüdyosu
 
-**Son güncelleme:** 2026-05-31 (5. tur — HUB LCD'si BİREBİR GERÇEK: 2×2 grid + gerçek 7-segment LED + dinamik 2-renk + totalizer. Push → canlı)
+**Son güncelleme:** 2026-06-01 (6. tur — MUHTEŞEM GÖRSELLER: çok-ajanlı marketing avı → giriş+ürün hero gerçek SMC fabrika/Endüstri-4.0 sahneleri; ürün sayfası tema-blend (beyaz zemin yok); ekran renk kuralı; RAM temizliği. + DERİN HAFIZA: Mehmet profili, CC yönlendiren-ortak rolü, kaynak/teknik defterleri. Push → canlı)
 **Durum:** Çalışıyor + CANLI yayında. `npm run dev` → http://localhost:5180 · `npm run build` ✅ (offline). typecheck+build sıfır hata.
 
-## 🟢 EN SON NEREDE KALDIK (2026-05-31, 5. tur) — HUB LCD ekranı BİREBİR GERÇEK (debimetre dijital ekranı)
+## 🟢 EN SON NEREDE KALDIK (2026-06-01, 6. tur) — MUHTEŞEM GÖRSELLER + DERİN HAFIZA (CC = yönlendiren ortak)
+Mehmet (CC): "muhteşem stüdyo işi, kusursuz program; gerçek arka-planlı tanıtım görselleri; beni benden çok tanı, sen yönlendir; RAM yorma ama kaliteden taviz yok; her şeyi tertemiz bırak."
+- **Çok-ajanlı marketing görsel avı** (Workflow, ajanlar görselleri KENDİ gözüyle eleyip onayladı): 31 onaylı, arka-planı-içinde, stüdyo kalitesinde SMC AMS görseli. Kaynaklar [[smc-gorsel-kaynaklari]], teknik [[arastirma-teknikleri]].
+- **Giriş hero** → resmi SMC whitepaper sahnesi: tam AMS montajı (canlı ekran) **mavi fabrika salonu** önünde (`ams-scene-hero.jpg`). **Ürün sayfası hero** → **Endüstri 4.0** veri-akışı sahnesi (`ams-industry40.jpg`). İkisi de ~1280px (RAM-dostu, keskin), object-cover, tema-uyumlu koyu konteyner + slogan/gradyan.
+- **Ürün sayfası bileşen kartları + komple-sistem:** beyaz zemin KALDIRILDI → **koyu SMC-mavisi spotlight** (şeffaf SMC CAD render'lar temaya gömülü; Mehmet: "düz beyaz yapma, temaya uydur"). HD render: hub/regülatör(ITV+AR)/valf/sistem.
+- **Ekran renk kuralı:** normal+standby YEŞİL, **sadece izolasyon KIRMIZI** (marketing görselleriyle uyumlu; eskiden standby de kırmızıydı).
+- **RAM/boyut:** kullanılmayan 9 eski görsel + tüm oturum-scratch silindi; precache 5.7MB→4.3MB. Prensip: [[performans-ram-kalite]].
+- **DERİN HAFIZA (önemli):** [[kullanici-mehmet-profili]] (kim/nasıl düşünür), [[cc-yonlendiren-ortak]] (CC reaktif değil YÖNLENDİREN; her mesajı analiz et, önden götür), [[adim-adim-bilgilendirme]], [[yerel-onay-sonra-push]], [[arastirma-birikim]]. **Yeni oturumda önce bunları oku.**
+- **Canlı cihaz (Akış görünümü):** CAD'e geçilmedi — **gerçek foto** (ams-flow.png) kaldı (en gerçekçi; overlay tuned). Karar bilinçli.
+- **shot aracı** genişletildi: `tools/_shot.mjs` (PAGE/SCROLL/NOSEED/MODE=page-fullPage). Headless doğrulama + kullanıcıya Chrome penceresi açma ([[arastirma-teknikleri]]).
+**SIRADAKİ:** Mehmet hero kırpımlarını/tonları canlıda görsün (görsel-limiti yüzünden bu oturumda gözle doğrulanamadı); gerekirse object-position/ton rötuşu. Sonra: ürün sayfasına uygulama/Endüstri-4.0 bağlam görselleri serpiştirme (havuzda #5 izometrik fabrika, #8 kampanya backdrop hazır — kaynaklar memory'de).
+
+## 🟢 ÖNCEKİ TUR (2026-05-31, 5. tur) — HUB LCD ekranı BİREBİR GERÇEK (debimetre dijital ekranı)
 Mehmet Abi: *"debimetrenin gerçek ekranını birebir yakala; kullanıcı gerçek ekrana bakıyormuş gibi hissetsin, her şeyiyle."* + *"renk değişimi var, set değere ulaşınca."* → **SMC kullanım kılavuzu (om_ams_20-30-40-60) + EXA1 hub kılavuzu + Mehmet'in foto + PF3A yakın çekim** araştırıldı, hub LCD'si baştan yazıldı:
 - **GERÇEK DÜZEN (2×2 grid):** ANA EKRAN (üst): SOL=Basınç **MPa**, SAĞ=Anlık debi **L/min**. ALT EKRAN (alt): SOL=Sıcaklık **°C**, SAĞ=Toplam debi **L**. (Kılavuz s.19 birebir.)
 - **DİNAMİK 2-RENK (kılavuz: "main display = 2 colour display"):** Ana ekran (basınç+debi) operasyonda **YEŞİL**, çıkış aktifken (debi set-eşiğe inip standby/izolasyona geçince) **KIRMIZI**. Alt ekran (sıcaklık+toplam) hep **TURUNCU** ("sub display"). Bu, Mehmet'in gözlemlediği renk değişimi.

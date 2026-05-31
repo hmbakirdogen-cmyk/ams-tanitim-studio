@@ -64,18 +64,20 @@ export function LoginScreen({ auth }: { auth: Auth }) {
         className="glass w-full max-w-5xl rounded-3xl p-6 sm:p-8"
       >
         <div className="grid gap-6 lg:grid-cols-2 lg:items-center lg:gap-10">
-          {/* SOL: SMC bagli sistem diyagrami (smcusa.com Best Practices gorseli, yuksek kalite) */}
+          {/* SOL: MUHTEŞEM tanıtım görseli — resmi SMC whitepaper hero: tam AMS montajı (canlı ekranlı) mavi fabrika salonu fonunda.
+              Arka planı KENDİ İÇİNDE (Mehmet Abi: "arka planlı hazır görsel"). object-cover; ~1280px (RAM-dostu, keskin). */}
           <div className="relative h-52 overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424] sm:h-60 lg:h-[380px]">
-            {/* Urun adi etiketi (eski "Bagli Sistem" yerine - markaya uygun) */}
             <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS {t('Hava Yönetim Sistemi')}</span>
-            {/* ORIJINAL fabrika görseli (kendi arka planıyla) - object-cover ile hücreye, ürün ortalı */}
             <img
-              src={asset('products/ams-diagram.jpg')}
-              alt="SMC AMS — Hava Yönetim Sistemi (fabrika hattında gerçek ürün)"
+              src={asset('products/ams-scene-hero.jpg')}
+              alt="SMC AMS — Hava Yönetim Sistemi (gerçek fabrika ortamında, canlı ekran)"
               className="absolute inset-0 h-full w-full object-cover"
-              style={{ objectPosition: '50% 42%' }}
+              style={{ objectPosition: '50% 50%' }}
               loading="lazy"
             />
+            {/* okunabilirlik için alttan hafif koyu gradyan (rozet/slogan netliği) */}
+            <div className="pointer-events-none absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(4,10,22,0.55), transparent 38%)' }} />
+            <div className="absolute bottom-2.5 left-0 right-0 z-10 text-center text-[10.5px] font-semibold tracking-[0.14em] text-white/85" style={{ textShadow: '0 1px 8px rgba(0,0,0,0.7)' }}>EXPERTISE — PASSION — AUTOMATION</div>
           </div>
 
           {/* SAG: personel girisi */}

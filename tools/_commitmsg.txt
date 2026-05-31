@@ -1,0 +1,15 @@
+feat(gorsel): MUHTESEM arka-planli hero'lar + urun sayfasi tema-blend + RAM temizligi
+
+Mehmet (CC): "gercek arka-planli muhtesem tanitim gorselleri; beyaz zemin yok; RAM yorma ama kaliteden taviz yok; tertemiz birak."
+Cok-ajanli marketing gorsel avi (Workflow, ajanlar gorselleri kendi gozuyle eleyip onayladi) -> 31 onayli stüdyo-kalitesi gorsel.
+
+- Giris hero: resmi SMC whitepaper sahnesi = tam AMS montaji (canli ekran) mavi fabrika salonu onunde (ams-scene-hero.jpg).
+- Urun sayfasi hero: Endustri 4.0 veri-akisi sahnesi (ams-industry40.jpg). Ikisi ~1280px (RAM-dostu, keskin), object-cover, tema-uyumlu.
+- Urun sayfasi bilesen kartlari + komple sistem: beyaz zemin KALDIRILDI -> koyu SMC-mavisi spotlight (seffaf CAD render temaya gomulu).
+- Ekran renk kurali: normal+standby YESIL, sadece izolasyon KIRMIZI (marketing uyumu).
+- RAM/boyut: kullanilmayan 9 eski gorsel + tum oturum-scratch silindi; precache 5.7MB->4.3MB.
+- tools/_shot.mjs genisletildi (PAGE/SCROLL/NOSEED/fullPage).
+
+typecheck+build sifir hata.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>

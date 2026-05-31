@@ -18,7 +18,7 @@ const page = await browser.newPage()
 await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 })
 await new Promise((r) => setTimeout(r, 2500))
 // 2) Oturumu tohumla (login'i atla) — session düz string
-await page.evaluate(() => localStorage.setItem('ams_session_v1', 'karakelle'))
+if (!process.env.NOSEED) await page.evaluate(() => localStorage.setItem('ams_session_v1', 'karakelle'))
 // 2a) İsteğe bağlı tema (THEME=light → gündüz modu kontrolü)
 if (process.env.THEME) {
   const th = process.env.THEME
@@ -49,6 +49,29 @@ if (process.env.MODE) {
   }, txt)
   await new Promise((r) => setTimeout(r, 4500))
 }
+// İsteğe bağlı sayfa gezinme: PAGE=product -> sol menüde 'Ürün' içeren nav'a tıkla (ürün sayfası ekran görüntüsü için)
+if (process.env.PAGE) {
+  const navMap = { product: 'Ürün', live: 'Canlı', savings: 'Tasarruf', analysis: 'Geçmiş', records: 'Kayıt', settings: 'Ayar' }
+  const want = navMap[process.env.PAGE] || process.env.PAGE
+  await page.evaluate((w) => {
+    const el = [...document.querySelectorAll('button, a, [role=button]')].find((x) => x.textContent && x.textContent.includes(w))
+    if (el) el.click()
+  }, want)
+  await new Promise((r) => setTimeout(r, 2500))
+}
+// İsteğe bağlı dikey kaydırma: SCROLL=0..1 -> en uzun kaydırılabilir konteyneri o orana kaydır (fold altı içerik için)
+if (process.env.SCROLL) {
+  const frac = parseFloat(process.env.SCROLL)
+  await page.evaluate((f) => {
+    let best = document.scrollingElement, bestH = 0
+    document.querySelectorAll('*').forEach((el) => {
+      const sh = el.scrollHeight - el.clientHeight
+      if (sh > bestH && getComputedStyle(el).overflowY !== 'visible') { bestH = sh; best = el }
+    })
+    if (best) best.scrollTop = (best.scrollHeight - best.clientHeight) * f
+  }, frac)
+  await new Promise((r) => setTimeout(r, 1200))
+}
 const CLIPS = {
   device: { x: 255, y: 112, width: 745, height: 360 },
   valve: { x: 760, y: 130, width: 240, height: 280 },
@@ -61,7 +84,8 @@ const CLIPS = {
   chart: { x: 20, y: 690, width: 980, height: 320 },
 }
 const opts = { path: OUT }
-if (CLIPS[MODE]) opts.clip = CLIPS[MODE]
+if (MODE === 'page') opts.fullPage = true       // tum sayfa (scroll dahil)
+else if (CLIPS[MODE]) opts.clip = CLIPS[MODE]
 await page.screenshot(opts)
 console.log('OK (' + MODE + ') -> ' + OUT)
 await browser.close()

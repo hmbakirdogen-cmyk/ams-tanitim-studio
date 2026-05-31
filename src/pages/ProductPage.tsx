@@ -36,7 +36,7 @@ const MODES: { icon: LucideIcon; color: string; title: string; desc: string }[] 
 const COMPONENTS: { icon: LucideIcon; color: string; title: string; desc: string; img: string; imgB?: string }[] = [
   { icon: Cpu, color: '#2E9BFF', title: 'Hava Yönetim Merkezi', desc: 'Debi, basınç ve sıcaklığı ölçer; üst sisteme veri iletir, regülatör ve valfi yönetir (EXA1).', img: 'products/exa1-hub-hd.png' },
   // Regulator modele gore: Tip A -> elektro-pnomatik (ITV), Tip B -> elle ayar (AR). HD: resmi SMC CAD render (seffaf, yuksek-coz).
-  { icon: Gauge, color: '#36E0C8', title: 'Bekleme Regülatörü', desc: 'Basıncı uzaktan (elektro-pnömatik) veya elle ayarlayarak bekleme basıncına düşürür.', img: 'products/regulator-itv-hd.png', imgB: 'products/regulator-ar.jpg' },
+  { icon: Gauge, color: '#36E0C8', title: 'Bekleme Regülatörü', desc: 'Basıncı uzaktan (elektro-pnömatik) veya elle ayarlayarak bekleme basıncına düşürür.', img: 'products/regulator-itv-hd.png', imgB: 'products/regulator-ar-hd.png' },
   { icon: Wind, color: '#7CE0FF', title: 'Tahliye Valfi', desc: 'Üç yollu solenoid valf; havayı keser, kalan basıncı güvenle boşaltır (yumuşak başlatma seçeneği).', img: 'products/valve-vp-hd.png' },
 ]
 
@@ -90,11 +90,11 @@ export function ProductPage() {
               {t('Air Management System; ekipman beklemedeyken hava basıncını otomatik düşürür ya da keser. Debi, basınç ve sıcaklığı sürekli ölçer; enerji tasarrufunu görünür kılar. Endüstri 4.0 ve kestirimci bakım için doğrudan veri iletişimi sunar.')}
             </p>
           </div>
-          {/* GERCEK SMC urun fotosu (resmi SMC galeri, acili gercek fotograf) - hucreyi DOLDURUR (object-cover). Beyaz studyo zemin. */}
-          <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--hair)] bg-gradient-to-br from-white to-[#e9f1fa]">
+          {/* MUHTEŞEM hero — resmi SMC Endüstri 4.0 sahnesi: hub + veri-akışı ışık çizgileri (arka planı içinde). object-cover, ~1280px (RAM-dostu). */}
+          <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#070e1c]">
             <img
-              src={asset('products/ams-hero.jpg')}
-              alt="SMC Hava Yönetim Sistemi — gerçek ürün fotoğrafı (resmi SMC)"
+              src={asset('products/ams-industry40.jpg')}
+              alt="SMC Hava Yönetim Sistemi — Endüstri 4.0 / OPC UA veri iletişimi"
               className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
             />
@@ -159,7 +159,7 @@ export function ProductPage() {
         {/* Komple unite - EN KALITELI gorsel (ams-system, 2800px) aciklamanin yaninda, elit */}
         <Reveal>
           <Tilt3D className="glass mb-4 grid grid-cols-1 items-center gap-5 overflow-hidden rounded-2xl p-5 lg:grid-cols-[1.15fr_1fr]" max={4}>
-            <div className="overflow-hidden rounded-xl border border-[var(--hair)]" style={{ background: 'linear-gradient(150deg,#ffffff,#e9f1fa)' }}>
+            <div className="overflow-hidden rounded-xl border border-[var(--hair)]" style={{ background: 'radial-gradient(115% 100% at 50% 26%, #173a63 0%, #0b1e37 58%, #06101e 100%)' }}>
               <img src={asset('products/ams-system-hd.png')} alt="SMC AMS — komple ünite (resmi SMC CAD, yüksek çözünürlük)" className="mx-auto max-h-[300px] w-full object-contain p-4" loading="lazy" />
             </div>
             <div style={{ transform: 'translateZ(14px)' }}>
@@ -179,18 +179,18 @@ export function ProductPage() {
             return (
               <Reveal key={c.title} delay={i * 0.08}>
                 <Tilt3D className="glass relative flex h-full flex-col overflow-hidden rounded-2xl" max={6}>
-                  {/* bilesen FOTOGRAFI(LARI) - temiz acik panel. Regulator: HER IKI varyant (elektro-pnomatik + elle ayar) yan yana */}
-                  <div className="border-b border-[var(--hair)]" style={{ background: 'linear-gradient(160deg,#f6f9fd,#dde9f6)' }}>
+                  {/* bilesen render'i - KOYU SMC-mavisi spotlight zemin (Mehmet Abi: "duz beyaz yapma, temaya uydur") -> seffaf urun temaya gomulur */}
+                  <div className="border-b border-[var(--hair)]" style={{ background: 'radial-gradient(115% 95% at 50% 24%, #173a63 0%, #0b1e37 58%, #06101e 100%)' }}>
                     {c.imgB ? (
                       <div className="flex items-stretch justify-center gap-1 p-3">
                         <div className="flex flex-1 flex-col items-center justify-end">
                           <img src={asset(c.img)} alt="Elektro-pnömatik regülatör" className="h-28 w-auto object-contain" loading="lazy" />
-                          <span className="mt-1 text-[10px] font-semibold text-slate-500">{t('Elektro-pnömatik')}</span>
+                          <span className="mt-1 text-[10px] font-semibold text-sky-200/80">{t('Elektro-pnömatik')}</span>
                         </div>
-                        <div className="mx-1 w-px self-stretch bg-slate-300/60" />
+                        <div className="mx-1 w-px self-stretch bg-white/15" />
                         <div className="flex flex-1 flex-col items-center justify-end">
                           <img src={asset(c.imgB)} alt="Elle ayarlı regülatör" className="h-28 w-auto object-contain" loading="lazy" />
-                          <span className="mt-1 text-[10px] font-semibold text-slate-500">{t('Elle ayar')}</span>
+                          <span className="mt-1 text-[10px] font-semibold text-sky-200/80">{t('Elle ayar')}</span>
                         </div>
                       </div>
                     ) : (
