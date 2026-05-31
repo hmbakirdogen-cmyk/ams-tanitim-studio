@@ -19,6 +19,17 @@ await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 })
 await new Promise((r) => setTimeout(r, 2500))
 // 2) Oturumu tohumla (login'i atla) — session düz string
 await page.evaluate(() => localStorage.setItem('ams_session_v1', 'karakelle'))
+// 2b) İsteğe bağlı: demo geçmiş tohumu (scrubber/zaman çubuğu görünsün) — 12 saatlik dakikalık örnek
+if (process.env.SEED) {
+  await page.evaluate(() => {
+    const now = Date.now(), rows = []
+    for (let i = 720; i >= 0; i--) {
+      const t = now - i * 60000, h = new Date(t).getHours(), day = h >= 7 && h < 19
+      rows.push([t, Math.round(day ? 180 + Math.sin(i / 20) * 35 : 28), 0.56, 24.5 + Math.sin(i / 40) * 1.5, 46, day ? 0 : 1])
+    }
+    localStorage.setItem('ams_history_demo_v1', JSON.stringify(rows))
+  })
+}
 // 3) Yeniden yükle → doğrudan Canlı Panel (default page 'live')
 await page.reload({ waitUntil: 'networkidle2', timeout: 60000 })
 // 4) IntroSplash + animasyon yerleşsin
@@ -31,6 +42,7 @@ const CLIPS = {
   cards: { x: 1020, y: 108, width: 360, height: 600 },
   socket: { x: 540, y: 250, width: 300, height: 200 },
   low: { x: 430, y: 300, width: 420, height: 175 },
+  scrub: { x: 18, y: 958, width: 980, height: 50 },
 }
 const opts = { path: OUT }
 if (CLIPS[MODE]) opts.clip = CLIPS[MODE]

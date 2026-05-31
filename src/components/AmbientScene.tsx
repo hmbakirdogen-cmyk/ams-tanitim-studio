@@ -68,7 +68,9 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
       ptr.x += (ptr.tx - ptr.x) * Math.min(1, dt * 2.5); ptr.y += (ptr.ty - ptr.y) * Math.min(1, dt * 2.5)
       const par = Math.min(W, H) * 0.045
       const ox = -ptr.x * par, oy = -ptr.y * par * 0.6
-      const cxC = W / 2 + ox, horizon = H * 0.5 + oy
+      // UFUK (perspektif kaçış noktası) ÜST panele çekildi (Mehmet Abi: "3D space arka planı bir üst pencereye uygula").
+      //   H*0.5 iken 3D zemin ALT panelde (klasik grafik) belirgindi; H*0.30 → 3D derinlik CİHAZ penceresinde (üst) okunur.
+      const cxC = W / 2 + ox, horizon = H * 0.30 + oy
       const col = dark ? '70,150,255' : '0,114,206'      // SMC mavisi (sistem ızgarası)
       const teal = dark ? '54,224,200' : '0,150,160'     // teal aksan (akış zerreleri çeşitlemesi)
 

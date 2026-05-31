@@ -21,9 +21,26 @@ import { useMetrics, type MetricDef, type MetricKey } from '@/data/metrics'
 import { savingPercent } from '@/lib/savings'
 import { useSensorVisibility } from '@/data/sensorVisibility'
 import { useDeviceSettings } from '@/data/deviceSettings'
+import { useConnection } from '@/data/connection'
+import { queryHistory, historyExtent } from '@/data/history'
 import { fmtInt, fmt2 } from '@/lib/format'
 import { useLang } from '@/i18n'
+import { useMemo, useState } from 'react'
+import type { Reading } from '@/data/types'
 import type { LiveState } from '@/hooks/useLiveReadings'
+
+// Scrub(geçmişe çekme) penceresi: kalıcı geçmiş dakikalık → bir pencereyi Hero3DChart'ın gösterdiği L noktaya SEYRELT (tam pencere görünür).
+const SCRUB_WINDOW_MS = 6 * 60 * 60 * 1000 // 6 saatlik pencere (dakikalık ~360 örnek → 125'e indirgenir, ~3 dk çözünürlük)
+const SCRUB_L = 125                          // Hero3DChart pencere nokta sayısı (L ile aynı)
+function downsample(arr: Reading[], n: number): Reading[] {
+  if (arr.length <= n) return arr
+  const out: Reading[] = []
+  for (let i = 0; i < n; i++) out.push(arr[Math.round((i * (arr.length - 1)) / (n - 1))])
+  return out
+}
+function fmtScrub(ms: number): string {
+  return new Intl.DateTimeFormat('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(ms))
+}
 
 export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
   const { reading, history, setMode } = data
@@ -58,6 +75,22 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
     (m) => m && visible[m.key],
   ) as MetricDef[]
 
+  // ZAMAN ÇUBUĞU (scrubber) — KLASİK grafiği geçmişe çek (Mehmet Abi). Kaynak = veri modu (demo/live); kalıcı geçmiş history.ts.
+  //   scrubEnd null = CANLI (akan tampon); sayı = seçilen pencere SONU → o ana kadarki 6 saatlik dilim (seyreltilmiş) gösterilir.
+  const { settings: conn } = useConnection()
+  const src = conn.mode === 'live' ? 'live' : 'demo'
+  const [scrubEnd, setScrubEnd] = useState<number | null>(null)
+  const ext = historyExtent(src) // {first,last,count} — her tikte tazelenir (cache; ucuz)
+  const scrubbedHistory = useMemo(() => {
+    if (scrubEnd === null || !ext) return null
+    const end = Math.min(scrubEnd, ext.last)
+    return downsample(queryHistory(src, end - SCRUB_WINDOW_MS, end).points, SCRUB_L)
+  }, [scrubEnd, src, ext?.last])
+  const isLive = scrubbedHistory === null
+  const chartHistory = scrubbedHistory ?? history
+  // Geçmiş görünümünde ChartOverlay'in "anlık" değerleri = pencerenin SON noktası (t=0 → geçen-süre 00:00, canlı sanılmasın)
+  const chartReading = scrubbedHistory && scrubbedHistory.length ? { ...scrubbedHistory[scrubbedHistory.length - 1], t: 0 } : reading
+
   return (
     <div className="flex h-full flex-col gap-4">
       <PageHeader
@@ -80,10 +113,30 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
               <DeviceFlowChart reading={reading} metrics={visibleMetrics} mode={mode} theme={theme} />
               <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} />
             </div>
-            {/* KLASİK — akışın ALTINDA, tam orantılı; Hero3DChart şeffaf (alpha) → aynı ortak sahne arkada */}
+            {/* KLASİK — akışın ALTINDA, tam orantılı; Hero3DChart şeffaf (alpha) → aynı ortak sahne arkada. ZAMAN ÇUBUĞU ile geçmişe çekilir. */}
             <div className="glass relative min-h-0 flex-[2] overflow-hidden rounded-3xl">
-              <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
-              <ChartOverlay reading={reading} history={history} metrics={visibleMetrics} />
+              <Hero3DChart history={chartHistory} metrics={visibleMetrics} theme={theme} />
+              <ChartOverlay reading={chartReading} history={chartHistory} metrics={visibleMetrics} />
+              {/* ZAMAN ÇUBUĞU (scrubber) — yeterli geçmiş varsa: tut-çek ile klasik grafiği geçmişe al; CANLI ile geri dön (Mehmet Abi) */}
+              {ext && ext.count > 4 && (
+                <div className="absolute inset-x-3 bottom-2 z-10 flex items-center gap-2.5 rounded-xl border border-white/10 bg-[#050b18]/85 px-3 py-1.5 backdrop-blur-md">
+                  <button
+                    onClick={() => setScrubEnd(null)}
+                    title={t('Canlıya dön')}
+                    className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold transition ${isLive ? 'bg-[var(--smc)] text-white' : 'border border-white/20 text-[var(--ink-soft)] hover:text-white'}`}
+                  >{isLive ? t('CANLI') : `⏵ ${t('CANLI')}`}</button>
+                  <input
+                    type="range" min={ext.first} max={ext.last} step={60000}
+                    value={scrubEnd ?? ext.last}
+                    onChange={(e) => { const v = +e.target.value; setScrubEnd(v >= ext.last - 60000 ? null : v) }}
+                    className="h-1 flex-1 cursor-pointer accent-[#2E9BFF]"
+                    aria-label={t('Zaman çubuğu')}
+                  />
+                  <span className="shrink-0 text-[11px] font-medium tabular-nums text-[var(--ink-soft)]">
+                    {isLive ? t('Şu an') : fmtScrub(scrubEnd as number)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
