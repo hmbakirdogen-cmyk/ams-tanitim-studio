@@ -60,13 +60,20 @@ export function AnalysisPage({ data }: { data: LiveState }) {
   win.forEach((r) => (modeCount[r.mode] += 1))
   const total = win.length || 1
 
-  // Secili aralikta tasarruf
+  // Secili aralikta tasarruf + TOPLAM hava tuketimi (Mehmet Abi: "ekranda toplam veri + zaman araligi en mantikli yere, karmasasiz")
   let liters = 0
+  let consumedL = 0 // toplam tuketilen hava (litre) = debi(l/dak) x sure(dak)
   for (let i = 1; i < win.length; i++) {
     const dt = (win[i].t - win[i - 1].t) / 1000
-    if (dt > 0 && dt < 5) liters += tickLitersSaved(win[i].flow, dt, economy.baselineFlow)
+    if (dt > 0 && dt < 5) {
+      liters += tickLitersSaved(win[i].flow, dt, economy.baselineFlow)
+      consumedL += win[i].flow * (dt / 60)
+    }
   }
   const sv = litersToSavings(liters, economy)
+  // Donem etiketi: secili pencerenin baslangic->bitis saati (toplam veri gostergesi icin)
+  const fromClock = win.length > 1 ? new Date(win[0].t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
+  const toClock = win.length > 1 ? new Date(win[win.length - 1].t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
@@ -90,8 +97,14 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                   {t(p.label)}
                 </button>
               ))}
-              <span className="ml-auto flex items-center gap-1.5 text-xs text-[var(--ink-soft)]">
-                <Clock size={13} /> {t('Seçili')}: <b className="num text-[var(--ink)]">{fmt(spanSec, 1)} {t('sn')}</b> · {win.length} {t('ölçüm')}
+              {/* DONEM GOSTERGESI: zaman araligi (baslangic->bitis) + sure + olcum + TOPLAM hava (toplam veri, sade) */}
+              <span className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-[var(--ink-soft)]">
+                <span className="num flex items-center gap-1.5 text-[var(--ink)]">
+                  <Clock size={13} className="text-[var(--smc-bright)]" />
+                  {win.length > 1 ? `${fromClock} → ${toClock}` : t('Seçili')}
+                </span>
+                <span><b className="num text-[var(--ink)]">{fmt(spanSec, 1)} {t('sn')}</b> · {win.length} {t('ölçüm')}</span>
+                <span>{t('Toplam hava')}: <b className="num text-[var(--ink)]">{fmtCompact(consumedL)} l</b></span>
               </span>
             </div>
             <div className="space-y-2">
