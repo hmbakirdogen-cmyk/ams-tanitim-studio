@@ -2,32 +2,32 @@
 
 > Bu dosya, yeni Claude Code oturumunun "neredeyim" sorusuna ilk cevabıdır. **Güncel tut.**
 
-## ŞU AN NEREDEYIZ (2026-06-01, gece/sabah oturumu)
+## ŞU AN NEREDEYIZ (2026-06-01 — görsel/analiz/perf turu TAMAMLANDI + PUSH edildi)
 
-**Son commit:** `8f3e21a` — fix(gorsel+panel): ürün render beyaz-kenar temizliği + hero sol beyaz şerit + dil/ses/tema sidebar altına + imza.
+**Durum:** origin/master ile senkron (push edildi → canlı deploy). typecheck + build sıfır hata.
 
-**Bu oturumda BİTEN + DOĞRULANAN (ekran görüntüsüyle teyitli, commit'li):**
+**Bu oturum(lar)da BİTEN + EKRANLA DOĞRULANAN + PUSH'lı:**
 - **Şeffaf ürün render'ları (exa1-hub, regulator-itv/ar, valve-vp, ams-system):** beyaz kenar halesi (matte fringe) temizlendi — "nearest-opaque renk dekontaminasyonu" (alpha/silüet/detay korunarak). `tools/defringe.py`.
+- **Ürün render'ları ÇOK NAZIK unsharp:** üzerindeki gerçek baskılı yazı/logo kenarları keskin, hale YOK, orijinallik korundu (Mehmet: "düzeltilmiş gibi durmasın, çocuk oyuncağı olmasın"). Yakın zoom'da doğrulandı.
 - **ams-industry40 hero:** sol 49px tam-beyaz şerit → komşu gerçek sahne aynalanarak kapatıldı (soyutlama yok). `tools/fix-heroes.py`.
-- **ams-flow (canlı panel):** defringe foto ayak diplerinde renk kaydırdı → **orijinaline geri alındı** (regresyon önlendi). Foto'lara agresif defringe UYGULAMA.
+- **ams-flow (canlı panel):** defringe foto ayak diplerinde renk kaydırdı → **orijinaline geri alındı**. Foto'lara agresif defringe UYGULAMA.
 - **Sidebar:** renkli bayraklar kaldırıldı → sade TR/EN/JA; dil+ses+tema EN ALTA taşındı.
-- **İmza:** "Crafted … by **Mehmet Bakırdöğen**" (isim `whitespace-nowrap` = asla bölünmez) + BadgeCheck ikonlu "SMC Kayseri · Authorized Regional Partner" (geniş-aralıklı caps kaldırıldı). Hep İngilizce.
+- **İmza:** "Crafted … by **Mehmet Bakırdöğen**" (isim `whitespace-nowrap` = asla bölünmez) + BadgeCheck ikonlu "SMC Kayseri · Authorized Regional Partner". Hep İngilizce.
+- **Analiz — dönem göstergesi:** üst şeritte zaman aralığı (başlangıç→bitiş) + süre + ölçüm + TOPLAM hava tüketimi (karmaşasız).
+- **Analiz — Tarihsel Rapor:** sağ üst "Tarihsel rapor al" butonu → kalıcı geçmişten (demo/canlı) takvimle gün+saat seç → mevcut `RangeAnalysisModal`+`ReportView` (yazdırılabilir + CSV/JSON). 722 ölçümlü demo ile doğrulandı.
+- **Alt grafik ADAPTİF auto-range** (Hero3DChart): görünen pencere min/max → büyük değişimde hızlı genişle (geçiş kırpılmaz), sakinde yavaş daral (küçük dalga canlı). Ağır lerp + minSpan.
+- **Sekme geçiş "kambur"u:** `App.tsx` page transition transform→opacity (0.22s). Canlı panelin 3 ağır katmanı (WebGL + 2 canvas) artık geçişte takılmıyor.
 
 ## ⚠️ DİKKAT — bir sonraki oturum İLK okusun
 - **GERÇEK MİMARİ (commit'li/derlenen) ≠ CLAUDE.md'deki "DemoDataSource".** Bu repoda (HEAD):
-  - `AnalysisPage({ data }: { data: LiveState })` → `data.log` üzerinde **% slider** + presetler (DemoDataSource/`useHistory`/recharts YOK).
-  - Geçmiş katmanı: `src/data/history.ts` = `queryHistory`/`seedDemoHistory`/`historyExtent` (localStorage, takvimsel). `RangeAnalysisModal` + `ReportView` bileşenleri MEVCUT.
+  - `AnalysisPage({ data }: { data: LiveState })` → `data.log` üzerinde **% slider** + presetler + dönem göstergesi + Tarihsel Rapor butonu (DemoDataSource/`useHistory`/recharts YOK).
+  - Geçmiş katmanı: `src/data/history.ts` = `queryHistory`/`seedDemoHistory`/`historyExtent` (localStorage, takvimsel). `RangeAnalysisModal` + `ReportView` MEVCUT ve analiz + kayıtlar sayfasında kullanılıyor.
   - `src/data/datasource.ts` **yok**. `src/data/metrics.ts` → `useMetrics` hook.
-  - → Analiz/rapor isteğini yaparken bu gerçek mimariyi kullan. Bkz hafıza [[repo-gercek-mimari]].
-- **Bu oturumda ortam kararsızdı:** komut çıktıları bozuldu, bazı Read'ler eski içerik döndürdü, ara commit'ler kayboldu. Kod yazmadan önce dosyayı **python ile dump edip** (byte-doğru) teyit et; tek Read'e güvenme.
+- **Oturumlar arası git/Read kararsızlığı yaşandı** (ara commit'ler/Read'ler tutarsız döndü, mükerrer commit oluştu). Kod yazmadan önce dosyayı **python ile dump edip** byte-doğru teyit et; `git log`/`git status` ile gerçek HEAD'i doğrula; tek Read'e güvenme. Bkz [[repo-gercek-mimari]].
 
-## MEHMET'İN BEKLEYEN İSTEKLERİ (bu oturumda yapılmadı — riskli/kararsız zemin)
-1. **Analiz sayfası:** belli zaman dilimini KOLAY ayarlayıp **rapor** alma + ekranda **TOPLAM veri + zaman aralığı** göstergesi (karmaşasız). → Muhtemelen `RangeAnalysisModal`/`ReportView`/`history.ts` ile KISMEN VAR; önce mevcudu Mehmet'le gözden geçir, sonra eksiği ekle/yüzeye çıkar.
-2. **Ürün üzerindeki gerçek baskılı yazılar okunur olsun** — Mehmet seçimi: **yüksek-çöz orijinal bul** (+hafif keskinlik). ASLA "düzeltilmiş gibi"/çocuk oyuncağı olmayacak, orijinallik şart. Programın HER yeri.
-3. **Cihazdaki TÜM dijital ekran + LED'ler** gerçek/çalışır (debimetre LCD gibi) — `DeviceFlowChart.tsx`. Hub LCD yapıldı; regülatör ekranı/LED + diğerleri kaldı. (Yüksek regresyon riski — dikkatli, ekranla doğrula.)
-4. **Hava akış animasyonu** fizik-doğru iyileştir (GERÇEK ürün fotosu KALIR, soyut şema YOK) + giriş/çıkışa SMC rekoru + **alt grafik adaptif scale**. Bkz [[hava-akis-animasyonu-vizyon]], [[grafik-adaptif-scale-fikri]]. (En riskli — "geri dönelim dedirtme".)
-5. **Canlı panel arka planı + sekme geçiş performansı** (kambur temizliği).
-6. **Tüm yazılarda mantıklı satır bölünmesi** (özel ad asla bölünmez) — sürekli ilke (imzada uygulandı).
+## BEKLEYEN (Mehmet kararıyla ERTELENDİ — animasyon turu)
+1. **Hava akış animasyonu** fizik-doğru iyileştir (GERÇEK ürün fotosu KALIR, soyut şema YOK) + giriş/çıkışa SMC rekoru. Mehmet "şimdilik animasyonları kenara koyalım" dedi. Bkz [[hava-akis-animasyonu-vizyon]]. (En riskli — "geri dönelim dedirtme".)
+2. **Cihazdaki dijital ekran + LED ince ayar** (DeviceFlowChart). Hub LCD + regülatör ekranı/LED gerçek/çalışır; kalan: hub altı durum LED şeridi (SF/BF/PWR/MODE/SIG) statik — istenirse canlandırılır. Animasyon turuyla birlikte.
 
 ## Mimari (özet)
 - Vite + React + TS + Tailwind v4 + Framer Motion + three/R3F/drei/postprocessing.
