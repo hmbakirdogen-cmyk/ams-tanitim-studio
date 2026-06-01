@@ -96,14 +96,18 @@ export default function App() {
           {navOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setNavOpen(false)} />}
 
           <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden p-3 md:p-5">
+            {/* Sayfa geçişi: SADECE opacity (transform YOK) — Mehmet Abi "canlı panele geçerken kambur/zorlanma".
+                Canlı panel 3 ağır katman (WebGL Hero3DChart + DeviceFlowChart + AmbientScene) mount eder; y/transform
+                animasyonu bu canvas'ları her karede composite ettirip takıyordu. Opacity GPU-ucuz → akıcı geçiş. */}
             <AnimatePresence mode="wait">
               <motion.div
                 key={page}
                 className="h-full"
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
+                style={{ willChange: 'opacity' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.22, ease: 'easeOut' }}
               >
                 {page === 'live' && <LivePage data={data} greetName={auth.user.firstName} theme={theme} />}
                 {page === 'analysis' && <AnalysisPage data={data} />}
