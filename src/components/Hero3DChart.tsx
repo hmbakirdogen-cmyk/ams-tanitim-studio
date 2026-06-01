@@ -37,19 +37,15 @@ export const WINDOW_POINTS = L
 
 const xAt = (i: number) => -SPAN_X / 2 + (i / (L - 1)) * SPAN_X
 
-// Gecmisi sabit L uzunlugunda, metrigin kendi olceginde yukseklik dizisine cevirir (yeni veri sagda = uc)
-function sampleY(history: Reading[], m: MetricDef): number[] {
+// Gecmisi sabit L uzunlugunda HAM deger dizisine cevirir (yeni veri sagda = uc).
+// NEDEN ham: yukseklige cevirme ADAPTIF (gorunen-pencere min/max) -> useFrame'de yumusatilmis aralikla yapilir.
+function sampleRaw(history: Reading[], m: MetricDef): number[] {
   const out = new Array<number>(L)
   const n = history.length
   for (let i = 0; i < L; i++) {
-    let v: number
-    if (n === 0) v = m.min
-    else {
-      const idx = n - L + i
-      v = m.get(idx < 0 ? history[0] : history[idx])
-    }
-    const norm = THREE.MathUtils.clamp((v - m.min) / (m.max - m.min), 0, 1)
-    out[i] = 0.2 + norm * MAX_H
+    if (n === 0) { out[i] = m.min; continue }
+    const idx = n - L + i
+    out[i] = m.get(idx < 0 ? history[0] : history[idx]) // sol bos kisim en eski GERCEK degeri tekrar eder (m.min kirliligi yok)
   }
   return out
 }
@@ -99,9 +95,11 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
   const tubeRadius = Math.max(0.04, m.width * 0.62) // daha ince boru (gercek tel/boru hissi)
 
   const yRef = useRef<number[]>(new Array(L).fill(0.2))
-  // useRef argümanı her render değerlendirilir ama yok sayılır → boş başlat; sampleY YALNIZ useMemo'da koşar (tik başına çift hesap önlenir).
+  // useRef argümanı her render değerlendirilir ama yok sayılır → boş başlat; sampleRaw YALNIZ useMemo'da koşar (tik başına çift hesap önlenir).
   const targetRef = useRef<number[]>([])
-  targetRef.current = useMemo(() => sampleY(history, m), [history, m])
+  targetRef.current = useMemo(() => sampleRaw(history, m), [history, m])
+  // ADAPTIF auto-range durumu: yumuşatılmış görünen-pencere [lo,hi]. Strand başına kalıcı (frame'ler arası taşınır).
+  const rangeRef = useRef<{ lo: number; hi: number } | null>(null)
 
   // Yeniden kullanilan egri noktalari (kare basi tahsis yok)
   const curvePts = useMemo(() => Array.from({ length: L }, (_, i) => new THREE.Vector3(xAt(i), 0.2, m.z)), [m.z])
@@ -147,10 +145,30 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
   }, [accentTopGeo, accentSideGeo, accentTopLine, accentSideLine])
 
   useFrame(() => {
-    const t = targetRef.current
+    const raw = targetRef.current
     const y = yRef.current
-    // 1) Degerler hedefe yumusak yaklasir (akan his)
-    for (let i = 0; i < L; i++) y[i] += (t[i] - y[i]) * 0.13
+    // 1) ADAPTIF AUTO-RANGE (Mehmet Abi fikri): görünen pencere min/max -> BÜYÜK değişimde HIZLI genişle
+    //    (zoom-out, geçiş kırpılmaz), SAKİN akışta YAVAŞ daral (zoom-in, küçük dalga canlı görünür).
+    //    Aralık ağır lerp ile yumuşatılır (asla zıplamaz) + minSpan ile aşırı gürültü büyütmesi engellenir.
+    if (raw.length) {
+      let lo = Infinity, hi = -Infinity
+      for (let i = 0; i < raw.length; i++) { const v = raw[i]; if (v < lo) lo = v; if (v > hi) hi = v }
+      if (!Number.isFinite(lo)) { lo = m.min; hi = m.max }
+      const mid = (lo + hi) / 2
+      const minSpan = (m.max - m.min) * 0.08          // en sıkı zoom (sakin): tam aralığın ~%8'i görünür → canlı ama gürültüsüz
+      const span = Math.max(hi - lo, minSpan)
+      const pad = span * 0.18                          // tepe/dip panel kenarına değmesin
+      const tLo = mid - span / 2 - pad, tHi = mid + span / 2 + pad
+      const rg = rangeRef.current ?? (rangeRef.current = { lo: tLo, hi: tHi })
+      rg.lo += (tLo - rg.lo) * (tLo < rg.lo ? 0.25 : 0.025)  // genişlerken (lo düşer) HIZLI, daralırken (lo yükselir) YAVAŞ
+      rg.hi += (tHi - rg.hi) * (tHi > rg.hi ? 0.25 : 0.025)  // genişlerken (hi yükselir) HIZLI, daralırken YAVAŞ
+      const denom = Math.max(rg.hi - rg.lo, 1e-6)
+      // 2) Yumuşatılmış aralıkla normalize + değer hedefe lerp (akan his korunur)
+      for (let i = 0; i < L; i++) {
+        const h = 0.2 + THREE.MathUtils.clamp((raw[i] - rg.lo) / denom, 0, 1) * MAX_H
+        y[i] += (h - y[i]) * 0.13
+      }
+    }
     // 2) Egri noktalari (komsu yumusatma -> kirilmasiz)
     for (let i = 0; i < L; i++) {
       const a = y[i - 1] ?? y[i]
