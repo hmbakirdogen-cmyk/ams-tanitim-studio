@@ -5,15 +5,20 @@
  * YAN ETKI: Birim her yerde (KATI). Ekonomi varsayimlariyla (useEconomy) tasarruf hesaplanir. Saf gorsel; veri App'ten.
  */
 import { useState } from 'react'
-import { Clock, Layers, PiggyBank } from 'lucide-react'
+import { AnimatePresence } from 'framer-motion'
+import { Clock, Layers, PiggyBank, CalendarClock } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { Sparkline } from '@/components/Sparkline'
+import { RangeAnalysisModal, type RangePreset } from '@/components/RangeAnalysisModal'
 import { useMetrics } from '@/data/metrics'
 import { MODE_LABEL, MODE_COLOR, type Mode } from '@/data/types'
 import { useEconomy } from '@/data/economy'
+import { useConnection } from '@/data/connection'
+import { queryHistory, historyExtent } from '@/data/history'
 import { litersToSavings, tickLitersSaved } from '@/lib/savings'
 import { fmtInt, fmt1, fmtCompact, fmtTLCompact } from '@/lib/format'
+import { sound } from '@/lib/sound'
 import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
 import type { LiveState } from '@/hooks/useLiveReadings'
@@ -41,12 +46,46 @@ function stats(series: number[]) {
   return { min, max, avg: sum / series.length, cur: series[series.length - 1] }
 }
 
+// TAKVIMSEL rapor on-ayarlari (mutlak ms) — kalici gecmis kapsamina gore. RecordsPage ile ayni mantik.
+const DAY = 86400000
+function calendarPresets(first: number, last: number): RangePreset[] {
+  const startOfDay = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime() }
+  const today0 = startOfDay(last)
+  return [
+    { label: 'Bugün', start: today0, end: last },
+    { label: 'Dün', start: today0 - DAY, end: today0 },
+    { label: 'Son 7 gün', start: last - 7 * DAY, end: last },
+    { label: 'Tümü', start: first, end: last },
+  ]
+}
+type AnalyzeState = { points: Reading[]; startedAt: number; title: string; presets?: RangePreset[]; initialStart?: number; initialEnd?: number }
+
 export function AnalysisPage({ data }: { data: LiveState }) {
   const { t } = useLang()
   const { economy } = useEconomy()
   const metrics = useMetrics()
   const [startPct, setStartPct] = useState(0)
   const [endPct, setEndPct] = useState(100)
+
+  // TAKVIMSEL RAPOR (Mehmet Abi: "belli zaman dilimini ÇOK RAHAT ayarlayıp RAPOR alabilmeli"): kalıcı geçmişten
+  // (demo tohumu veya canlı birikim) takvimle gün+saat seç → mevcut RangeAnalysisModal+ReportView (yazdırılabilir).
+  const conn = useConnection()
+  const src = conn.settings.mode // aktif kaynak (demo/canli) -> hangi gecmis kovasi
+  const hx = historyExtent(src)  // kapsam (ilk/son/adet); yoksa buton pasif
+  const [analyze, setAnalyze] = useState<AnalyzeState | null>(null)
+  const openHistory = () => {
+    const ext = historyExtent(src)
+    if (!ext) return
+    const { points, startedAt } = queryHistory(src)
+    sound.click()
+    setAnalyze({
+      points, startedAt,
+      title: `${t('Geçmiş Veriler')} · ${src === 'demo' ? t('Demo') : t('Canlı Cihaz')}`,
+      presets: calendarPresets(ext.first, ext.last),
+      initialStart: Math.max(ext.first, ext.last - DAY),
+      initialEnd: ext.last,
+    })
+  }
 
   const log = data.log
   const n = log.length
@@ -77,11 +116,26 @@ export function AnalysisPage({ data }: { data: LiveState }) {
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
-      <PageHeader title="Geçmiş Analizi" subtitle="Tüm veri geçmişinden bir zaman aralığı seçin — o aralığın tüm analizleri" />
+      <PageHeader
+        title="Geçmiş Analizi"
+        subtitle="Tüm veri geçmişinden bir zaman aralığı seçin — o aralığın tüm analizleri"
+        right={
+          <button
+            onClick={openHistory}
+            disabled={!hx}
+            title={hx ? t('Takvimden gün + saat seçip rapor alın.') : t('Önce Ürün Ayarları’ndan demo geçmişi oluşturun.')}
+            className="keep-white flex shrink-0 items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40"
+            style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}
+          >
+            <CalendarClock size={15} /> {t('Tarihsel rapor al')}
+          </button>
+        }
+      />
 
       {n < 2 ? (
-        <div className="glass flex flex-1 items-center justify-center rounded-2xl p-10 text-sm text-[var(--ink-soft)]">
-          {t('Henüz yeterli veri yok — Canlı Panel bir süre açık kalsın, sonra burada analiz edin.')}
+        <div className="glass flex flex-1 flex-col items-center justify-center gap-2 rounded-2xl p-10 text-center text-sm text-[var(--ink-soft)]">
+          <div>{t('Henüz yeterli veri yok — Canlı Panel bir süre açık kalsın, sonra burada analiz edin.')}</div>
+          <div className="text-[12px]">{t('Ya da üstteki')} <b className="text-[var(--ink)]">{t('Tarihsel rapor al')}</b> {t('ile demo/canlı geçmişten takvimsel rapor alın.')}</div>
         </div>
       ) : (
         <>
@@ -181,6 +235,22 @@ export function AnalysisPage({ data }: { data: LiveState }) {
           </div>
         </>
       )}
+
+      {/* Takvimsel aralik + rapor — mevcut (test edili) modal; kalici gecmisi kullanir, data.log'dan bagimsiz calisir */}
+      <AnimatePresence>
+        {analyze && (
+          <RangeAnalysisModal
+            key="range"
+            points={analyze.points}
+            startedAt={analyze.startedAt}
+            title={analyze.title}
+            presets={analyze.presets}
+            initialStart={analyze.initialStart}
+            initialEnd={analyze.initialEnd}
+            onClose={() => setAnalyze(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
