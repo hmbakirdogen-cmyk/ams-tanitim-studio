@@ -14,12 +14,14 @@ import { useEffect, useRef } from 'react'
 // Mehmet Abi: "tertemiz / sakin derinlik" → zerre sayısı 96→54'e indirildi (gürültü azaldı, ferah/premium), glow küresi 4→3.
 const FLOW_N = 54
 const GLOW_N = 3
+const STAR_N = 70 // 'space' modunda (ürün penceresi) hafif 3D uzay yıldız alanı nokta sayısı
 
-export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 'light'; flow?: number }) {
+export function AmbientScene({ theme = 'dark', flow = 0.4, space = false }: { theme?: 'dark' | 'light'; flow?: number; space?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const flowRef = useRef(flow); flowRef.current = flow
   const themeRef = useRef(theme); themeRef.current = theme
+  const spaceRef = useRef(space); spaceRef.current = space
 
   useEffect(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current
@@ -58,6 +60,11 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
     // Glow küreleri: yumuşak büyük haleler (yavaş süzülür)
     const gPhase = Float32Array.from({ length: GLOW_N }, (_, i) => i / GLOW_N + Math.random() * 0.1)
     const gLane = Float32Array.from({ length: GLOW_N }, () => 0.25 + Math.random() * 0.5)
+    // 'space' yıldız alanı: ekran-uzayında dağılmış minik noktalar; sZ = derinlik (0 uzak/sönük/küçük → 1 yakın), parallax'a duyarlı, nazik twinkle
+    const sX = Float32Array.from({ length: STAR_N }, () => Math.random())
+    const sY = Float32Array.from({ length: STAR_N }, () => Math.random())
+    const sZ = Float32Array.from({ length: STAR_N }, () => Math.random())
+    const sPh = Float32Array.from({ length: STAR_N }, () => Math.random() * Math.PI * 2)
 
     let raf = 0, last = performance.now()
     const draw = (now: number) => {
@@ -86,9 +93,11 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
         const gr = Math.min(W, H) * (0.22 + 0.06 * i)
         const c = i % 2 === 0 ? col : teal
         const rg = ctx.createRadialGradient(gx, gy, 0, gx, gy, gr)
-        rg.addColorStop(0, `rgba(${c},${dark ? 0.13 : 0.07})`); rg.addColorStop(1, `rgba(${c},0)`)
+        rg.addColorStop(0, `rgba(${c},${dark ? 0.13 : 0.11})`); rg.addColorStop(1, `rgba(${c},0)`) // gündüz glow güçlendirildi (uçuk değil)
         ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.fill()
       }
+
+      // (Yıldız alanı en SONA — vignette'den SONRA — taşındı; eskiden burada çizilip köşe-karartmayla bastırılıyordu = görünmüyordu.)
 
       // 2) PERSPEKTİF SİSTEM IZGARASI — derinliğe kaçan çizgiler (3D "hava kanalı/sistem" hissi).
       //   Mehmet Abi "tertemiz/sakin derinlik" → ızgara İNCELTİLDİ + SOLUKLAŞTIRILDI (alpha ~yarı, çizgi 0.8px) ve KENARLARA
@@ -102,16 +111,16 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
         const f = i / 9
         const yy = horizon + Math.pow(f, 2.1) * (H - horizon) * 1.1
         if (yy > H + 4) break
-        ctx.strokeStyle = `rgba(${col},${(dark ? 0.11 : 0.085) * (1 - f * 0.55)})`
+        ctx.strokeStyle = `rgba(${col},${(dark ? 0.11 : 0.14) * (1 - f * 0.55)})`  // gündüz ızgara güçlendirildi (açık zeminde silik kalmasın)
         ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke()
         const yu = horizon - Math.pow(f, 2.1) * horizon * 1.05   // ufuk ÜSTÜ simetrik (tavan kanalı)
-        ctx.strokeStyle = `rgba(${col},${(dark ? 0.07 : 0.055) * (1 - f * 0.55)})`
+        ctx.strokeStyle = `rgba(${col},${(dark ? 0.07 : 0.10) * (1 - f * 0.55)})`
         ctx.beginPath(); ctx.moveTo(0, yu); ctx.lineTo(W, yu); ctx.stroke()
       }
       const spread = W * 0.9
       for (let i = -6; i <= 6; i++) {
         const xb = cxC + (i / 6) * spread
-        ctx.strokeStyle = `rgba(${col},${(dark ? 0.10 : 0.075) * (1 - Math.abs(i) / 7) * edgeFade(xb)})`   // derinliğe kaçan dikey çizgiler (soluk, kenarda sönük)
+        ctx.strokeStyle = `rgba(${col},${(dark ? 0.10 : 0.13) * (1 - Math.abs(i) / 7) * edgeFade(xb)})`   // derinliğe kaçan dikey çizgiler (gündüz güçlendirildi)
         ctx.beginPath(); ctx.moveTo(cxC + (i / 6) * spread * 0.1, horizon); ctx.lineTo(xb, H); ctx.stroke()
       }
       // ufuk ışık bandı (derinlik kapanışı) — yumuşak/soluk
@@ -131,7 +140,7 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
         const x = fX[i] * (W + 80) - 40 + ox + depPar
         const y = fLane[i] * H + oy * (0.4 + dep) + Math.sin(now * 0.0006 + i) * 2
         const sz = 0.5 + dep * 1.8
-        const a = (dark ? 0.16 : 0.10) + dep * (dark ? 0.44 : 0.26)   // sakinleştirildi (uzak zerre daha soluk → gürültü azaldı)
+        const a = (dark ? 0.16 : 0.14) + dep * (dark ? 0.44 : 0.40)   // gündüz zerre parlaklığı artırıldı (açık zeminde net akış)
         const len = 4 + dep * 20 * (0.4 + fl)               // hızlı/yakın = uzun iz (akış hissi)
         const c = i % 5 === 0 ? teal : col                   // çoğu mavi, arada teal kıvılcım
         ctx.strokeStyle = `rgba(${c},${a * 0.5})`; ctx.lineWidth = sz
@@ -147,6 +156,31 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
       vg.addColorStop(0, 'rgba(4,10,22,0)')
       vg.addColorStop(1, `rgba(4,10,22,${dark ? 0.42 : 0.16})`)
       ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H)
+
+      // 5) HAFİF 3D UZAY YILDIZ ALANI (yalnız 'space' = ürün penceresi). Mehmet Abi: "ürünün arka planında, çok hafif basit 3d space".
+      //   EN ÜST katman (vignette'den SONRA) + additif çizim → köşelerde bile parlar, ASLA bastırılmaz (eski hata: vignette altında kalıyordu).
+      //   Derinliğe (sZ) göre boyut/parlaklık + parallax (yakın yıldız fareyle daha çok kayar) + nazik twinkle. Çok sönük → ferah.
+      if (spaceRef.current) {
+        ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over'
+        const starC = dark ? '200,224,255' : '120,150,200'   // gündüz: açık zeminde görünür koyu-mavi yıldız
+        for (let i = 0; i < STAR_N; i++) {
+          const z = sZ[i]                                   // 0 uzak … 1 yakın
+          const px = sX[i] * W + ox * (0.3 + z * 1.4)       // yakın = daha çok parallax
+          const py = sY[i] * H + oy * (0.3 + z * 1.4)
+          const tw = 0.6 + 0.4 * Math.sin(now * 0.0012 + sPh[i]) // nazik yanıp-sönme
+          const r = 0.6 + z * 1.5
+          const a = ((dark ? 0.28 : 0.14) + z * (dark ? 0.62 : 0.34)) * tw  // gece belirgin (görünür ama hafif), gündüz sönük-zarif
+          // yakın yıldızlara minik glow (3D derinlik hissi, hafif)
+          if (z > 0.6) {
+            const gr = ctx.createRadialGradient(px, py, 0, px, py, r * 3.5)
+            gr.addColorStop(0, `rgba(${starC},${a * 0.5})`); gr.addColorStop(1, `rgba(${starC},0)`)
+            ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(px, py, r * 3.5, 0, Math.PI * 2); ctx.fill()
+          }
+          ctx.fillStyle = `rgba(${starC},${a})`
+          ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2); ctx.fill()
+        }
+        ctx.globalCompositeOperation = 'source-over'
+      }
 
       raf = requestAnimationFrame(draw)
     }
