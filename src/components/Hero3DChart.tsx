@@ -148,14 +148,16 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
     const raw = targetRef.current
     const y = yRef.current
     // 1) ADAPTIF AUTO-RANGE (Mehmet Abi fikri): görünen pencere min/max -> BÜYÜK değişimde HIZLI genişle
-    //    (zoom-out, geçiş kırpılmaz), SAKİN akışta YAVAŞ daral (zoom-in, küçük dalga canlı görünür).
-    //    Aralık ağır lerp ile yumuşatılır (asla zıplamaz) + minSpan ile aşırı gürültü büyütmesi engellenir.
+    //    (zoom-out, geçiş kırpılmaz), SAKİN akışta YAVAŞ daral. ANCAK: sensör SABİT/mikro-gürültülü olduğunda (ör. nem 46%
+    //    sabit + ±0.2 demo gürültüsü) çizgi DÜZ kalmalı — yoksa kartta değişmeyen değerin grafiği oynuyor gibi görünür (yanıltıcı).
+    //    minSpan tam ölçeğin ~%30'u: bu eşiğin altındaki dalgalanma (gürültü) görsel olarak DÜZLEŞİR; sadece GERÇEK/anlamlı
+    //    değişim (debi mod geçişi gibi) çizgiyi oynatır. Aralık ağır lerp ile yumuşatılır (asla zıplamaz).
     if (raw.length) {
       let lo = Infinity, hi = -Infinity
       for (let i = 0; i < raw.length; i++) { const v = raw[i]; if (v < lo) lo = v; if (v > hi) hi = v }
       if (!Number.isFinite(lo)) { lo = m.min; hi = m.max }
       const mid = (lo + hi) / 2
-      const minSpan = (m.max - m.min) * 0.08          // en sıkı zoom (sakin): tam aralığın ~%8'i görünür → canlı ama gürültüsüz
+      const minSpan = (m.max - m.min) * 0.30          // gürültü eşiği: bunun altındaki oynama düzleşir (sabit değer = düz çizgi)
       const span = Math.max(hi - lo, minSpan)
       const pad = span * 0.18                          // tepe/dip panel kenarına değmesin
       const tLo = mid - span / 2 - pad, tHi = mid + span / 2 + pad
