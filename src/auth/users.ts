@@ -1,9 +1,7 @@
 /*
- * NE      : Offline yerel kullanici deposu - kullanicilar + sifre dogrulama (localStorage + Web Crypto SHA-256).
- * NEDEN   : Mehmet Bey: personel girisi; yetkili Halil Ibrahim Karakelle; yonetici digerlerine sifre tanimlayabilir. Internet YOK.
- * NASIL   : Sifreler SHA-256 hash olarak saklanir (cıplak metin yok). Ilk acilista yonetici tohumlanir (ensureSeed).
- * YAN ETKI: Tarayici localStorage'ina yazar; bu bir demo gecidi (kurumsal kimlik degil). Varsayilan yonetici sifresi HANDOFF'ta.
- *           KATI: sifre listesi gizli; sadece yonetici (Karakelle Bey) sifre tanimlar/sifirlar.
+ * NE      : Offline local user store - users + password verification via localStorage and Web Crypto SHA-256.
+ * NEDEN   : Personel girisi icin sunucusuz, cihaz-ici bir kimlik katmani saglar.
+ * NASIL   : Sifreler hash olarak saklanir; ilk acilista yonetici seed edilir; one-shot migration'lar burada uygulanir.
  */
 export type Role = 'admin' | 'user'
 
@@ -13,11 +11,11 @@ export interface User {
   lastName: string
   role: Role
   hash: string
-  photo?: string // karizmatik islenmis portre (data URL)
-  title?: string // unvan/gorev
-  phone?: string // telefon
-  email?: string // e-posta
-  bio?: string // kendini tanitim
+  photo?: string
+  title?: string
+  phone?: string
+  email?: string
+  bio?: string
 }
 
 export interface ProfilePatch {
@@ -30,6 +28,9 @@ export interface ProfilePatch {
 
 const USERS_KEY = 'ams_users_v1'
 const SESSION_KEY = 'ams_session_v1'
+const HALIL_PHOTO = '/users/halil.jpg'
+const ADEM_KILINC_RESET_FLAG_KEY = 'ams_mig_pw_reset_adem_kilinc_v1'
+const ADEM_KILINC_RESET_HASH = '8967849510715711f54189e7352a1b25b390fd085fe96bace454d743fde2479a'
 
 export async function hashPassword(pw: string): Promise<string> {
   const data = new TextEncoder().encode(pw)
@@ -47,24 +48,65 @@ function read(): User[] {
     return []
   }
 }
+
 function write(users: User[]): void {
   localStorage.setItem(USERS_KEY, JSON.stringify(users))
 }
 
-// Gomulu varsayilan avatar (public/users/halil.jpg). Kullanici Profilim'den istedigi an degistirebilir.
-const HALIL_PHOTO = '/users/halil.jpg'
+function normalizeHumanName(value: string): string {
+  return value
+    .trim()
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i')
+    .replace(/\s+/g, ' ')
+}
 
-// Ilk acilista yonetici tohumla (Halil Ibrahim Karakelle) + varsayilan foto. Varsayilan sifre degistirilebilir.
+function normalizeSlugPart(value: string): string {
+  return normalizeHumanName(value)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
+function maybeApplyAdemKilincPasswordReset(users: User[]): boolean {
+  if (localStorage.getItem(ADEM_KILINC_RESET_FLAG_KEY) === '1') return false
+  let changed = false
+
+  for (const user of users) {
+    if (normalizeHumanName(user.firstName) !== 'adem') continue
+    if (normalizeHumanName(user.lastName) !== 'kilinc') continue
+    if (user.hash === ADEM_KILINC_RESET_HASH) continue
+    user.hash = ADEM_KILINC_RESET_HASH
+    changed = true
+  }
+
+  // Tek seferlik deploy migrasyonu: bu surum ilk kez acilinca dener, sonra tekrar dokunmaz.
+  localStorage.setItem(ADEM_KILINC_RESET_FLAG_KEY, '1')
+  return changed
+}
+
 export async function ensureSeed(): Promise<void> {
   const users = read()
+
   if (users.length === 0) {
     const hash = await hashPassword('smc')
-    write([{ id: 'karakelle', firstName: 'Halil İbrahim', lastName: 'Karakelle', role: 'admin', hash, photo: HALIL_PHOTO }])
+    const seeded: User[] = [{ id: 'karakelle', firstName: 'Halil İbrahim', lastName: 'Karakelle', role: 'admin', hash, photo: HALIL_PHOTO }]
+    maybeApplyAdemKilincPasswordReset(seeded)
+    write(seeded)
     return
   }
-  // Geriye uyum: Karakelle Bey kayitliysa ve henuz fotosu yoksa varsayilan fotoyu ekle (bir kez)
-  const k = users.find((u) => u.id === 'karakelle')
-  if (k && !k.photo) { k.photo = HALIL_PHOTO; write(users) }
+
+  let changed = false
+
+  const karakelle = users.find((user) => user.id === 'karakelle')
+  if (karakelle && !karakelle.photo) {
+    karakelle.photo = HALIL_PHOTO
+    changed = true
+  }
+
+  if (maybeApplyAdemKilincPasswordReset(users)) changed = true
+  if (changed) write(users)
 }
 
 export function listUsers(): User[] {
@@ -72,11 +114,8 @@ export function listUsers(): User[] {
 }
 
 function slugId(firstName: string, lastName: string): string {
-  const base = `${firstName}-${lastName}`
-    .toLowerCase()
-    .replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g')
-    .replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ç/g, 'c')
-    .replace(/[^a-z0-9]+/g, '-')
+  const base = `${normalizeSlugPart(firstName)}-${normalizeSlugPart(lastName)}`
+    .replace(/-+/g, '-')
     .replace(/(^-|-$)/g, '')
   return `${base}-${Math.random().toString(36).slice(2, 6)}`
 }
@@ -102,44 +141,38 @@ export async function addUser(
 
 export async function setPassword(id: string, password: string): Promise<void> {
   const users = read()
-  const u = users.find((x) => x.id === id)
-  if (!u) return
-  u.hash = await hashPassword(password)
+  const user = users.find((entry) => entry.id === id)
+  if (!user) return
+  user.hash = await hashPassword(password)
   write(users)
 }
 
 export function updateProfile(id: string, patch: ProfilePatch): void {
   const users = read()
-  const u = users.find((x) => x.id === id)
-  if (!u) return
-  if (patch.photo !== undefined) u.photo = patch.photo
-  if (patch.title !== undefined) u.title = patch.title
-  if (patch.phone !== undefined) u.phone = patch.phone
-  if (patch.email !== undefined) u.email = patch.email
-  if (patch.bio !== undefined) u.bio = patch.bio
+  const user = users.find((entry) => entry.id === id)
+  if (!user) return
+  if (patch.photo !== undefined) user.photo = patch.photo
+  if (patch.title !== undefined) user.title = patch.title
+  if (patch.phone !== undefined) user.phone = patch.phone
+  if (patch.email !== undefined) user.email = patch.email
+  if (patch.bio !== undefined) user.bio = patch.bio
   write(users)
 }
 
-// SON YÖNETİCİYİ silmeyi ENGELLE (kendini-kilitleme koruması): hiç admin kalmazsa AdminUsers paneli/şifre tanımı kalıcı erişilemez olur
-// (ensureSeed yalnız users.length===0 iken çalışır). false dönerse silinmedi.
 export function removeUser(id: string): boolean {
   const users = read()
-  const target = users.find((u) => u.id === id)
-  if (target?.role === 'admin' && users.filter((u) => u.role === 'admin').length <= 1) return false
-  write(users.filter((u) => u.id !== id))
+  const target = users.find((user) => user.id === id)
+  if (target?.role === 'admin' && users.filter((user) => user.role === 'admin').length <= 1) return false
+  write(users.filter((user) => user.id !== id))
   return true
 }
 
 export async function verify(id: string, password: string): Promise<boolean> {
-  const u = read().find((x) => x.id === id)
-  if (!u) return false
-  return (await hashPassword(password)) === u.hash
+  const user = read().find((entry) => entry.id === id)
+  if (!user) return false
+  return (await hashPassword(password)) === user.hash
 }
 
-/*
- * Laptoplar arasi tasima (OFFLINE dosya). Dısa aktar: bu bilgisayardaki TUM personeli (sifre hash'leriyle) JSON'a yazar.
- * Ice aktar: dosyadaki personeli MERGE eder (id'ye gore gunceller, yeni ekler) - mevcut kisiler SILINMEZ. Sifreler korunur (hash tasinir).
- */
 export function exportUsers(): string {
   const users = read()
   return JSON.stringify({ kind: 'ams-users', version: 1, count: users.length, users }, null, 2)
@@ -148,23 +181,30 @@ export function exportUsers(): string {
 export function importUsers(json: string): { added: number; updated: number } {
   const data = JSON.parse(json)
   const incoming: unknown = Array.isArray(data) ? data : (data && data.users)
-  if (!Array.isArray(incoming)) throw new Error('Geçersiz personel dosyası')
+  if (!Array.isArray(incoming)) throw new Error('Gecersiz personel dosyasi')
+
   const current = read()
   let added = 0
   let updated = 0
+
   for (const raw of incoming) {
-    const u = raw as Partial<User>
-    if (!u || typeof u.id !== 'string' || typeof u.hash !== 'string' || typeof u.firstName !== 'string') continue // gecersiz kayit atla
-    // GÜVENLİK: rol/soyad DOĞRULA. Bozuk/kötü niyetli dosya yetki değiştiremesin; geçersiz rol → 'user'.
-    const role: Role = (u.role === 'admin' || u.role === 'user') ? u.role : 'user'
-    const lastName = typeof u.lastName === 'string' ? u.lastName : ''
-    const idx = current.findIndex((x) => x.id === u.id)
-    if (idx >= 0) {
-      // MEVCUT kişinin ROLÜNÜ KORU → içe aktarılan dosya sessizce admin'i user'a düşüremez / kullanıcıyı admin yapamaz.
-      current[idx] = { ...current[idx], ...u, role: current[idx].role, lastName: lastName || current[idx].lastName }
+    const user = raw as Partial<User>
+    if (!user || typeof user.id !== 'string' || typeof user.hash !== 'string' || typeof user.firstName !== 'string') continue
+
+    const role: Role = user.role === 'admin' || user.role === 'user' ? user.role : 'user'
+    const lastName = typeof user.lastName === 'string' ? user.lastName : ''
+    const index = current.findIndex((entry) => entry.id === user.id)
+
+    if (index >= 0) {
+      current[index] = { ...current[index], ...user, role: current[index].role, lastName: lastName || current[index].lastName }
       updated++
-    } else { current.push({ ...(u as User), role, lastName }); added++ }
+      continue
+    }
+
+    current.push({ ...(user as User), role, lastName })
+    added++
   }
+
   write(current)
   return { added, updated }
 }
@@ -172,6 +212,7 @@ export function importUsers(json: string): { added: number; updated: number } {
 export function getSession(): string | null {
   return localStorage.getItem(SESSION_KEY)
 }
+
 export function setSession(id: string | null): void {
   if (id) localStorage.setItem(SESSION_KEY, id)
   else localStorage.removeItem(SESSION_KEY)
