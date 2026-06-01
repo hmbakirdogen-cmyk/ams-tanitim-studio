@@ -72,6 +72,14 @@ if (process.env.SCROLL) {
   }, frac)
   await new Promise((r) => setTimeout(r, 1200))
 }
+// İsteğe bağlı buton tıklama: CLICK="metin" -> textContent o metni içeren ilk button/a'ya tıkla (modal aç vb.)
+if (process.env.CLICK) {
+  await page.evaluate((w) => {
+    const el = [...document.querySelectorAll('button, a, [role=button]')].find((x) => x.textContent && x.textContent.includes(w))
+    if (el) el.click()
+  }, process.env.CLICK)
+  await new Promise((r) => setTimeout(r, 1500))
+}
 const CLIPS = {
   device: { x: 255, y: 112, width: 745, height: 360 },
   valve: { x: 760, y: 130, width: 240, height: 280 },
