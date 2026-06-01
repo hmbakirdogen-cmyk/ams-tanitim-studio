@@ -77,9 +77,8 @@ export function ProductPage() {
       <PageHeader title="Ürün & Teknoloji" subtitle="SMC Hava Yönetim Sistemi — AMS20/30/40/60 Serisi" />
       {/* not: const dizilerdeki (CAPABILITIES/MODES/COMPONENTS/CONNECT/SPECS) Turkce metinler render'da t() ile cevrilir */}
 
-      {/* Hero — Mehmet Abi: "urunun BUTUNUNU gor (alt kesik degil)". Metin SOL, resmi SMC AMS tanitim POSTERI (ams-poster.jpg,
-          1100x1388 DIKEY) SAG. Poster = urunun TAMAMI + "%62 tasarruf / OPC UA / kablosuz" rozetleri. Dikey poster yatay
-          banner'a sigmiyordu (alti kesiliyordu) -> yan-yana grid; poster kutusu oranı POSTERLE birebir -> KESIK/BOSLUK YOK. */}
+      {/* Hero — Mehmet Abi: "sidebar rozetindeki gorselin BUYUK ve temiz hali". Metin SOL, gorsel (ams-diagram.jpg = AMS unitesi
+          fabrika ortaminda, urunun TAMAMI, yazi yok) SAG. Yan-yana grid; kutu orani GORSELLE birebir -> kesik/bosluk yok. */}
       <Reveal>
         <Tilt3D className="glass relative grid grid-cols-1 items-center gap-6 overflow-hidden rounded-3xl p-8 lg:grid-cols-[1fr_minmax(300px,380px)]" max={4}>
           <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--smc)' }} />
@@ -92,12 +91,12 @@ export function ProductPage() {
               {t('Air Management System; ekipman beklemedeyken hava basıncını otomatik düşürür ya da keser. Debi, basınç ve sıcaklığı sürekli ölçer; enerji tasarrufunu görünür kılar. Endüstri 4.0 ve kestirimci bakım için doğrudan veri iletişimi sunar.')}
             </p>
           </div>
-          {/* SMC AMS gorseli — urunun TAMAMI (manifold+regulator+hub+valf) + fabrika arka plani; Ingilizce yazilar temizlendi.
-              Kutu orani GORSELLE birebir (988/606) -> object-cover kropsuz, kesik/bosluk yok. */}
-          <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#070e1c]" style={{ aspectRatio: '1020 / 390', transform: 'translateZ(10px)' }}>
+          {/* SMC AMS gorseli (ams-diagram.jpg = sidebar rozetinin buyuk/temiz hali): urunun TAMAMI (manifold+regulator+hub+valf)
+              + gercek fabrika ortami, mavi tonlu, yazi YOK. Kutu orani GORSELLE birebir (1380/660) -> object-cover kropsuz. */}
+          <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#070e1c]" style={{ aspectRatio: '1380 / 660', transform: 'translateZ(10px)' }}>
             <img
-              src={asset('products/ams-poster.jpg')}
-              alt="SMC Hava Yönetim Sistemi — resmi tanıtım: ürünün tamamı, %62 tasarruf, OPC UA, kablosuz"
+              src={asset('products/ams-diagram.jpg')}
+              alt="SMC Hava Yönetim Sistemi — ürünün tamamı, gerçek fabrika ortamı"
               className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
             />

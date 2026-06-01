@@ -66,12 +66,13 @@ export function LoginScreen({ auth }: { auth: Auth }) {
         {/* YAN-YANA DUZEN (Mehmet Abi: "resim SOLDA, giris SAGDA -- eskisi gibi, oylesi guzeldi"): lg'de iki sutun,
             mobilde alt alta (resim ust). items-center -> dikey dengeli. */}
         <div className="grid grid-cols-1 items-center gap-7 lg:grid-cols-[1.05fr_1fr]">
-        {/* SOL = SMC resmi AMS tanitim gorseli (ams-poster.jpg): urunun TAMAMI (manifold+regulator+hub+valf) + fabrika arka
-            plani; uzerindeki Ingilizce yazilar/aciklamalar TEMIZLENDI (Mehmet Abi). Kutu orani GORSELLE birebir -> kropsuz. */}
-        <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424]" style={{ aspectRatio: '1020 / 390' }}>
+        {/* SOL = sidebar rozetindeki GORSELIN buyuk/temiz hali (ams-diagram.jpg): AMS unitesi (manifold+regulator+hub+valf)
+            gercek fabrika ortaminda, mavi tonlu + isik cizgileri, urunun TAMAMI gorunur, yazi YOK. Mehmet Abi: "paneldeki kucuk
+            resmin buyuk ve temiz hali". Kutu orani GORSELLE birebir (1380/660) -> object-cover kropsuz. */}
+        <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424]" style={{ aspectRatio: '1380 / 660' }}>
           <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS {t('Hava Yönetim Sistemi')}</span>
           <img
-            src={asset('products/ams-poster.jpg')}
+            src={asset('products/ams-diagram.jpg')}
             alt="SMC AMS — Hava Yönetim Sistemi (ürünün tamamı, gerçek fabrika ortamı)"
             className="absolute inset-0 h-full w-full object-cover"
             loading="lazy"
