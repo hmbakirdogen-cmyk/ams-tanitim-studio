@@ -10,9 +10,10 @@
  */
 import { useEffect, useRef } from 'react'
 
-// Akış zerresi (yatay süzülen parlak ışık) sayısı + derinlik kıvılcımı sayısı (Mehmet Abi: cihaz arkasında DAHA BELİRGİN/güzel → arttırıldı; yine 60fps/ferah)
-const FLOW_N = 96
-const GLOW_N = 4
+// Akış zerresi (yatay süzülen parlak ışık) sayısı + derinlik kıvılcımı sayısı.
+// Mehmet Abi: "tertemiz / sakin derinlik" → zerre sayısı 96→54'e indirildi (gürültü azaldı, ferah/premium), glow küresi 4→3.
+const FLOW_N = 54
+const GLOW_N = 3
 
 export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 'light'; flow?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -89,30 +90,37 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
         ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.fill()
       }
 
-      // 2) PERSPEKTİF SİSTEM IZGARASI — derinliğe kaçan çizgiler (3D "hava kanalı/sistem" hissi). Mehmet Abi: "güzel 3D arka plan kaybolmuş"
-      //   → ızgara BELİRGİNLEŞTİRİLDİ (alpha ~2×, çizgi biraz kalın) ki cihaz net bir 3B derinlikte dursun (yine ferah, 60fps).
-      ctx.lineWidth = 1.15
-      for (let i = 1; i <= 10; i++) {
-        const f = i / 10
+      // 2) PERSPEKTİF SİSTEM IZGARASI — derinliğe kaçan çizgiler (3D "hava kanalı/sistem" hissi).
+      //   Mehmet Abi "tertemiz/sakin derinlik" → ızgara İNCELTİLDİ + SOLUKLAŞTIRILDI (alpha ~yarı, çizgi 0.8px) ve KENARLARA
+      //   doğru sönümlenir (vignette): ürünün/grafiğin arkası temiz, derinlik hissi korunur ama gürültü/çizgi-kalabalığı yok.
+      ctx.lineWidth = 0.8
+      const edgeFade = (x: number) => {                         // ekran kenarlarına doğru soluklaş (orta net, kenar temiz)
+        const d = Math.abs(x - W / 2) / (W / 2)
+        return 1 - Math.min(1, d) * 0.55
+      }
+      for (let i = 1; i <= 9; i++) {
+        const f = i / 9
         const yy = horizon + Math.pow(f, 2.1) * (H - horizon) * 1.1
         if (yy > H + 4) break
-        ctx.strokeStyle = `rgba(${col},${(dark ? 0.20 : 0.15) * (1 - f * 0.5)})`
+        ctx.strokeStyle = `rgba(${col},${(dark ? 0.11 : 0.085) * (1 - f * 0.55)})`
         ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke()
         const yu = horizon - Math.pow(f, 2.1) * horizon * 1.05   // ufuk ÜSTÜ simetrik (tavan kanalı)
-        ctx.strokeStyle = `rgba(${col},${(dark ? 0.14 : 0.10) * (1 - f * 0.5)})`
+        ctx.strokeStyle = `rgba(${col},${(dark ? 0.07 : 0.055) * (1 - f * 0.55)})`
         ctx.beginPath(); ctx.moveTo(0, yu); ctx.lineTo(W, yu); ctx.stroke()
       }
       const spread = W * 0.9
       for (let i = -6; i <= 6; i++) {
-        ctx.strokeStyle = `rgba(${col},${(dark ? 0.18 : 0.13) * (1 - Math.abs(i) / 8)})`   // derinliğe kaçan dikey çizgiler = en güçlü 3B ipucu
-        ctx.beginPath(); ctx.moveTo(cxC + (i / 6) * spread * 0.1, horizon); ctx.lineTo(cxC + (i / 6) * spread, H); ctx.stroke()
+        const xb = cxC + (i / 6) * spread
+        ctx.strokeStyle = `rgba(${col},${(dark ? 0.10 : 0.075) * (1 - Math.abs(i) / 7) * edgeFade(xb)})`   // derinliğe kaçan dikey çizgiler (soluk, kenarda sönük)
+        ctx.beginPath(); ctx.moveTo(cxC + (i / 6) * spread * 0.1, horizon); ctx.lineTo(xb, H); ctx.stroke()
       }
-      // ufuk ışık bandı (derinlik kapanışı) — belirginleştirildi
+      // ufuk ışık bandı (derinlik kapanışı) — yumuşak/soluk
       const hg = ctx.createLinearGradient(0, horizon - H * 0.16, 0, horizon + H * 0.08)
-      hg.addColorStop(0, `rgba(${col},0)`); hg.addColorStop(0.6, `rgba(${col},${dark ? 0.16 : 0.09})`); hg.addColorStop(1, `rgba(${col},0)`)
+      hg.addColorStop(0, `rgba(${col},0)`); hg.addColorStop(0.6, `rgba(${col},${dark ? 0.10 : 0.06})`); hg.addColorStop(1, `rgba(${col},0)`)
       ctx.fillStyle = hg; ctx.fillRect(0, horizon - H * 0.16, W, H * 0.22)
 
       // 3) YATAY SÜZÜLEN HAVA ZERRELERİ — "uçan parlak ışıklar"; akış soldan sağa. Derinlik (fDep) → boyut/parlaklık/hız/parallax.
+      //   Mehmet Abi "sakin derinlik" → parlaklık hafif kısıldı (uzak katman daha soluk), iz biraz inceltildi → ferah/temiz.
       ctx.lineCap = 'round'
       const baseV = 0.04 + 0.14 * fl
       for (let i = 0; i < FLOW_N; i++) {
@@ -122,9 +130,9 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
         const depPar = (dep - 0.5) * par * 1.6               // yakın katman fareyle daha çok kayar (parallax derinlik)
         const x = fX[i] * (W + 80) - 40 + ox + depPar
         const y = fLane[i] * H + oy * (0.4 + dep) + Math.sin(now * 0.0006 + i) * 2
-        const sz = 0.5 + dep * 2.0
-        const a = (dark ? 0.22 : 0.14) + dep * (dark ? 0.55 : 0.32)
-        const len = 4 + dep * 22 * (0.4 + fl)               // hızlı/yakın = uzun iz (akış hissi)
+        const sz = 0.5 + dep * 1.8
+        const a = (dark ? 0.16 : 0.10) + dep * (dark ? 0.44 : 0.26)   // sakinleştirildi (uzak zerre daha soluk → gürültü azaldı)
+        const len = 4 + dep * 20 * (0.4 + fl)               // hızlı/yakın = uzun iz (akış hissi)
         const c = i % 5 === 0 ? teal : col                   // çoğu mavi, arada teal kıvılcım
         ctx.strokeStyle = `rgba(${c},${a * 0.5})`; ctx.lineWidth = sz
         ctx.beginPath(); ctx.moveTo(x - len, y); ctx.lineTo(x, y); ctx.stroke()
@@ -132,7 +140,14 @@ export function AmbientScene({ theme = 'dark', flow = 0.4 }: { theme?: 'dark' | 
         ctx.fillStyle = `rgba(${c},${a})`; ctx.beginPath(); ctx.arc(x, y, sz * 0.9, 0, Math.PI * 2); ctx.fill()
       }
 
+      // 4) KENAR VIGNETTE (Mehmet Abi "tertemiz") — köşelere doğru hafif koyulaşma: ızgara/zerre kenarlarda erir,
+      //    panelin ortası (ürün/grafik) NET odakta kalır → premium, gürültüsüz çerçeve hissi. source-over (her temada koyu).
       ctx.globalCompositeOperation = 'source-over'
+      const vg = ctx.createRadialGradient(W / 2, H * 0.46, Math.min(W, H) * 0.30, W / 2, H * 0.5, Math.max(W, H) * 0.72)
+      vg.addColorStop(0, 'rgba(4,10,22,0)')
+      vg.addColorStop(1, `rgba(4,10,22,${dark ? 0.42 : 0.16})`)
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H)
+
       raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)

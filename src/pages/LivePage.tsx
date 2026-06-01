@@ -84,8 +84,10 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
               <DeviceFlowChart reading={reading} metrics={metrics} mode={mode} theme={theme} />
               <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} theme={theme} />
             </div>
-            {/* KLASİK — akışın ALTINDA, tam orantılı; SABİT ~16 sn'lik canlı range (Mehmet Abi: zaman çubuğu/tarih ölçeği KALDIRILDI) */}
+            {/* KLASİK — akışın ALTINDA, tam orantılı; SABİT ~48 sn'lik canlı range. Mehmet Abi "iki panel tertemiz + bütün":
+                AmbientScene ALT panelde de (ilk katman) → iki panel AYNI sakin derinlik zeminini paylaşır; Hero3DChart WebGL şeffaf üstüne biner. */}
             <div className="glass relative min-h-0 flex-[2] overflow-hidden rounded-3xl">
+              <AmbientScene theme={theme} flow={flowNorm} />
               <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
               <ChartOverlay reading={reading} history={history} metrics={visibleMetrics} />
             </div>
