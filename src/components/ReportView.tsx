@@ -47,6 +47,7 @@ export function ReportView({
   rangeStart,
   rangeEnd,
   title,
+  customer,
   generatedAt,
   onClose,
 }: {
@@ -55,6 +56,7 @@ export function ReportView({
   rangeStart: number
   rangeEnd: number
   title: string
+  customer?: import('@/data/recordings').CustomerInfo // saha/musteri is bilgisi -> rapor basligina basilir
   generatedAt: number
   onClose: () => void
 }) {
@@ -86,7 +88,7 @@ export function ReportView({
   const exportJSON = () =>
     download(
       `${safeName}_rapor.json`,
-      JSON.stringify({ title, model: model.code, rangeStart, rangeEnd, generatedAt, economy, points }, null, 2),
+      JSON.stringify({ title, customer, model: model.code, rangeStart, rangeEnd, generatedAt, economy, points }, null, 2),
       'application/json',
     )
 
@@ -134,8 +136,18 @@ export function ReportView({
           </div>
         </div>
 
+        {/* ISLETME BILGILERI - saha/musteri (varsa). Mehmet Abi: "kendi raporlarina bu analizleri ekleyebilsin" -> resmi rapor basligi. */}
+        {customer && (customer.company || customer.contact || customer.location || customer.note) && (
+          <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1.5 rounded-lg border border-slate-200 bg-white p-3 text-sm md:grid-cols-2">
+            {customer.company && <div><span className="text-slate-500">{t('İşletme')}: </span><b className="text-slate-900">{customer.company}</b></div>}
+            {customer.contact && <div><span className="text-slate-500">{t('Yetkili')}: </span><b className="text-slate-900">{customer.contact}</b></div>}
+            {customer.location && <div><span className="text-slate-500">{t('Lokasyon')}: </span><b className="text-slate-900">{customer.location}</b></div>}
+            {customer.note && <div className="md:col-span-2"><span className="text-slate-500">{t('Not')}: </span><span className="text-slate-700">{customer.note}</span></div>}
+          </div>
+        )}
+
         {/* Aralik ozeti */}
-        <div className="mt-4 grid grid-cols-1 gap-2 rounded-lg bg-slate-50 p-3 text-sm md:grid-cols-3">
+        <div className="mt-3 grid grid-cols-1 gap-2 rounded-lg bg-slate-50 p-3 text-sm md:grid-cols-3">
           <div><span className="text-slate-500">{t('Başlangıç')}: </span><b className="num text-slate-900">{fmtDateTime(rangeStart)}</b></div>
           <div><span className="text-slate-500">{t('Bitiş')}: </span><b className="num text-slate-900">{fmtDateTime(rangeEnd)}</b></div>
           <div><span className="text-slate-500">{t('Süre')}: </span><b className="num text-slate-900">{fmt1(spanSec)} {t('sn')}</b> · <b className="num text-slate-900">{fmtInt(n)}</b> {t('ölçüm')}</div>

@@ -7,11 +7,25 @@
 import type { Reading } from './types'
 import { toLocalInputValue } from '@/lib/datetime'
 
+/*
+ * NE+NEDEN: Saha/musteri is bilgisi. Mehmet Abi: "SMC calisani sahaya/musteriye gidince ISLETME bilgilerini yazip
+ *           aldigi verileri deposunda kayitli tutsun, rahatca erissin, kendi raporlarina bu analizleri ekleyebilsin."
+ * NASIL   : Kayda (Recording) opsiyonel iliştirilir; rapor belgesine (ReportView) "Isletme bilgileri" blogu olarak basilir.
+ *           Tum alanlar OPSIYONEL -> eski kayitlar/hizli kayit kirilmaz (geriye uyum).
+ */
+export interface CustomerInfo {
+  company?: string  // isletme / firma adi
+  contact?: string  // yetkili kisi
+  location?: string // lokasyon / hat / makine
+  note?: string     // saha notu
+}
+
 export interface Recording {
   id: string
   name: string
   createdAt: number // kaydetme ani (epoch ms) ~ son nokta
   startedAt: number // t=0 aninin duvar saati (epoch ms) -> gercek tarih/saat
+  customer?: CustomerInfo // saha/musteri is bilgisi (opsiyonel)
   points: Reading[]
 }
 
@@ -40,13 +54,20 @@ export function listRecordings(): Recording[] {
   return read().sort((a, b) => b.createdAt - a.createdAt)
 }
 
-export function saveRecording(name: string, points: Reading[], createdAt: number, startedAt?: number): void {
+export function saveRecording(name: string, points: Reading[], createdAt: number, startedAt?: number, customer?: CustomerInfo): void {
   const last = points.length ? points[points.length - 1].t : 0
+  // Bos alanlari at -> sadece dolu musteri bilgisi saklanir (yoksa customer hic eklenmez)
+  const cust: CustomerInfo = {}
+  if (customer?.company?.trim()) cust.company = customer.company.trim()
+  if (customer?.contact?.trim()) cust.contact = customer.contact.trim()
+  if (customer?.location?.trim()) cust.location = customer.location.trim()
+  if (customer?.note?.trim()) cust.note = customer.note.trim()
   const rec: Recording = {
     id: `rec-${createdAt}-${Math.random().toString(36).slice(2, 6)}`,
-    name: name.trim() || 'Kayıt',
+    name: name.trim() || (cust.company || 'Kayıt'),
     createdAt,
     startedAt: startedAt ?? createdAt - last, // verilmezse sureden geriye hesapla
+    ...(Object.keys(cust).length ? { customer: cust } : {}),
     points: points.slice(),
   }
   write([...read(), rec])

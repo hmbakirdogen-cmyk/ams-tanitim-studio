@@ -40,6 +40,7 @@ export function RangeAnalysisModal({
   points,
   startedAt,
   title,
+  customer,
   onClose,
   presets,
   initialStart,
@@ -48,6 +49,7 @@ export function RangeAnalysisModal({
   points: Reading[]
   startedAt: number
   title: string
+  customer?: import('@/data/recordings').CustomerInfo // saha/musteri bilgisi -> rapora basilir
   onClose: () => void
   presets?: RangePreset[] // verilmezse canli oturum varsayilanlari (Tumu/Son Yari/Son Ceyrek)
   initialStart?: number // acilis secimi (verilmezse tum aralik) - tarihsel raporda or. son 24 saat
@@ -195,6 +197,7 @@ export function RangeAnalysisModal({
           rangeStart={startMs}
           rangeEnd={endMs}
           title={title}
+          customer={customer}
           generatedAt={report.at}
           onClose={() => setReport(null)}
         />

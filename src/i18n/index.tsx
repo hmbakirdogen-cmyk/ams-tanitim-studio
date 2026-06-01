@@ -402,6 +402,18 @@ const EN: Record<string, string> = {
   'hava soldan sağa akıyor · sağ uç = anlık çıkış': 'air flows left to right · right end = live outlet',
   'çıkış': 'outlet',
   'Menü': 'Menu',
+  // Saha/musteri is bilgisi (Kayitlar + rapor)
+  'Ölçümü Kaydet': 'Save Measurement',
+  '— saha/müşteri bilgisiyle birlikte': '— with field/customer info',
+  'İşletme / firma adı': 'Company / business name',
+  'Yetkili kişi': 'Contact person',
+  'Lokasyon / hat / makine': 'Location / line / machine',
+  'Saha notu (opsiyonel)': 'Field note (optional)',
+  'Kayıt adı (boş bırakılırsa işletme adı kullanılır)': 'Record name (defaults to company name if blank)',
+  'İşletme': 'Company',
+  'Yetkili': 'Contact',
+  'Lokasyon': 'Location',
+  'Not': 'Note',
 }
 
 const JA: Record<string, string> = {
@@ -794,6 +806,18 @@ const JA: Record<string, string> = {
   'hava soldan sağa akıyor · sağ uç = anlık çıkış': 'エアは左から右へ · 右端＝現在の出口',
   'çıkış': '出口',
   'Menü': 'メニュー',
+  // Saha/musteri is bilgisi (Kayitlar + rapor)
+  'Ölçümü Kaydet': '測定を保存',
+  '— saha/müşteri bilgisiyle birlikte': '— 現場・顧客情報とともに',
+  'İşletme / firma adı': '事業所／会社名',
+  'Yetkili kişi': '担当者',
+  'Lokasyon / hat / makine': '場所／ライン／機械',
+  'Saha notu (opsiyonel)': '現場メモ（任意）',
+  'Kayıt adı (boş bırakılırsa işletme adı kullanılır)': '記録名（空欄の場合は会社名）',
+  'İşletme': '事業所',
+  'Yetkili': '担当者',
+  'Lokasyon': '場所',
+  'Not': 'メモ',
 }
 
 const DICT: Record<Lang, Record<string, string>> = { tr: {}, en: EN, ja: JA }

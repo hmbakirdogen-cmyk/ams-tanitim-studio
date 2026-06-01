@@ -6,7 +6,7 @@
  */
 import { useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Save, BarChart3, FileDown, Trash2, Clock, Database, History, CalendarClock } from 'lucide-react'
+import { Save, BarChart3, FileDown, Trash2, Clock, Database, History, CalendarClock, Building2, User as UserIcon, MapPin, StickyNote } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { RangeAnalysisModal, type RangePreset } from '@/components/RangeAnalysisModal'
@@ -39,6 +39,7 @@ type AnalyzeState = {
   points: Reading[]
   title: string
   startedAt: number
+  customer?: import('@/data/recordings').CustomerInfo // rapora basilacak saha/musteri bilgisi
   presets?: RangePreset[]
   initialStart?: number
   initialEnd?: number
@@ -47,6 +48,11 @@ type AnalyzeState = {
 export function RecordsPage({ data }: { data: LiveState }) {
   const { t } = useLang()
   const [name, setName] = useState('')
+  // Saha/musteri is bilgisi (Mehmet Abi: musteriye gidince isletme bilgisini yazip olcumle birlikte kaydet)
+  const [company, setCompany] = useState('')
+  const [contact, setContact] = useState('')
+  const [location, setLocation] = useState('')
+  const [note, setNote] = useState('')
   const [list, setList] = useState<Recording[]>(() => listRecordings())
   const [analyze, setAnalyze] = useState<AnalyzeState | null>(null)
   const conn = useConnection()
@@ -73,9 +79,9 @@ export function RecordsPage({ data }: { data: LiveState }) {
 
   const saveNow = () => {
     if (data.log.length === 0) return
-    saveRecording(name, data.log, Date.now(), data.startedAt)
+    saveRecording(name, data.log, Date.now(), data.startedAt, { company, contact, location, note })
     sound.click()
-    setName('')
+    setName(''); setCompany(''); setContact(''); setLocation(''); setNote('')
     refresh()
   }
   const del = (id: string) => {
@@ -114,18 +120,47 @@ export function RecordsPage({ data }: { data: LiveState }) {
         </button>
       </Tilt3D>
 
-      {/* Su anki oturumu kaydet */}
-      <Tilt3D className="glass flex items-center gap-3 rounded-2xl p-4" max={4}>
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--smc)]/15 text-[var(--smc-bright)]"><Save size={22} /></span>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={t('Kayıt adı (örn. Müşteri A — Hat 1)')}
-          className="num w-full rounded-lg border border-[var(--hair)] bg-transparent px-3 py-2 text-sm text-white outline-none placeholder:text-[var(--ink-soft)]"
-        />
-        <button onClick={saveNow} disabled={data.log.length === 0} className="keep-white shrink-0 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
-          {t('Kaydet')}
-        </button>
+      {/* Su anki oturumu kaydet + SAHA/MUSTERI is bilgisi (Mehmet Abi: musteriye gidince isletme bilgisini yazip olcumle kaydet) */}
+      <Tilt3D className="glass flex flex-col gap-3 rounded-2xl p-4" max={3}>
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--smc)]/15 text-[var(--smc-bright)]"><Save size={20} /></span>
+          <div className="text-sm font-semibold text-white">{t('Ölçümü Kaydet')}</div>
+          <span className="text-[11px] text-[var(--ink-soft)]">{t('— saha/müşteri bilgisiyle birlikte')}</span>
+        </div>
+        {/* Isletme bilgileri - hepsi opsiyonel; bos birakilabilir (hizli kayit) */}
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <label className="flex items-center gap-2 rounded-lg border border-[var(--hair)] bg-white/[0.03] px-3 py-2">
+            <Building2 size={15} className="shrink-0 text-[var(--smc-bright)]" />
+            <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder={t('İşletme / firma adı')}
+              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[var(--ink-soft)]" />
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border border-[var(--hair)] bg-white/[0.03] px-3 py-2">
+            <UserIcon size={15} className="shrink-0 text-[var(--smc-bright)]" />
+            <input value={contact} onChange={(e) => setContact(e.target.value)} placeholder={t('Yetkili kişi')}
+              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[var(--ink-soft)]" />
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border border-[var(--hair)] bg-white/[0.03] px-3 py-2">
+            <MapPin size={15} className="shrink-0 text-[var(--smc-bright)]" />
+            <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder={t('Lokasyon / hat / makine')}
+              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[var(--ink-soft)]" />
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border border-[var(--hair)] bg-white/[0.03] px-3 py-2">
+            <StickyNote size={15} className="shrink-0 text-[var(--smc-bright)]" />
+            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('Saha notu (opsiyonel)')}
+              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-[var(--ink-soft)]" />
+          </label>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('Kayıt adı (boş bırakılırsa işletme adı kullanılır)')}
+            className="num w-full rounded-lg border border-[var(--hair)] bg-transparent px-3 py-2 text-sm text-white outline-none placeholder:text-[var(--ink-soft)]"
+          />
+          <button onClick={saveNow} disabled={data.log.length === 0} className="keep-white shrink-0 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-40" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
+            {t('Kaydet')}
+          </button>
+        </div>
       </Tilt3D>
 
       {/* Kayit listesi */}
@@ -140,14 +175,22 @@ export function RecordsPage({ data }: { data: LiveState }) {
             <div key={rec.id} className="glass flex items-center gap-4 rounded-2xl px-5 py-3.5">
               <div className="min-w-0">
                 <div className="truncate text-sm font-semibold text-white">{rec.name}</div>
-                <div className="flex items-center gap-3 text-[11px] text-[var(--ink-soft)]">
+                {/* SAHA/MUSTERI bilgisi - varsa kart altinda gorunur (kolay erisim) */}
+                {rec.customer && (rec.customer.company || rec.customer.contact || rec.customer.location) && (
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[var(--smc-bright)]">
+                    {rec.customer.company && <span className="flex items-center gap-1"><Building2 size={10} /> {rec.customer.company}</span>}
+                    {rec.customer.contact && <span className="flex items-center gap-1"><UserIcon size={10} /> {rec.customer.contact}</span>}
+                    {rec.customer.location && <span className="flex items-center gap-1"><MapPin size={10} /> {rec.customer.location}</span>}
+                  </div>
+                )}
+                <div className="mt-0.5 flex items-center gap-3 text-[11px] text-[var(--ink-soft)]">
                   <span className="flex items-center gap-1"><Clock size={11} /> {fmtDate(rec.createdAt)}</span>
                   <span className="num">{rec.points.length} {t('ölçüm')}</span>
                   <span className="num">{new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(durationSec(rec.points))} {t('sn')}</span>
                 </div>
               </div>
               <div className="ml-auto flex shrink-0 items-center gap-2">
-                <button onClick={() => setAnalyze({ points: rec.points, title: rec.name, startedAt: rec.startedAt })} title={t('Aralık analizi / rapor')} className="flex items-center gap-1.5 rounded-lg border border-[var(--hair)] px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"><BarChart3 size={14} /> {t('Analiz')}</button>
+                <button onClick={() => setAnalyze({ points: rec.points, title: rec.name, startedAt: rec.startedAt, customer: rec.customer })} title={t('Aralık analizi / rapor')} className="flex items-center gap-1.5 rounded-lg border border-[var(--hair)] px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"><BarChart3 size={14} /> {t('Analiz')}</button>
                 <button onClick={() => exportCSV(rec)} title={t('CSV indir')} className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--hair)] text-[var(--ink-soft)] transition hover:text-white"><FileDown size={15} /></button>
                 <button onClick={() => exportJSON(rec)} title={t('JSON indir')} className="rounded-lg border border-[var(--hair)] px-2 py-1.5 text-[11px] font-medium text-[var(--ink-soft)] transition hover:text-white">JSON</button>
                 <button onClick={() => del(rec.id)} title={t('Sil')} className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--hair)] text-[#ff8a8a] transition hover:bg-white/5"><Trash2 size={15} /></button>
@@ -159,7 +202,7 @@ export function RecordsPage({ data }: { data: LiveState }) {
 
       <AnimatePresence>
         {analyze && (
-          <RangeAnalysisModal key="range" points={analyze.points} startedAt={analyze.startedAt} title={analyze.title} presets={analyze.presets} initialStart={analyze.initialStart} initialEnd={analyze.initialEnd} onClose={() => setAnalyze(null)} />
+          <RangeAnalysisModal key="range" points={analyze.points} startedAt={analyze.startedAt} title={analyze.title} customer={analyze.customer} presets={analyze.presets} initialStart={analyze.initialStart} initialEnd={analyze.initialEnd} onClose={() => setAnalyze(null)} />
         )}
       </AnimatePresence>
     </div>
