@@ -63,10 +63,10 @@ export function LoginScreen({ auth }: { auth: Auth }) {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="glass w-full max-w-3xl rounded-3xl p-6 sm:p-8"
       >
-        {/* USTTE TAM-GENISLIK BANNER hero — Mehmet Abi: "resmin BUTUNUNU gormek isterim".
-            Kutu en-boy orani GORSELE uydurulur (1280x318 ~ 4:1) -> object-cover kropu icerigi KESMEZ;
-            tum panorama gorunur, bosluk/letterbox olmaz. Eskiden 2-kolon dar kutu ortasini kesiyordu. */}
-        <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424]" style={{ aspectRatio: '1280 / 318' }}>
+        {/* USTTE TAM-GENISLIK BANNER hero — Mehmet Abi: "resmin BUTUNUNU gormek isterim", "iki yanda beyaz olmasin, urun alti tam".
+            Kutu en-boy orani GORSELE birebir uydurulur (1180x414) -> object-cover HIC kropmaz; tum panorama + urunlerin
+            ALTI TAM gorunur, yanlarda beyaz/bosluk yok (yan beyaz cerceve kirpildi, ust bant maviyle dolduruldu). */}
+        <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424]" style={{ aspectRatio: '1180 / 414' }}>
           <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS {t('Hava Yönetim Sistemi')}</span>
           <img
             src={asset('products/ams-scene-hero.jpg')}
