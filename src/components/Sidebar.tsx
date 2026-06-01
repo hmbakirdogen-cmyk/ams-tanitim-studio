@@ -76,28 +76,7 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
         <ProductBadge />
       </div>
 
-      {/* DIL + global kontroller (ses/tema): tek satır — küçük ikon butonlar, boşa yer kaplamasın (Mehmet Abi) */}
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <LangSwitcher />
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={onToggleSound}
-            aria-label={muted ? t('Sesi Aç') : t('Ses Açık')}
-            title={muted ? t('Sesi Aç') : t('Ses Açık')}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--hair)] text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
-          >
-            {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-          </button>
-          <button
-            onClick={onToggleTheme}
-            aria-label={theme === 'dark' ? t('Gündüz') : t('Gece')}
-            title={theme === 'dark' ? t('Gündüz') : t('Gece')}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--hair)] text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
-          >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-          </button>
-        </div>
-      </div>
+      {/* Dil + ses + tema kontrolleri ALTA taşındı (Mehmet Abi): üstte renk ahengini bozuyordu, bunlar daha önemsiz → en altta. */}
 
       <nav className="mt-5 flex flex-col gap-1">
         {NAV.map(({ id, label, icon: Icon }) => {
@@ -163,7 +142,28 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
           <span className="num ml-auto text-xs font-medium text-[var(--ink-soft)]">{time}</span>
         </div>
 
-        {/* ses + tema kontrolleri yukarı (dil satırına) taşındı — sidebar yer tasarrufu, scroll'a gerek kalmasın (Mehmet Abi) */}
+        {/* DIL (sade metin) + ses + tema — EN ALT (Mehmet Abi: önemsiz yerde, renk ahengini bozmadan). Tek satır, ortalı/dengeli. */}
+        <div className="flex items-center justify-between gap-2">
+          <LangSwitcher />
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={onToggleSound}
+              aria-label={muted ? t('Sesi Aç') : t('Ses Açık')}
+              title={muted ? t('Sesi Aç') : t('Ses Açık')}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--hair)] text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
+            >
+              {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            </button>
+            <button
+              onClick={onToggleTheme}
+              aria-label={theme === 'dark' ? t('Gündüz') : t('Gece')}
+              title={theme === 'dark' ? t('Gündüz') : t('Gece')}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--hair)] text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
+            >
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+          </div>
+        </div>
 
         {/* İMZA - her sayfada görünür (Sidebar tüm sayfalarda mount). Hep İngilizce. */}
         <div className="border-t border-[var(--hair)] pt-2.5">
