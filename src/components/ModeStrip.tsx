@@ -4,23 +4,25 @@
  * NASIL   : Aktif mod parildar (mod rengi); hover/click ses (Web Audio); onSelect -> useLiveReadings.setMode.
  * YAN ETKI: Demo modunda senaryoyu yonlendirir; canli cihazda (ileride) yazma destegine baglanir.
  */
-import { MODE_LABEL, type Mode } from '@/data/types'
+import { MODE_LABEL, MODE_COLOR, type Mode } from '@/data/types'
 import { Activity, Leaf, PowerOff, type LucideIcon } from 'lucide-react'
 import { sound } from '@/lib/sound'
 import { useLang } from '@/i18n'
 
-const ITEMS: { mode: Mode; icon: LucideIcon; color: string }[] = [
-  { mode: 'normal', icon: Activity, color: '#2E9BFF' },
-  { mode: 'standby', icon: Leaf, color: '#41E08A' },
-  { mode: 'isolation', icon: PowerOff, color: '#FFB04D' },
+// Renk TEK KAYNAK: types.MODE_COLOR (HeroKPI/PipeOverlay/AnalysisPage ile aynı). Eskiden inline sabitti -> ileride desync riski (#K4).
+const ITEMS: { mode: Mode; icon: LucideIcon }[] = [
+  { mode: 'normal', icon: Activity },
+  { mode: 'standby', icon: Leaf },
+  { mode: 'isolation', icon: PowerOff },
 ]
 
 export function ModeStrip({ active, onSelect }: { active: Mode; onSelect: (m: Mode) => void }) {
   const { t } = useLang()
   return (
     <div className="glass flex gap-2 rounded-2xl p-2">
-      {ITEMS.map(({ mode, icon: Icon, color }) => {
+      {ITEMS.map(({ mode, icon: Icon }) => {
         const on = active === mode
+        const color = MODE_COLOR[mode]
         return (
           <button
             key={mode}

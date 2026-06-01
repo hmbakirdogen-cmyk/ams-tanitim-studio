@@ -111,8 +111,9 @@ export function AnalysisPage({ data }: { data: LiveState }) {
   }
   const sv = litersToSavings(liters, economy)
   // Donem etiketi: secili pencerenin baslangic->bitis saati (toplam veri gostergesi icin)
-  const fromClock = win.length > 1 ? new Date(win[0].t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
-  const toClock = win.length > 1 ? new Date(win[win.length - 1].t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
+  // GERÇEK saat = startedAt (t=0 duvar saati) + göreli t. Eskiden new Date(win[0].t) -> t göreli ms olduğu için 1970'e sabitleniyordu (BUG).
+  const fromClock = win.length > 1 ? new Date(data.startedAt + win[0].t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
+  const toClock = win.length > 1 ? new Date(data.startedAt + win[win.length - 1].t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
@@ -195,7 +196,9 @@ export function AnalysisPage({ data }: { data: LiveState }) {
 
             <Tilt3D className="glass relative overflow-hidden rounded-2xl p-5" max={5}>
               <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-25 blur-3xl" style={{ background: 'var(--c-saving)' }} />
-              <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><PiggyBank size={16} className="text-[var(--c-saving)]" /> {t('Bu Aralıktaki Tasarruf')}</div>
+              {/* KAYNAK ETIKETI (#6): bu kart CANLI oturum gunlugunden (data.log) hesaplanir; "Tarihsel rapor"daki tasarruf
+                  ise kalici DAKIKALIK gecmisten gelir -> ayni donem icin sayilar farkli olabilir. Kullanici karistirmasin diye baslik kaynagi belirtir. */}
+              <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><PiggyBank size={16} className="text-[var(--c-saving)]" /> {t('Tasarruf (canlı oturum)')}</div>
               <div className="num mt-2 text-3xl font-bold text-[var(--c-saving)]">{fmtTLCompact(sv.tl)}</div>
               <div className="num mt-1 text-sm text-[var(--ink-soft)]">{fmtCompact(sv.kwh)} kWh · {fmtCompact(sv.co2)} kg CO₂</div>
             </Tilt3D>

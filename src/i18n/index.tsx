@@ -414,6 +414,10 @@ const EN: Record<string, string> = {
   'Yetkili': 'Contact',
   'Lokasyon': 'Location',
   'Not': 'Note',
+  // Grafik eksen aciklamasi (her sensor kendi olceginde normalize)
+  'Seviye · her sensör kendi ölçeğinde': 'Level · each sensor on its own scale',
+  'Zaman ekseni · dikey: her sensör kendi aralığında %0–%100 (değerler üstte)': 'Time axis · vertical: each sensor 0–100% of its own range (values above)',
+  'Tasarruf (canlı oturum)': 'Savings (live session)',
 }
 
 const JA: Record<string, string> = {
@@ -818,6 +822,10 @@ const JA: Record<string, string> = {
   'Yetkili': '担当者',
   'Lokasyon': '場所',
   'Not': 'メモ',
+  // Grafik eksen aciklamasi (her sensor kendi olceginde normalize)
+  'Seviye · her sensör kendi ölçeğinde': 'レベル · 各センサーは独自スケール',
+  'Zaman ekseni · dikey: her sensör kendi aralığında %0–%100 (değerler üstte)': '時間軸 · 縦：各センサーは自身の範囲の0〜100%（数値は上部）',
+  'Tasarruf (canlı oturum)': '節減（ライブセッション）',
 }
 
 const DICT: Record<Lang, Record<string, string>> = { tr: {}, en: EN, ja: JA }

@@ -7,7 +7,6 @@
 import { useMemo } from 'react'
 import type { MetricDef } from '@/data/metrics'
 import type { Reading } from '@/data/types'
-import { useSmoothNumber } from '@/hooks/useSmoothNumber'
 import { Tilt3D } from './Tilt3D'
 import { Sparkline } from './Sparkline'
 import { useLang } from '@/i18n'
@@ -23,8 +22,10 @@ const rangeFmt = (v: number) => new Intl.NumberFormat('tr-TR', { maximumFraction
 export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; history: Reading[]; size?: Size }) {
   const { t } = useLang()
   const series = useMemo(() => history.slice(-60).map(def.get), [history, def])
-  const current = series.length ? series[series.length - 1] : def.min
-  const v = useSmoothNumber(current, def.hero ? 0.16 : 0.12)
+  // SENKRON (#3): HAM son okuma değeri — useSmoothNumber lerp'i KALDIRILDI. Kart, PipeOverlay ve hub LCD aynı reading'i
+  // aynı tikte tükettiği için artık ekranda TEK sayı görünür (eskiden kart geriden gelip "aynı veri farklı sayı" oluyordu).
+  // Demo kaynağı zaten ease ile yumuşak akıyor; ekstra lerp gereksiz + tutarsızdı.
+  const v = series.length ? series[series.length - 1] : def.min
   const text = new Intl.NumberFormat('tr-TR', {
     minimumFractionDigits: def.digits,
     maximumFractionDigits: def.digits,

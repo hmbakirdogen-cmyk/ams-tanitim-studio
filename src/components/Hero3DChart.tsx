@@ -26,13 +26,13 @@ import type { Reading } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 
 // --- Sahne sabitleri ---
-const SPAN_X = 21 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis(16sn)" (sol) PANEL KENARINA kadar (Mehmet Abi: uclar "simdi"ye degsin).
+const SPAN_X = 21 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis(~48sn)" (sol) PANEL KENARINA kadar (Mehmet Abi: uclar "simdi"ye degsin).
 const MAX_H = 4.0 // normalize deger -> yukseklik
 const L = 600 // ekran penceresi nokta sayisi (~48 sn @80ms tik) — Mehmet Abi GENIS zaman penceresini sevdi (sekme arkaplandayken gordugu ~56sn gibi); kalici/kontrollu
 const RADIAL = 12 // boru kesit cozunurlugu (yuvarlak)
 const TWO_PI = Math.PI * 2
 
-// ChartOverlay'deki X-zaman etiketleri ekranda cizilen son N nokta ile hizali olsun (-> "simdi <-> -10 sn")
+// ChartOverlay'deki X-zaman etiketleri ekranda cizilen son N nokta ile hizali olsun (-> "simdi <-> ~-48 sn", L=600 @80ms)
 export const WINDOW_POINTS = L
 
 const xAt = (i: number) => -SPAN_X / 2 + (i / (L - 1)) * SPAN_X

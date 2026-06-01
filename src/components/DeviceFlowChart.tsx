@@ -277,7 +277,9 @@ export function DeviceFlowChart({
       const k = Math.min(1, dt * 4)
       sig.flow += (t.flow - sig.flow) * k; sig.pressure += (t.pressure - sig.pressure) * k
       sig.temp += (t.temp - sig.temp) * k; sig.hum += (t.hum - sig.hum) * k
-      const regTarget = t.mode === 'standby' ? 1 : t.mode === 'isolation' ? 0.4 : 0
+      // İZOLASYONDA regülatör devrede DEĞİL (valf havayı keser) -> halka 0. Eskiden 0.4 idi; PipeOverlay "sadece Valf devrede"
+      // derken teal regülatör halkası çiziliyordu = çelişki (senkron denetimi #4). Sadece STANDBY'da regülatör devrede.
+      const regTarget = t.mode === 'standby' ? 1 : 0
       const valveTarget = t.mode === 'isolation' ? 1 : 0
       sig.reg += (regTarget - sig.reg) * Math.min(1, dt * 2.5)
       // SOFT-STARTER valfi: basinci KADEMELI verir/keser (ani DEĞİL) → yavaş rampa (dt*0.9)

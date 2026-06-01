@@ -74,7 +74,10 @@ export function LoginScreen({ auth }: { auth: Auth }) {
           <img
             src={asset('products/ams-diagram.jpg')}
             alt="SMC AMS — Hava Yönetim Sistemi (ürünün tamamı, gerçek fabrika ortamı)"
+            /* Mehmet Abi: "biraz ürüne doğru zoom-in (arka plan bozulmadan)". scale + object-position merkez-üst:
+               object-cover + overflow-hidden taşanı kırpar -> ürün büyür, arka plan/cözünürlük bozulmaz (saf görüntüleme). */
             className="absolute inset-0 h-full w-full object-cover"
+            style={{ transform: 'scale(1.16)', objectPosition: 'center 38%' }}
             loading="lazy"
           />
         </div>

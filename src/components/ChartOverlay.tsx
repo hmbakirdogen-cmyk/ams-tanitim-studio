@@ -65,12 +65,13 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
         </div>
       </div>
 
-      {/* Y ekseni basligi - dikey */}
+      {/* Y ekseni basligi - dikey. NOT: her cizgi KENDI metriginin kendi araligina (%0-100) normalize -> etikette netlestir
+          (Mehmet Abi: "%seviye hangi veri? hepsi mi?" -> her sensor kendi olceginde; gercek degerler ust seritte). */}
       <div
         className="absolute left-1 top-1/2 text-[10px] font-semibold uppercase tracking-widest text-[var(--ink-soft)]"
         style={{ writingMode: 'vertical-rl', transform: 'translateY(-50%) rotate(180deg)', ...shadow }}
       >
-        {t('Seviye (%)')}
+        {t('Seviye · her sensör kendi ölçeğinde')}
       </div>
 
       {/* Seviye cizgileri - her sensor kendi araliginda %0-100 */}
@@ -104,7 +105,7 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
       {/* Alt aciklama - zaman ekseni + seviye (SOL=geçmiş, SAĞ=şimdi) */}
       <div className="absolute inset-x-12 bottom-1 flex items-center justify-between text-[10px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
         <span>← {t('geçmiş')}</span>
-        <span>{t('Zaman ekseni · dikey: seviye (%0–%100)')}</span>
+        <span>{t('Zaman ekseni · dikey: her sensör kendi aralığında %0–%100 (değerler üstte)')}</span>
         <span>{t('şimdi')} →</span>
       </div>
     </div>
