@@ -68,7 +68,7 @@ export function LoginScreen({ auth }: { auth: Auth }) {
         <div className="grid grid-cols-1 items-center gap-7 lg:grid-cols-[1.05fr_1fr]">
         {/* SOL = SMC resmi AMS tanitim gorseli (ams-poster.jpg): urunun TAMAMI (manifold+regulator+hub+valf) + fabrika arka
             plani; uzerindeki Ingilizce yazilar/aciklamalar TEMIZLENDI (Mehmet Abi). Kutu orani GORSELLE birebir -> kropsuz. */}
-        <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424]" style={{ aspectRatio: '988 / 606' }}>
+        <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#0a1424]" style={{ aspectRatio: '1020 / 390' }}>
           <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS {t('Hava Yönetim Sistemi')}</span>
           <img
             src={asset('products/ams-poster.jpg')}

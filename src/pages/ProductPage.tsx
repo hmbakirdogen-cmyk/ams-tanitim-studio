@@ -94,7 +94,7 @@ export function ProductPage() {
           </div>
           {/* SMC AMS gorseli — urunun TAMAMI (manifold+regulator+hub+valf) + fabrika arka plani; Ingilizce yazilar temizlendi.
               Kutu orani GORSELLE birebir (988/606) -> object-cover kropsuz, kesik/bosluk yok. */}
-          <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#070e1c]" style={{ aspectRatio: '988 / 606', transform: 'translateZ(10px)' }}>
+          <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#070e1c]" style={{ aspectRatio: '1020 / 390', transform: 'translateZ(10px)' }}>
             <img
               src={asset('products/ams-poster.jpg')}
               alt="SMC Hava Yönetim Sistemi — resmi tanıtım: ürünün tamamı, %62 tasarruf, OPC UA, kablosuz"
