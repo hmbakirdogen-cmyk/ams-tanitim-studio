@@ -34,6 +34,8 @@ const EN: Record<string, string> = {
   // Ortak aksiyonlar
   'Kullanıcılar': 'Users',
   'Çıkış': 'Log out',
+  'Programı Kur': 'Install App',
+  'Bilgisayara kur — sonrası tamamen çevrimdışı çalışır': 'Install on your computer — runs fully offline afterwards',
   'Gündüz': 'Day',
   'Gece': 'Night',
   'Sesi Aç': 'Sound on',
@@ -418,6 +420,7 @@ const EN: Record<string, string> = {
   'Seviye · her sensör kendi ölçeğinde': 'Level · each sensor on its own scale',
   'Zaman ekseni · dikey: her sensör kendi aralığında %0–%100 (değerler üstte)': 'Time axis · vertical: each sensor 0–100% of its own range (values above)',
   'Tasarruf (canlı oturum)': 'Savings (live session)',
+  'Toplam hava': 'Total air',
 }
 
 const JA: Record<string, string> = {
@@ -442,6 +445,8 @@ const JA: Record<string, string> = {
   // Ortak aksiyonlar
   'Kullanıcılar': 'ユーザー',
   'Çıkış': 'ログアウト',
+  'Programı Kur': 'アプリをインストール',
+  'Bilgisayara kur — sonrası tamamen çevrimdışı çalışır': 'PCにインストール — 以降は完全オフラインで動作',
   'Gündüz': '昼',
   'Gece': '夜',
   'Sesi Aç': '音を入れる',
@@ -826,6 +831,7 @@ const JA: Record<string, string> = {
   'Seviye · her sensör kendi ölçeğinde': 'レベル · 各センサーは独自スケール',
   'Zaman ekseni · dikey: her sensör kendi aralığında %0–%100 (değerler üstte)': '時間軸 · 縦：各センサーは自身の範囲の0〜100%（数値は上部）',
   'Tasarruf (canlı oturum)': '節減（ライブセッション）',
+  'Toplam hava': '総空気量',
 }
 
 const DICT: Record<Lang, Record<string, string>> = { tr: {}, en: EN, ja: JA }

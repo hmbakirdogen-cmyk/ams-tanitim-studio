@@ -13,6 +13,7 @@ import { SmcLogo } from './components/SmcLogo'
 import { IntroSplash } from './components/IntroSplash'
 import { LoginScreen } from './components/LoginScreen'
 import { MobileBlocked } from './components/MobileBlocked'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { AdminUsers } from './components/AdminUsers'
 import { ProfileEditor } from './components/ProfileEditor'
 import { LivePage } from './pages/LivePage'
@@ -102,19 +103,23 @@ export default function App() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={page}
-                className="h-full"
+                className="relative h-full"
                 style={{ willChange: 'opacity' }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.22, ease: 'easeOut' }}
               >
-                {page === 'live' && <LivePage data={data} greetName={auth.user.firstName} theme={theme} />}
-                {page === 'analysis' && <AnalysisPage data={data} />}
-                {page === 'savings' && <SavingsPage data={data} />}
-                {page === 'product' && <ProductPage />}
-                {page === 'settings' && <ProductSettingsPage />}
-                {page === 'records' && <RecordsPage data={data} />}
+                {/* SAYFA HATA KALKANI: bir sayfa render'ı hata verirse SADECE o alan "Tekrar Dene" gösterir;
+                    sol menü + kabuk ayakta kalır (kullanıcı başka sayfaya geçebilir). key={page} → sayfa değişince sıfırlanır. */}
+                <ErrorBoundary variant="inline" label={t('Bu sayfa')}>
+                  {page === 'live' && <LivePage data={data} greetName={auth.user.firstName} theme={theme} />}
+                  {page === 'analysis' && <AnalysisPage data={data} />}
+                  {page === 'savings' && <SavingsPage data={data} />}
+                  {page === 'product' && <ProductPage />}
+                  {page === 'settings' && <ProductSettingsPage />}
+                  {page === 'records' && <RecordsPage data={data} />}
+                </ErrorBoundary>
               </motion.div>
             </AnimatePresence>
           </main>

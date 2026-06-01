@@ -12,6 +12,7 @@ import { download } from '@/data/recordings'
 import { exportAll, importAll } from '@/data/backup'
 import { Avatar } from './Avatar'
 import { useLang } from '@/i18n'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import type { Auth } from '@/auth/useAuth'
 import type { Role } from '@/auth/users'
 
@@ -19,6 +20,7 @@ const field = 'w-full rounded-lg border border-[var(--hair)] bg-transparent px-3
 
 export function AdminUsers({ auth, onClose }: { auth: Auth; onClose: () => void }) {
   const { t } = useLang()
+  useEscapeKey(onClose) // Escape ile kapat (QA)
   // Ekleme formu
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')

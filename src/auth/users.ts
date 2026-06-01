@@ -33,6 +33,11 @@ const SESSION_KEY = 'ams_session_v1'
 const ADEM_KILINC_RESET_FLAG_KEY = 'ams_mig_pw_reset_adem_kilinc_v2'
 const ADEM_KILINC_RESET_HASH = '8967849510715711f54189e7352a1b25b390fd085fe96bace454d743fde2479a'
 
+// GÜVENLİK (Mehmet Abi: "F12 → kaynak görüntüle'de şifre görünüyor"): varsayılan yönetici şifresi artık koda DÜZ METİN değil,
+// SHA-256 HASH olarak gömülü → bundle'da/kaynakta şifrenin kendisi GÖRÜNMEZ (yalnız 64-hex hash). Şifre yine aynı: 'smc' (HANDOFF'ta).
+// Not: tam-offline/istemci-tarafı uygulamada şifre %100 gizlenemez (sunucu yok) — bu bir DEMO geçidi; gerçek koruma için arka uç gerekir.
+const SEED_ADMIN_HASH = '6f166e778d3e08c067dfe733f47e38f74c59817c268e7ec633c74d34e6deb56f' // = SHA-256('smc')
+
 export async function hashPassword(pw: string): Promise<string> {
   const data = new TextEncoder().encode(pw)
   const buf = await crypto.subtle.digest('SHA-256', data)
@@ -50,7 +55,9 @@ function read(): User[] {
   }
 }
 function write(users: User[]): void {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users))
+  // try-catch: localStorage yazılamayan ortamda (gizli mod/kota/kiosk) ensureSeed reject olup açılışı KİLİTLEMESİN
+  // (setReady(true) daima çalışsın). Diğer tüm depolarla (history/economy/connection...) aynı dayanıklılık deseni.
+  try { localStorage.setItem(USERS_KEY, JSON.stringify(users)) } catch { /* offline/kota - sessizce geç */ }
 }
 
 function normalizeResetName(value: string): string {
@@ -98,8 +105,8 @@ const HALIL_PHOTO = '/users/halil.jpg'
 export async function ensureSeed(): Promise<void> {
   const users = read()
   if (users.length === 0) {
-    const hash = await hashPassword('smc')
-    write([{ id: 'karakelle', firstName: 'Halil İbrahim', lastName: 'Karakelle', role: 'admin', hash, photo: HALIL_PHOTO }])
+    // Düz metin şifre KODA YAZILMAZ → gömülü hash kullanılır (davranış birebir aynı: 'smc' ile giriş çalışır). Bkz. SEED_ADMIN_HASH.
+    write([{ id: 'karakelle', firstName: 'Halil İbrahim', lastName: 'Karakelle', role: 'admin', hash: SEED_ADMIN_HASH, photo: HALIL_PHOTO }])
     return
   }
   let changed = false

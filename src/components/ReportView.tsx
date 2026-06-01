@@ -17,6 +17,7 @@ import { MODE_LABEL, type Mode } from '@/data/types'
 import { litersToSavings, tickLitersSaved } from '@/lib/savings'
 import { pointsToCSV, download } from '@/data/recordings'
 import { fmtDateTime, fmtClock } from '@/lib/datetime'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { fmtInt, fmt1, fmtCompact, fmtTLCompact } from '@/lib/format'
 import { PRODUCT } from '@/data/product'
 import { useLang } from '@/i18n'
@@ -64,6 +65,7 @@ export function ReportView({
   const metrics = useMetrics()
   const { economy } = useEconomy()
   const { model } = useModel()
+  useEscapeKey(onClose) // Escape ile kapat (QA)
 
   const n = points.length
   const spanSec = n > 1 ? (points[n - 1].t - points[0].t) / 1000 : 0
@@ -106,9 +108,13 @@ export function ReportView({
     <motion.div
       className="report-shell fixed inset-0 z-[70] overflow-y-auto bg-black/70 p-4 md:p-8"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      /* KRİTİK (#QA): ReportView, RangeAnalysisModal backdrop'unun DOM-çocuğu → rapor içine tıklama köpürüp ALT modalın
+         onClose'unu tetikliyordu (rapora dokununca analiz penceresi de kapanıyordu). stopPropagation köpürmeyi keser.
+         Boş zemine (kendi backdrop'u) tıklama = kapat; rapor kâğıdı kendi içinde stopPropagation yapar. Escape de kapatır. */
+      onClick={onClose}
     >
-      {/* Arac cubugu - YAZDIRILMAZ */}
-      <div className="no-print mx-auto mb-3 flex max-w-[860px] items-center justify-between gap-2">
+      {/* Arac cubugu - YAZDIRILMAZ. stopPropagation: buton/cubuk tiklamasi backdrop onClose'una kopurmesin (sadece bos zemin kapatir). */}
+      <div className="no-print mx-auto mb-3 flex max-w-[860px] items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/20">
           <X size={15} /> {t('Kapat')}
         </button>
@@ -121,8 +127,8 @@ export function ReportView({
         </div>
       </div>
 
-      {/* RAPOR BELGESI - yazdirilir (.report-sheet) */}
-      <div className="report-sheet mx-auto max-w-[860px] rounded-xl bg-white p-8 text-slate-800 shadow-2xl">
+      {/* RAPOR BELGESI - yazdirilir (.report-sheet). stopPropagation: kagida tiklama kapatmayi tetiklemesin (sadece bos zemin kapatir). */}
+      <div className="report-sheet mx-auto max-w-[860px] rounded-xl bg-white p-8 text-slate-800 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Baslik */}
         <div className="flex items-start justify-between border-b-2 border-[#0072CE] pb-4">
           <div>
@@ -165,7 +171,7 @@ export function ReportView({
               <Kpi label="Para" value={fmtTLCompact(sv.tl)} unit="" color="#1f9d57" />
               <Kpi label="Enerji" value={fmtCompact(sv.kwh)} unit="kWh" color="#0072CE" />
               <Kpi label="Karbon" value={fmtCompact(sv.co2)} unit="kg CO₂" color="#36a0c8" />
-              <Kpi label="Kısılan Hava" value={fmtInt(sv.liters)} unit="litre" color="#c77700" />
+              <Kpi label="Kısılan Hava" value={fmtCompact(sv.liters)} unit="litre" color="#c77700" />
             </div>
             <div className="mt-1.5 text-[11px] text-slate-400">
               {fmt1(economy.priceTL)} {t('₺/kWh elektrik fiyatı ve')} {fmtInt(economy.baselineFlow)} {t('l/dak normal tüketim varsayımıyla.')}

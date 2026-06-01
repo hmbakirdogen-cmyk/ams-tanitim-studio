@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { SmcLogo } from './SmcLogo'
 import { ProductBadge } from './ProductBadge'
+import { InstallButton } from './InstallButton'
 import { LangSwitcher } from './LangSwitcher'
 import { Signature } from './Signature'
 import { useConnection } from '@/data/connection'
@@ -103,6 +104,10 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
           )
         })}
       </nav>
+
+      {/* PROGRAMI KUR — yalnız kurulabilir tarayıcıda + henüz kurulu değilken görünür (aksi halde InstallButton null döner).
+          Mehmet Abi: arkadaşının beklediği tek-tıkla otomatik kurulum; nav'ın hemen altında belirgin SMC-mavi çağrı. */}
+      <InstallButton />
 
       <div className="mt-auto space-y-2.5 pt-4">
         {/* Giris yapan kullanici - karta tiklayinca Profilim acilir */}

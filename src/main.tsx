@@ -14,13 +14,18 @@ import { registerSW } from 'virtual:pwa-register'
 import '@fontsource-variable/inter'
 import './index.css'
 import App from './App'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 // PWA: SW'yi kaydet. autoUpdate + workbox skipWaiting/clientsClaim → yeni deploy gelince sekme kendiliğinden güncellenir
 // (bayat cache = "eski versiyon" sorununu kökten bitirir). registerSW build'de gerçek, dev'de no-op.
 registerSW({ immediate: true })
 
+// KÖK HATA KALKANI: hangi katmanda olursa olsun yakalanamayan bir render hatası TÜM uygulamayı çökertip
+// PWA'yı "yeni pencerede yeniden açtırmasın" (Mehmet Abi'nin gördüğü sorun) → yerinde sakin "Tekrar Dene" göster.
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary variant="fullscreen">
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>,
 )

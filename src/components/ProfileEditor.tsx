@@ -11,12 +11,14 @@ import { Avatar } from './Avatar'
 import { processPortrait } from '@/lib/image'
 import { sound } from '@/lib/sound'
 import { useLang } from '@/i18n'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import type { Auth } from '@/auth/useAuth'
 
 const field = 'w-full rounded-lg border border-[var(--hair)] bg-transparent px-3 py-2 text-sm text-white outline-none placeholder:text-[var(--ink-soft)]'
 
 export function ProfileEditor({ auth, onClose }: { auth: Auth; onClose: () => void }) {
   const { t } = useLang()
+  useEscapeKey(onClose) // Escape ile kapat (QA)
   const current = auth.user
   const [photo, setPhoto] = useState<string | undefined>(current?.photo)
   const [title, setTitle] = useState(current?.title ?? '')

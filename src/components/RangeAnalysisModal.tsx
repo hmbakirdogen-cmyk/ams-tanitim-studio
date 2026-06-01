@@ -15,6 +15,7 @@ import { useMetrics } from '@/data/metrics'
 import { toLocalInputValue, fromLocalInputValue } from '@/lib/datetime'
 import { downsample } from '@/lib/series'
 import { useLang } from '@/i18n'
+import { useEscapeKey } from '@/hooks/useEscapeKey'
 import type { Reading } from '@/data/types'
 
 // Hazir aralik dugmesi (mutlak ms). Canli oturum varsayilanini kullanir; tarihsel rapor takvim presetleri verir.
@@ -56,6 +57,7 @@ export function RangeAnalysisModal({
   initialEnd?: number
 }) {
   const { t } = useLang()
+  useEscapeKey(onClose) // Escape ile kapat (QA)
   const metrics = useMetrics()
   const n = points.length
   const firstAbs = n ? startedAt + points[0].t : startedAt

@@ -2,7 +2,7 @@
  * NE      : Urun kimlik rozeti - tanitilan urunun GORSELI + ADI + aktif MODEL kodu tek, kompakt kartta.
  * NEDEN   : Mehmet Abi: "ne tanittigimiz/tanitacagimiz urun hem resimle hem isimle HER YERDE belli olsun".
  *           Sidebar her sayfada gorundugu icin buraya konunca urun kimligi tum uygulamada kalici gorunur.
- * NASIL   : PRODUCT (ad) + useModel (aktif tam kod) + public/products/ams-product.png katalog render (seffaf) kucuk thumbnail.
+ * NASIL   : PRODUCT (ad) + useModel (aktif tam kod) + public/products/ams-diagram.jpg (fabrika ortaminda urun) kucuk thumbnail.
  *           Model degisince (Urun Ayarlari) kod aninda guncellenir. Birim/kisaltma kurallari etkilenmez.
  * YAN ETKI: Saf gorsel; offline (gorsel public/'te gomulu). Baska SMC urunu icin PRODUCT + gorsel degisir, rozet ayni kalir.
  */

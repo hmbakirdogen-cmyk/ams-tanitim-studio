@@ -77,6 +77,10 @@ export class DemoDataSource implements DataSource {
   }
 
   private tick(): void {
+    // SEKME ARKA PLANDAYKEN tik atla (QA akıcılık): tarayıcı interval'i ~1sn'ye throttle edip çalıştırmaya devam eder;
+    // gizliyken üretirsek history birikir → sekmeye dönünce grafik birikmiş veriye "yakalanmak" için snap yapardı.
+    // Gizliyken hiç üretme → geri dönüşte kaldığı yerden akıcı devam (rAF'lar zaten tarayıcıca durdurulur).
+    if (typeof document !== 'undefined' && document.hidden) return
     const s = getDeviceSettings()
     const model = getActiveModel()
     const TARGETS = targetsForModel(model) // model degisirse hedefler aninda o modele uyar

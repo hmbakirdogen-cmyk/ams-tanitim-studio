@@ -17,6 +17,7 @@ import { MetricCard } from '@/components/MetricCard'
 import { ModeStrip } from '@/components/ModeStrip'
 import { PageHeader } from '@/components/PageHeader'
 import { AmbientScene } from '@/components/AmbientScene'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useMetrics, type MetricDef, type MetricKey } from '@/data/metrics'
 import { savingPercent } from '@/lib/savings'
 import { useSensorVisibility } from '@/data/sensorVisibility'
@@ -79,7 +80,8 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
           <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
             {/* AKIŞ — cihaz büyük; 3D AmbientScene CİHAZIN HEMEN ARKASINDA (panel içinde, ilk katman) → DeviceFlowChart şeffaf üstüne biner */}
             <div className="glass relative min-h-0 flex-[3] overflow-hidden rounded-3xl">
-              <AmbientScene theme={theme} flow={flowNorm} />
+              {/* space: ürün penceresine HAFİF 3D uzay yıldız alanı (Mehmet Abi); alt grafik panelinde yok (sade kalsın). */}
+              <AmbientScene theme={theme} flow={flowNorm} space />
               {/* Cihaz görseli TÜM sensörlerin tek-doğruluk gösterimi → TAM metrics (gizleme yalnız kart/overlay'de; LCD satırları kaymaz) */}
               <DeviceFlowChart reading={reading} metrics={metrics} mode={mode} theme={theme} />
               <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} theme={theme} />
@@ -88,7 +90,11 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
                 AmbientScene ALT panelde de (ilk katman) → iki panel AYNI sakin derinlik zeminini paylaşır; Hero3DChart WebGL şeffaf üstüne biner. */}
             <div className="glass relative min-h-0 flex-[2] overflow-hidden rounded-3xl">
               <AmbientScene theme={theme} flow={flowNorm} />
-              <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
+              {/* WebGL grafiği EN OYNAK katman (bağlam kaybı/GPU reset olabilir) → kendi kalkanında izole;
+                  çökerse sayfanın geri kalanı (cihaz, kartlar, kazanç) akmaya devam eder, yalnız bu panel "Yeniden yükle" der. */}
+              <ErrorBoundary variant="inline" label={t('Grafik')}>
+                <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
+              </ErrorBoundary>
               <ChartOverlay reading={reading} history={history} metrics={visibleMetrics} />
             </div>
           </div>

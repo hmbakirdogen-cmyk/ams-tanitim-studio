@@ -314,6 +314,14 @@ export function Hero3DChart({
       dpr={[1, 2]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       camera={{ position: [0, 2.4, 13], fov: 30 }}
+      onCreated={({ gl, invalidate }) => {
+        // WEBGL BAĞLAM KAYBI KURTARMA (Mehmet Abi: "ara ara hata verip yeniden açıyor"): Windows GPU sürücüsü ağır
+        // bloom/multisampling'de kendini reset edebilir (TDR) → bağlam kaybolur. preventDefault ŞART → tarayıcı/three
+        // bağlamı GERİ yükleyebilsin (yoksa panel kalıcı donar/karanır). Restore olunca invalidate → tek karede yeniden çizilir.
+        const canvas = gl.domElement
+        canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault() }, false)
+        canvas.addEventListener('webglcontextrestored', () => { invalidate() }, false)
+      }}
     >
       <fog attach="fog" args={[fogColor, 12, 28]} />
       <ambientLight intensity={0.5} />
