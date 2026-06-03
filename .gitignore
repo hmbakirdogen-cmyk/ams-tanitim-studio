@@ -13,3 +13,6 @@ tools/_orig/
 bridge/runtime/
 bridge/geri-bildirimler.json
 /paket/
+# Otomatik guncelleyici calisma artiklari (paket icinde olusur)
+bridge/app-next/
+bridge/app-update.zip

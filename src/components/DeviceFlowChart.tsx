@@ -51,11 +51,11 @@ const EXHAUST_CX = 0.76, EXHAUST_CY = 0.335      // egzoz = valf orta-ekseninin 
 // PDF LED konumu (tum-foto orani): SADECE regülatör POWER LED'i (valf LED'i Mehmet Abi kararıyla KALDIRILDI).
 const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (image #1: ekranın ALTINDA, foto-ölçüm) — YEŞİL, devredeyken parlar
 
-const FLOW_COUNT = 224       // akan molekül sayısı — Mehmet Abi: çoğaltıldı (160→224)
+const FLOW_COUNT = 280       // akan molekül sayısı — Mehmet Abi: daha zengin akış (224→280); GÖRÜNEN sayı debiyle ölçeklenir (flowN)
 const FLOW_LANES = 14        // paralel laminar şerit; aynı şeritteki moleküller AYNI hızda → asla karışmaz
 const MOLE_COUNT = 120   // regülatör sıkışma molekülleri — Mehmet Abi: daha çok kendini belli etsin (çoğaltıldı)
 const DROPLET_MAX = 60
-const PUFF_COUNT = 80   // egzoz jeti yoğunluğu — Mehmet Abi: izler bindirsin (bağlantılı/sürekli görünsün)
+const PUFF_COUNT = 100  // egzoz jeti yoğunluğu — Mehmet Abi: daha dolgun/sürekli çıkış (80→100)
 
 // --- HUB LCD RENKLERİ (GERÇEK SMC AMS hub ekranı — Mehmet Abi fotosu + kullanım kılavuzu om_ams_20-30-40-60, sayfa 19) ---
 //   ANA EKRAN (üst satır: basınç MPa + anlık debi L/min) = "2 colour display": OPERASYON modunda YEŞİL; çıkış aktifken
@@ -398,6 +398,7 @@ export function DeviceFlowChart({
       ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over'   // tema-duyarlı: gece additif, gündüz source-over (yıkanmasın)
       const pr = pipeH * 0.42
       const baseV = 0.05 + 0.95 * sig.flow
+      const flowN = Math.round((0.5 + 0.5 * sig.flow) * FLOW_COUNT) // MİKTAR debiyle ölçeklenir: düşük debi SEYREK, tam debi YOĞUN (doğal az/çok hava)
       const aK = dark ? 1 : 1.4   // GÜNDÜZ alfa biraz yüksek → translucent mavi açık zeminde net okunur
       ctx.lineCap = 'round'
       for (let i = 0; i < FLOW_COUNT; i++) {
@@ -450,9 +451,10 @@ export function DeviceFlowChart({
         if (fPhase[i] > 1) fPhase[i] -= 1
         const x = fPhase[i] * W
         if (x > valveCx && sig.valve > 0.12) continue   // valf kapanınca çıkış tarafı ileri-akış almaz (yumuşak kesme)
+        if (i >= flowN) continue                          // MİKTAR: debiye göre seyrelt (faz ilerledi ama bu zerre çizilmez → düşük debide ferah)
         const y = axisY + lane * pr                      // SABİT şerit (Y salınımı YOK → izler asla kesişmez)
         const a = (0.12 + 0.55 * sig.flow) * (0.5 + 0.5 * prof) * aK   // merkez şerit daha parlak (tüp derinliği)
-        const len = (7 + Math.min(baseV, 0.8) * 18) * (0.72 + 0.5 * prof)
+        const len = (8 + Math.min(baseV, 0.85) * 22) * (0.72 + 0.5 * prof)   // hızlı akışta DAHA UZUN iz (akıcı "hücum" hissi)
         const lw = (1.0 + 1.3 * prof) * (0.62 + sig.flow * 0.7)        // merkez şerit daha kalın
         // ZARİF taper (kare-başı tahsis YOK): soluk uzun kuyruk + parlak kısa baş = molekül başı + hareket izi
         ctx.strokeStyle = cS(a * 0.34); ctx.lineWidth = lw
@@ -502,7 +504,24 @@ export function DeviceFlowChart({
         const y = axisY + mLane[i] * pr * 0.86 * pinch + (Math.random() - 0.5) * jit
         const sz = (1.5 + 0.8 * local) + near * 0.35                         // orifiste hafif iri (squeeze yumuşatıldı)
         const a = Math.min(0.92, (0.28 + 0.42 * local) + near * 0.12)        // orifiste hafif parlak (yumuşatıldı)
+        // HIZLANMA İZİ (Mehmet Abi: regülatör animasyonunu geliştir) — orifis SONRASI hızlanan molekül arkasında kısa iz bırakır
+        //   → venturi "fışkırma"sı belirginleşir (hız ∝ iz uzunluğu). Yalnız hızlananlarda (devredeyken çıkış tarafı).
+        const spd = v / vBase
+        if (spd > 1.25) {
+          const tl = sz * (1.6 + 2.6 * (spd - 1))
+          ctx.lineCap = 'round'; ctx.strokeStyle = cP(a * 0.3); ctx.lineWidth = sz * 0.85
+          ctx.beginPath(); ctx.moveTo(x - tl, y); ctx.lineTo(x, y); ctx.stroke()
+        }
         mol(x, y, sz, a, mRot[i] + now * (0.0004 + 0.0006 * local))          // daha yavaş/sakin dönüş
+      }
+      // ORİFİS BOĞAZ PARILTISI (Mehmet Abi: regülatör animasyonunu geliştir) — choke noktasında devredeyken NABIZ atan ince ışık
+      //   → venturi boğazı vurgulanır (yoğunluk ∝ sig.reg). Additif ('lighter' hâlâ aktif).
+      if (sig.reg > 0.05) {
+        const tcx = regX0 + chokeF * regW
+        const tg = (0.10 + 0.20 * sig.reg) * (0.82 + 0.18 * Math.sin(now * 0.005))
+        const rg2 = ctx.createRadialGradient(tcx, axisY, 0, tcx, axisY, pipeH * 0.62)
+        rg2.addColorStop(0, cP(tg)); rg2.addColorStop(1, cP(0))
+        ctx.fillStyle = rg2; ctx.beginPath(); ctx.arc(tcx, axisY, pipeH * 0.62, 0, Math.PI * 2); ctx.fill()
       }
       ctx.globalCompositeOperation = 'source-over'
 
@@ -526,14 +545,37 @@ export function DeviceFlowChart({
       }
       const humN = Math.round((0.06 + 0.94 * sig.hum) * DROPLET_MAX) // kuru havada birkaç zerre, nemli havada yoğun
       const humDrift = (0.05 + 0.95 * sig.flow) * 0.5 + 0.03          // akışLA sürüklenir (durağanken hafif süzülür)
+      // GERİ AKIŞ (izolasyon): nem de HAVA gibi davranır — valf SAĞINDAKİ nem valfe/egzoza doğru GERİ akar, egzoz ağzında
+      //   aşağı süzülüp söner (havayla birlikte çıkar) ve sağ uca recycle olur; valf SOLUNDAKİ ileri nem valfi geçmez.
+      //   (Mehmet Abi: "geri dönüş hava akışında nem partikülleri ters akışa girmiyor".)
+      const humBack = sig.valve > 0.12
+      const vFracH = valveCx / W, exFracH = exOx / W
       for (let i = 0; i < humN; i++) {
-        dX[i] += humDrift * (0.7 + dR[i] * 0.06) * dt
-        if (dX[i] > 1) dX[i] -= 1
         const bob = Math.sin(now * 0.0016 + dLane[i] * 11) * pipeH * 0.07 // hafif yukarı-aşağı salınım (asılı buhar)
-        const x = dX[i] * W
-        const y = axisY + (dLane[i] * 2 - 1) * pr * 0.8 + bob             // boru KESİTİNE yayıl (dipte değil)
+        let x: number, y: number, fade = 1
+        if (humBack && dX[i] > vFracH) {
+          // GERİ akış hızı — hava izleriyle UYUMLU tempo: valf yoğunluğuna bağlı (izolasyonda flow≈0 olduğundan humDrift
+          //   kullanılırsa nem sürünür). Hafif per-zerre çeşitleme (dLane) → tek hatta donuk görünmez. Hava back-flow (0.11+0.5·valve) ile aynı bantta.
+          const backSpd = (0.12 + 0.46 * sig.valve) * (0.88 + dLane[i] * 0.24)
+          dX[i] -= backSpd * dt                                          // GERİ akış (sağdan sola, valfe/egzoza doğru)
+          if (dX[i] <= vFracH) { dX[i] = (W - 2) / W; continue }          // egzoza indi → sağ uca recycle (döngü)
+          x = dX[i] * W
+          if (dX[i] > exFracH) {
+            y = axisY + (dLane[i] * 2 - 1) * pr * 0.8 + bob               // egzoz sağı: yatay geri akış (boru kesitine yayılı)
+          } else {
+            const d = clamp01((exFracH - dX[i]) / Math.max(1e-4, exFracH - vFracH))
+            y = axisY + (dLane[i] * 2 - 1) * pr * 0.6 + (exOy - axisY) * d + bob // egzoz ağzı: aşağı süzül (havayla çıkış)
+            fade = 1 - d * 0.85                                           // çıkışa yaklaşınca söner
+          }
+        } else {
+          dX[i] += humDrift * (0.7 + dR[i] * 0.06) * dt                   // NORMAL ileri akış (sol→sağ)
+          if (dX[i] > 1) dX[i] -= 1
+          if (humBack && dX[i] > vFracH) continue                        // izolasyonda ileri nem valfi GEÇMEZ (hava ile tutarlı)
+          x = dX[i] * W
+          y = axisY + (dLane[i] * 2 - 1) * pr * 0.8 + bob                // boru KESİTİNE yayıl (dipte değil)
+        }
         const r = 0.85 + dR[i] * 0.4                                       // KÜÇÜK buhar zerresi
-        const a = (0.16 + 0.4 * sig.hum) * aK
+        const a = (0.16 + 0.4 * sig.hum) * aK * fade
         // küçük + DÜŞÜK alfa hale (karışmaz) + CRISP parlak çekirdek (her zerre AYRI okunur → yoğun ama net)
         ctx.fillStyle = cH(a * 0.3); ctx.beginPath(); ctx.arc(x, y, r * 1.5, 0, Math.PI * 2); ctx.fill()
         ctx.fillStyle = cH(Math.min(1, a * 1.7)); ctx.beginPath(); ctx.arc(x, y, r * 0.55, 0, Math.PI * 2); ctx.fill()
@@ -552,7 +594,7 @@ export function DeviceFlowChart({
             const sp = (210 + Math.random() * 150) * (0.6 + sig.exhaust)
             pX[i] = exOx + (Math.random() - 0.5) * Math.max(2, dh * 0.012)  // dar ağız → tutarlı kolon
             pY[i] = exOy
-            pVx[i] = -24 + Math.random() * 82   // GENİŞ yelpaze (Mehmet Abi), hafif SAĞA kaymalı; her partikül kendi parabolünde
+            pVx[i] = (Math.random() - 0.5) * 96 // SİMETRİK aşağı yelpaze (Mehmet Abi: çıkış optimize) — sağ-sol dengeli koni; her partikül kendi parabolünde
             pVy[i] = sp * (0.78 + 0.4 * Math.random())
             pLife[i] = 1
           } else continue
@@ -614,13 +656,13 @@ export function DeviceFlowChart({
         const mainCol: RGB = ro2.mainRed ? LCD_RED : LCD_GREEN
         // Mehmet Abi: "gerçek ekran FERAH; sol sütun solda, sağ sütun sağda, ortada boşluk, rakamlar karışmıyor."
         //   → BOL kenar boşluğu + MERKEZ KANAL (sütunlar ayrık) + DAR/uzun rakam (değer yarıyı doldurmaz). GLOW kısık (keskin).
-        const pad = Math.min(rw, rh) * 0.07          // bol kenar boşluğu (ferah)
+        const pad = Math.min(rw, rh) * 0.04          // kenar boşluğu KÜÇÜLTÜLDÜ → değerler köşelere yaklaşır + daha çok yer (Mehmet Abi: çok rahat)
         const ix = rx + pad, iy = ry + pad, iw = rw - pad * 2, ih = rh - pad * 2
         const rowH = ih / 2
         const GLOW = 0.1                             // LED hâlesi ÇOK KISIK → keskin, haneler karışmaz
-        const iconW = iw * 0.065                     // sağ ikon şeridi (küçültüldü → rakamlara daha çok yer; debi & toplam HİZALI)
-        const cgap = iw * 0.12                        // MERKEZ KANAL — Mehmet Abi: sol/sağ değerler biraz daha BİRBİRİNDEN açıldı
-        const lMargin = iw * 0.05                    // sol kenar payı
+        const iconW = iw * 0.045                     // sağ ikon şeridi daha da küçük → sağ rakamlara daha çok yer
+        const cgap = iw * 0.15                        // MERKEZ KANAL genişletildi → sol/sağ değerler BİRBİRİNDEN daha AYRI (Mehmet Abi)
+        const lMargin = iw * 0.035                   // sol kenar payı küçültüldü → sol değerler sol köşeye yaklaşır
         // GERÇEK cihaz çözünürlüğü ile değer string'leri
         const pStr = ro2.pressure != null ? ro2.pressure.toFixed(3) : '---'   // basınç 0.200
         const fStr = ro2.flow != null ? String(Math.round(ro2.flow)) : '---'  // anlık debi 300
@@ -632,14 +674,14 @@ export function DeviceFlowChart({
         const leftAvail = lRight - (ix + lMargin)            // sol değerin sığacağı genişlik
         const rightAvail = rRight - (ix + iw * 0.5 + cgap * 0.5)
         // TEK BOY rakam (gerçek cihaz: tüm 7-seg AYNI boyut) — en dar sığan değeri baz al; rakam DAR olduğu için değer yarıyı DOLDURMAZ
-        const hBudget = rowH * 0.56                          // rakam yükseklik bütçesi — Mehmet Abi: rakamlar biraz BÜYÜTÜLDÜ (ekran içinde kalır)
+        const hBudget = rowH * 0.62                          // rakam yükseklik bütçesi BÜYÜTÜLDÜ (pad küçüldü → ekran içinde kalır)
         const fitH = (str: string, avail: number) => Math.min(hBudget, avail / Math.max(0.001, measureSevenSeg(str, 1)))
         const digH = Math.min(fitH(pStr, leftAvail), fitH(tStr, leftAvail), fitH(fStr, rightAvail), fitH(aStr, rightAvail))
         // DİKEY KONUM (gerçek foto-oran): üst satır rakamları AYNI Y, alt satır AYNI Y. Bol üst/alt kenar boşluğu + satırlar
         //   arası birim (L/min, °C/L) için NET boşluk (üst-üste binmesin). Konumlar iç-yükseklik (ih) oranı olarak.
         const uf = Math.max(6, digH * 0.40)          // birim fontu — küçük (gerçek cihaz: rakamla yarışmaz, gaplere sığar)
-        const topNumY = iy + ih * 0.17               // üst satır rakam ÜST-Y (üstte MPa + kenar boşluğu)
-        const botNumY = iy + ih * 0.585              // alt satır rakam ÜST-Y (satır arası L/min'e net boşluk; altta °C/L + kenar)
+        const topNumY = iy + ih * 0.13               // üst satır YUKARI itildi (üst köşelere yaklaşır)
+        const botNumY = iy + ih * 0.60               // alt satır AŞAĞI itildi (alt köşelere yaklaşır; satırlar BİRBİRİNDEN daha AYRI)
 
         const unit = (txt: string, ux: number, uy: number, col: RGB, align: CanvasTextAlign) => {
           ctx.font = `700 ${uf}px ui-sans-serif, system-ui, sans-serif`

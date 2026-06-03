@@ -98,8 +98,7 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
   // useRef argümanı her render değerlendirilir ama yok sayılır → boş başlat; sampleRaw YALNIZ useMemo'da koşar (tik başına çift hesap önlenir).
   const targetRef = useRef<number[]>([])
   targetRef.current = useMemo(() => sampleRaw(history, m), [history, m])
-  // ADAPTIF auto-range durumu: yumuşatılmış görünen-pencere [lo,hi]. Strand başına kalıcı (frame'ler arası taşınır).
-  const rangeRef = useRef<{ lo: number; hi: number } | null>(null)
+  // (ADAPTİF auto-range KALDIRILDI — Mehmet Abi: "akışları gerçek değerlerde göster" → mutlak ölçek; useFrame'de m.min..m.max.)
 
   // Yeniden kullanilan egri noktalari (kare basi tahsis yok)
   const curvePts = useMemo(() => Array.from({ length: L }, (_, i) => new THREE.Vector3(xAt(i), 0.2, m.z)), [m.z])
@@ -147,27 +146,13 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
   useFrame(() => {
     const raw = targetRef.current
     const y = yRef.current
-    // 1) ADAPTIF AUTO-RANGE (Mehmet Abi fikri): görünen pencere min/max -> BÜYÜK değişimde HIZLI genişle
-    //    (zoom-out, geçiş kırpılmaz), SAKİN akışta YAVAŞ daral. ANCAK: sensör SABİT/mikro-gürültülü olduğunda (ör. nem 46%
-    //    sabit + ±0.2 demo gürültüsü) çizgi DÜZ kalmalı — yoksa kartta değişmeyen değerin grafiği oynuyor gibi görünür (yanıltıcı).
-    //    minSpan tam ölçeğin ~%30'u: bu eşiğin altındaki dalgalanma (gürültü) görsel olarak DÜZLEŞİR; sadece GERÇEK/anlamlı
-    //    değişim (debi mod geçişi gibi) çizgiyi oynatır. Aralık ağır lerp ile yumuşatılır (asla zıplamaz).
+    // GERÇEK DEĞER ÖLÇEĞİ (Mehmet Abi: "akışları gerçek değerlerde göster"): ADAPTİF auto-range KALDIRILDI. Yükseklik artık
+    //   sensörün KENDİ TAM ölçeğine (m.min..m.max) göre MUTLAK → yüksek değer YUKARIDA, düşük değer AŞAĞIDA (sürekli re-center YOK)
+    //   → tüpler eksenin %değerine oturur. (Eski adaptif zoom değeri ortalıyordu → "değerde değilmiş gibi" görünüyordu.)
     if (raw.length) {
-      let lo = Infinity, hi = -Infinity
-      for (let i = 0; i < raw.length; i++) { const v = raw[i]; if (v < lo) lo = v; if (v > hi) hi = v }
-      if (!Number.isFinite(lo)) { lo = m.min; hi = m.max }
-      const mid = (lo + hi) / 2
-      const minSpan = (m.max - m.min) * 0.30          // gürültü eşiği: bunun altındaki oynama düzleşir (sabit değer = düz çizgi)
-      const span = Math.max(hi - lo, minSpan)
-      const pad = span * 0.18                          // tepe/dip panel kenarına değmesin
-      const tLo = mid - span / 2 - pad, tHi = mid + span / 2 + pad
-      const rg = rangeRef.current ?? (rangeRef.current = { lo: tLo, hi: tHi })
-      rg.lo += (tLo - rg.lo) * (tLo < rg.lo ? 0.25 : 0.025)  // genişlerken (lo düşer) HIZLI, daralırken (lo yükselir) YAVAŞ
-      rg.hi += (tHi - rg.hi) * (tHi > rg.hi ? 0.25 : 0.025)  // genişlerken (hi yükselir) HIZLI, daralırken YAVAŞ
-      const denom = Math.max(rg.hi - rg.lo, 1e-6)
-      // 2) Yumuşatılmış aralıkla normalize + değer hedefe lerp (akan his korunur)
+      const denom = Math.max(m.max - m.min, 1e-6)
       for (let i = 0; i < L; i++) {
-        const h = 0.2 + THREE.MathUtils.clamp((raw[i] - rg.lo) / denom, 0, 1) * MAX_H
+        const h = 0.2 + THREE.MathUtils.clamp((raw[i] - m.min) / denom, 0, 1) * MAX_H
         y[i] += (h - y[i]) * 0.13
       }
     }

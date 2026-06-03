@@ -15,12 +15,21 @@ import { exec } from 'node:child_process'
 import os from 'node:os'
 import { WebSocketServer } from 'ws'
 import { handleAppConnection, WS_HOST, WS_PORT } from './opcua-bridge.mjs'
+import { applyStagedUpdate, checkForUpdate } from './updater.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // 0.0.0.0: tum arayuzler -> ayni Wi-Fi'daki telefon/tablet de uygulamayi acabilir (mobil demo). Ilk acilista
 // Windows Guvenlik Duvari "Izin Ver" sorabilir (tek seferlik). WS kopru ise GUVENLIK icin yalniz 127.0.0.1 (bkz opcua-bridge).
 const HTTP_HOST = '0.0.0.0'
 const HTTP_PORT = 5180
+
+// OTOMATIK GUNCELLEME (Mehmet Abi: "kurulu bilgisayarlar da guncel olsun"): paket modunda (app/ klasoru var) ONCEKI acilista
+// indirilmis guncellemeyi SUNUCU BASLAMADAN uygula (app-next -> app) -> bu acilis guncel app'i servis eder. Repo dev'inde no-op.
+const PKG_APP = path.resolve(__dirname, 'app')
+const UPDATE_STAGE = PKG_APP + '-next'
+const UPDATE_ZIP = path.resolve(__dirname, 'app-update.zip')
+const packaged = fs.existsSync(PKG_APP) || fs.existsSync(UPDATE_STAGE)
+if (packaged) applyStagedUpdate(PKG_APP, UPDATE_STAGE, (m) => console.log(m))
 
 // Build edilmis uygulamanin yeri (var olan ilk aday): pakette server.mjs ile ayni kokte app/, repo dev'inde ../dist.
 const APP_CANDIDATES = [
@@ -128,6 +137,8 @@ httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
   console.log('Tarayici aciliyor... Acilmazsa yukaridaki adrese gidin.')
   console.log('Bu pencereyi KAPATMAYIN (kapatirsaniz uygulama+cihaz baglantisi durur). Durdurmak: Ctrl+C')
   openBrowser(APP_URL)
+  // Arka planda (internet VARSA) son surumu kontrol et + indir -> SONRAKI acilista otomatik uygulanir. Best-effort/offline guvenli.
+  if (packaged) checkForUpdate(PKG_APP, UPDATE_STAGE, UPDATE_ZIP, (m) => console.log(m))
 })
 
 // WS kopru (cihaz) - app ws://localhost:4841'e baglanir
