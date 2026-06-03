@@ -250,7 +250,7 @@ export function DeviceFlowChart({
       // ÇÖZÜNÜRLÜK (Mehmet Abi: debimetre dijital karakterleri daha NET): tavan 2→3.
       //   cap yalnız ÜST sınır → standart ekranda (dpr≈1–1.5) hiçbir değişiklik/maliyet yok; yüksek-DPI ekranda (2–3x,
       //   4K/retina) canvas native çözünürlüğe çıkar → LCD rakamları + akış keskinleşir. Foto/akış da yararlanır.
-      dpr = Math.min(3, window.devicePixelRatio || 1)
+      dpr = Math.min(2, window.devicePixelRatio || 1)
       W = wrap.clientWidth; H = wrap.clientHeight
       canvas.width = Math.max(1, Math.round(W * dpr)); canvas.height = Math.max(1, Math.round(H * dpr))
       canvas.style.width = W + 'px'; canvas.style.height = H + 'px'
@@ -618,8 +618,8 @@ export function DeviceFlowChart({
         const ix = rx + pad, iy = ry + pad, iw = rw - pad * 2, ih = rh - pad * 2
         const rowH = ih / 2
         const GLOW = 0.1                             // LED hâlesi ÇOK KISIK → keskin, haneler karışmaz
-        const iconW = iw * 0.085                     // sağ ikon şeridi (HER İKİ sağ değer bunu bırakır → debi & toplam HİZALI)
-        const cgap = iw * 0.09                       // MERKEZ KANAL (sol/sağ sütun arası ferah boşluk — gerçek foto)
+        const iconW = iw * 0.065                     // sağ ikon şeridi (küçültüldü → rakamlara daha çok yer; debi & toplam HİZALI)
+        const cgap = iw * 0.12                        // MERKEZ KANAL — Mehmet Abi: sol/sağ değerler biraz daha BİRBİRİNDEN açıldı
         const lMargin = iw * 0.05                    // sol kenar payı
         // GERÇEK cihaz çözünürlüğü ile değer string'leri
         const pStr = ro2.pressure != null ? ro2.pressure.toFixed(3) : '---'   // basınç 0.200
@@ -632,7 +632,7 @@ export function DeviceFlowChart({
         const leftAvail = lRight - (ix + lMargin)            // sol değerin sığacağı genişlik
         const rightAvail = rRight - (ix + iw * 0.5 + cgap * 0.5)
         // TEK BOY rakam (gerçek cihaz: tüm 7-seg AYNI boyut) — en dar sığan değeri baz al; rakam DAR olduğu için değer yarıyı DOLDURMAZ
-        const hBudget = rowH * 0.50                          // rakam yükseklik bütçesi (gerçek scale + bol üst/alt + satır arası boşluk)
+        const hBudget = rowH * 0.56                          // rakam yükseklik bütçesi — Mehmet Abi: rakamlar biraz BÜYÜTÜLDÜ (ekran içinde kalır)
         const fitH = (str: string, avail: number) => Math.min(hBudget, avail / Math.max(0.001, measureSevenSeg(str, 1)))
         const digH = Math.min(fitH(pStr, leftAvail), fitH(tStr, leftAvail), fitH(fStr, rightAvail), fitH(aStr, rightAvail))
         // DİKEY KONUM (gerçek foto-oran): üst satır rakamları AYNI Y, alt satır AYNI Y. Bol üst/alt kenar boşluğu + satırlar

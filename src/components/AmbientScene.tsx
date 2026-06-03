@@ -38,6 +38,11 @@ export function AmbientScene({ theme = 'dark', flow = 0.4, space = false }: { th
     }
     resize()
     const ro = new ResizeObserver(resize); ro.observe(wrap)
+    // 2D context GPU-reset dayanikligi (Mehmet Abi: "urunun arka plani hicbir sey gozukmuyor"): preventDefault olmadan
+    //   context kaybinda tarayici onu GERI YUKLEMEZ → arka plan KALICI bosalir. Sahne her kare prosedurel cizildigi icin
+    //   (clearRect + draw) restore sonrasi kendiliginden geri gelir → ayri restore handler gerekmez.
+    const onCtxLost = (e: Event) => { e.preventDefault() }
+    canvas.addEventListener('contextlost', onCtxLost)
 
     // PARALLAX — fare panele göre nerede (−1..1); ızgara/zerreler buna göre hafif kayar (dokunulası 3B his)
     const ptr = { x: 0, y: 0, tx: 0, ty: 0 }
@@ -187,6 +192,7 @@ export function AmbientScene({ theme = 'dark', flow = 0.4, space = false }: { th
     raf = requestAnimationFrame(draw)
     return () => {
       cancelAnimationFrame(raf); ro.disconnect()
+      canvas.removeEventListener('contextlost', onCtxLost)
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('blur', onLeave)
     }

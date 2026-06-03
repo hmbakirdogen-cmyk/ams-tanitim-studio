@@ -2,6 +2,26 @@
 
 > Bu dosya, yeni Claude Code oturumunun "neredeyim" sorusuna ilk cevabıdır. **Güncel tut.**
 
+## ŞU AN NEREDEYIZ (2026-06-03 — STABİLİTE/PERFORMANS TURU + premium giriş + hitap)
+
+**Durum:** Canlı demo üzerinde Mehmet Abi ile hızlı iterasyon; `typecheck`+`build` sıfır hata; push'lı (`4b75a7d`→`fbaaf4f`→`ae82548`→bu turun commit'i).
+
+**Kök neden:** ağır 3D (zemin yansıması+bloom+yüksek dpr) → Windows GPU süreç reseti (TDR) → "görüntü bozuluyor/ürün kayboluyor" + yüksek RAM/yavaşlık.
+
+**Bu turda yapılan:**
+- **GPU-reset SELF-HEAL (3 canvas):** Hero3DChart (WebGL) bağlam kaybında Canvas remount (`ctxKey++`); DeviceFlowChart (2D) `contextrestored`→`loadDevice()` (ürün fotosu offscreen'i geri yüklenir); **AmbientScene (2D) `contextlost`+preventDefault** — yoksa context geri yüklenmez → arka plan KALICI boşalır (= "ürünün arka planı hiçbir şey gözükmüyor"). → **manuel refresh GEREKMEZ.**
+- **RENDER YÜKÜ AZALTILDI (RAM/yavaşlık):** Hero3DChart dpr 2→1.5, MeshReflector resolution 512→256 + blur yarı, EffectComposer MSAA 4→2, Environment 256→128, Sparkles 70→36; DeviceFlowChart dpr 3→2. ⚠️ **BU DEĞERLERİ GERİ ARTIRMA** → bozulma/RAM geri gelir.
+- **Premium/kibar giriş:** "Demo'ya Gir"→**"Giriş Yap"**; "demo/tanıtım" ibareleri kalktı (yazılım demo gibi algılanmasın); giriş resmi büyütüldü + etiket sol-alt; panel selamı isimsiz ama kibar (saatlik). NOT: `DemoWelcome`/`DEMO_OPEN` İÇ isimler (kullanıcı görmez).
+- **Debimetre LCD:** rakamlar biraz büyütüldü (`hBudget` 0.50→0.56) + sütunlar açıldı (`cgap` 0.09→0.12, `iconW` küçültüldü).
+
+**BEKLEYEN (kozmetik — görsel iterasyon, Mehmet Abi gözüyle):**
+- Ürün kenarındaki ince **beyaz çizgiler** (fringe; `ams-flow.png` — runtime defringe denenebilir).
+- Geri-akışta **düz giden zerrecikler** (`DeviceFlowChart` back-flow elbow — "en riskli", dikkatli dokun).
+
+**ROBUSTLUK DENETİMİ:** Tüm animasyon yüzeyleri tarandı → rAF/listener temizliği ✓ (DeviceFlowChart/AmbientScene/useSmoothNumber), Three.js `dispose` ✓ (Hero3DChart), context-loss TÜM canvas'larda ✓. Per-frame `createGradient` GC churn var ama sızıntı değil (bozulma sebebi değildi).
+
+---
+
 ## ŞU AN NEREDEYIZ (2026-06-02 — TEK-TIK OFFLINE PAKET + OTOMATİK CİHAZ KEŞFİ + DEMO GİRİŞ + FEEDBACK)
 
 **Durum:** Kod yazıldı, `typecheck` + `build` **SIFIR hata**, tek-tık paket üretildi, sunucu/feedback/ws **yerelde doğrulandı**, Mehmet Abi **ekran onayı verdi** → **commit + push edildi (master)**.

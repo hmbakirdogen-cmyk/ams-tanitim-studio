@@ -259,8 +259,8 @@ function ReflectiveFloor({ color }: { color: string }) {
       {/* 60fps: resolution + blur olculu (sis+opacity altinda gorsel fark minimal, kazanc buyuk) */}
       <MeshReflectorMaterial
         mirror={0.5}
-        blur={[256, 64]}
-        resolution={512}
+        blur={[128, 32]}
+        resolution={256}
         mixBlur={1}
         mixStrength={3.5}
         roughness={0.85}
@@ -314,7 +314,7 @@ export function Hero3DChart({
   return (
     <Canvas
       key={ctxKey}
-      dpr={[1, 2]}
+      dpr={[1, 1.5]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       camera={{ position: [0, 2.4, 13], fov: 30 }}
       onCreated={({ gl, invalidate }) => {
@@ -339,13 +339,13 @@ export function Hero3DChart({
       <SweepLight />
 
       {/* Prosedurel studyo ortami (OFFLINE - HDR indirmez, frames=1 statik) -> zeminde/boruda hafif yansima */}
-      <Environment resolution={256} frames={1}>
+      <Environment resolution={128} frames={1}>
         <Lightformer form="rect" intensity={2.2} color="#2E9BFF" position={[0, 6, -8]} scale={[14, 5, 1]} />
         <Lightformer form="rect" intensity={1.3} color="#36E0C8" position={[-9, 3, 2]} scale={[6, 8, 1]} />
         <Lightformer form="rect" intensity={1.2} color="#ffffff" position={[9, 4, 3]} scale={[6, 8, 1]} />
       </Environment>
       {/* Atmosferik isilti parcaciklari - sinematik derinlik */}
-      <Sparkles count={70} scale={[26, 10, 14]} position={[0, 4, -2]} size={2.4} speed={0.25} color="#8fd0ff" opacity={0.5} />
+      <Sparkles count={36} scale={[26, 10, 14]} position={[0, 4, -2]} size={2.4} speed={0.25} color="#8fd0ff" opacity={0.5} />
 
       {ordered.map((m) => (
         <TubeStrand key={m.key} history={history} m={m} />
@@ -353,7 +353,7 @@ export function Hero3DChart({
       <ReflectiveFloor color={floorColor} />
       <ParallaxRig />
 
-      <EffectComposer multisampling={4}>
+      <EffectComposer multisampling={2}>
         <Bloom intensity={0.85} luminanceThreshold={0.22} luminanceSmoothing={0.9} mipmapBlur radius={0.8} />
       </EffectComposer>
     </Canvas>
