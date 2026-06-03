@@ -6,6 +6,12 @@
     <meta name="theme-color" content="#0072CE" />
     <meta name="description" content="SMC Hava Yonetim Sistemi - canli tanitim ve enerji tasarrufu studyosu" />
 
+    <!-- TARAYICI SEKME SIMGESI (favicon): yoksa tarayici otomatik /favicon.ico ister -> 404 (zararsiz ama konsol gurultusu).
+         icon.svg'yi favicon olarak baglayinca 404 biter + sekmede SMC ikonu gorunur. Vite, base'i (or. /ams-tanitim-studio/) otomatik ekler.
+         PNG fallback: SVG favicon desteklemeyen tarayicilar icin. -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" type="image/png" href="/pwa-192.png" />
+
     <!-- PWA / iOS: "Ana Ekrana Ekle" ile tam ekran (standalone) acilis + SMC ikonu.
          iOS apple-touch-icon SVG'yi desteklemez -> PNG sart; manifest <link>'i vite-plugin-pwa otomatik enjekte eder. -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />

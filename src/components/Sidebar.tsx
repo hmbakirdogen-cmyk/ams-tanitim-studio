@@ -45,9 +45,10 @@ interface SidebarProps {
   theme: Theme
   onToggleTheme: () => void
   navOpen?: boolean // mobilde cekmece acik mi (masaustunde her zaman gorunur)
+  demo?: boolean // DEMO_OPEN (tanitim): kullanici karti + Kullanicilar/Cikis GIZLENIR (kimlik/oturum yok)
 }
 
-export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, onManageUsers, onProfile, theme, onToggleTheme, navOpen = false }: SidebarProps) {
+export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, onManageUsers, onProfile, theme, onToggleTheme, navOpen = false, demo = false }: SidebarProps) {
   const [now, setNow] = useState<Date>(() => new Date())
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 1000)
@@ -110,36 +111,41 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
       <InstallButton />
 
       <div className="mt-auto space-y-2.5 pt-4">
-        {/* Giris yapan kullanici - karta tiklayinca Profilim acilir */}
-        <button
-          onClick={onProfile}
-          className="flex w-full items-center gap-2.5 rounded-xl border border-[var(--hair)] p-2.5 text-left transition hover:bg-white/5"
-        >
-          <Avatar user={user} size={38} />
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold text-white">{user.firstName} Bey</div>
-            <div className="truncate text-[11px] text-[var(--ink-soft)]">
-              {user.title ?? t(user.role === 'admin' ? 'Yönetici' : 'Personel')}
-            </div>
-          </div>
-        </button>
-
-        <div className="flex gap-2">
-          {user.role === 'admin' && (
+        {/* DEMO_OPEN (tanitim): kimlik/oturum YOK -> kullanici karti + Kullanicilar/Cikis gizli. demo=false iken AYNEN eski hal. */}
+        {!demo && (
+          <>
+            {/* Giris yapan kullanici - karta tiklayinca Profilim acilir */}
             <button
-              onClick={onManageUsers}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--hair)] py-2 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"
+              onClick={onProfile}
+              className="flex w-full items-center gap-2.5 rounded-xl border border-[var(--hair)] p-2.5 text-left transition hover:bg-white/5"
             >
-              <Users size={14} /> {t('Kullanıcılar')}
+              <Avatar user={user} size={38} />
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-white">{user.firstName} Bey</div>
+                <div className="truncate text-[11px] text-[var(--ink-soft)]">
+                  {user.title ?? t(user.role === 'admin' ? 'Yönetici' : 'Personel')}
+                </div>
+              </div>
             </button>
-          )}
-          <button
-            onClick={onLogout}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--hair)] py-2 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"
-          >
-            <LogOut size={14} /> {t('Çıkış')}
-          </button>
-        </div>
+
+            <div className="flex gap-2">
+              {user.role === 'admin' && (
+                <button
+                  onClick={onManageUsers}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--hair)] py-2 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"
+                >
+                  <Users size={14} /> {t('Kullanıcılar')}
+                </button>
+              )}
+              <button
+                onClick={onLogout}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[var(--hair)] py-2 text-xs font-medium text-[var(--ink-soft)] transition hover:text-white"
+              >
+                <LogOut size={14} /> {t('Çıkış')}
+              </button>
+            </div>
+          </>
+        )}
 
         <div className="flex items-center gap-2 rounded-xl border border-[var(--hair)] px-3 py-2">
           {live ? <Wifi size={14} style={{ color: connColor }} /> : <Radio size={14} style={{ color: connColor }} />}

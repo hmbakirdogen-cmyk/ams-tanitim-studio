@@ -28,6 +28,10 @@ import { useTheme } from './hooks/useTheme'
 import { isMobileDevice } from './lib/device'
 import { sound } from './lib/sound'
 import { useLang } from './i18n'
+import { DEMO_OPEN } from './config'
+import { DemoWelcome } from './components/DemoWelcome'
+import { FeedbackFab } from './components/FeedbackFab'
+import type { User } from './auth/users'
 
 export default function App() {
   const { t } = useLang()
@@ -40,6 +44,7 @@ export default function App() {
   const [showUsers, setShowUsers] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const [navOpen, setNavOpen] = useState(false) // mobil kenar menu cekmecesi
+  const [entered, setEntered] = useState(false) // DEMO_OPEN: "Demo'ya Gir" karsilamasi gecildi mi
 
   const toggleSound = () => {
     const next = !muted
@@ -52,6 +57,13 @@ export default function App() {
   // Geri açmak için: aşağıdaki tek satırı kaldır (mobil responsive + demo kilidi kodu yerinde duruyor).
   if (isMobileDevice()) return <MobileBlocked />
 
+  // GIRIS (DEMO_OPEN — Mehmet Abi: "Halil'e ozel olmasin; herkese tanitim"): sifre/personel girisi YOK.
+  // Basit "Demo'ya Gir" karsilamasi (DemoWelcome) gecilince uygulama acilir; kullanici = isimsiz misafir.
+  // config.ts'te DEMO_OPEN=false -> ESKI personel girisi (LoginScreen + auth) AYNEN geri gelir (kod silinmedi).
+  const demoUser: User = { id: 'demo', firstName: '', lastName: '', role: 'user', hash: '' }
+  const sessionUser = DEMO_OPEN ? demoUser : auth.user
+  const shellReady = DEMO_OPEN ? entered : auth.ready && !!auth.user
+
   return (
     <div className="relative h-[100dvh] w-screen overflow-hidden">
       <CinematicBackground />
@@ -60,11 +72,13 @@ export default function App() {
         {intro && <IntroSplash key="intro" onDone={() => setIntro(false)} />}
       </AnimatePresence>
 
-      {/* Giris kapisi: oturum yoksa giris ekrani */}
-      {auth.ready && !auth.user && <LoginScreen auth={auth} />}
+      {/* Giris kapisi */}
+      {DEMO_OPEN
+        ? !entered && <DemoWelcome onEnter={() => { sound.click(); setEntered(true) }} />
+        : auth.ready && !auth.user && <LoginScreen auth={auth} />}
 
-      {/* Oturum acik: uygulama kabugu */}
-      {auth.ready && auth.user && (
+      {/* Uygulama kabugu */}
+      {shellReady && sessionUser && (
         <div className="flex h-full w-full flex-col md:flex-row">
           {/* MOBIL üst çubuk: menü düğmesi + logo (md'de gizli) */}
           <div className="flex shrink-0 items-center gap-3 px-4 py-2.5 md:hidden">
@@ -85,8 +99,9 @@ export default function App() {
             onPage={(p) => { sound.click(); setPage(p); setNavOpen(false) }}
             muted={muted}
             onToggleSound={toggleSound}
-            user={auth.user}
-            onLogout={() => { sound.click(); auth.logout() }}
+            user={sessionUser}
+            demo={DEMO_OPEN}
+            onLogout={() => { sound.click(); if (!DEMO_OPEN) auth.logout() }}
             onManageUsers={() => { setShowUsers(true); setNavOpen(false) }}
             onProfile={() => { setShowProfile(true); setNavOpen(false) }}
             theme={theme}
@@ -113,7 +128,7 @@ export default function App() {
                 {/* SAYFA HATA KALKANI: bir sayfa render'ı hata verirse SADECE o alan "Tekrar Dene" gösterir;
                     sol menü + kabuk ayakta kalır (kullanıcı başka sayfaya geçebilir). key={page} → sayfa değişince sıfırlanır. */}
                 <ErrorBoundary variant="inline" label={t('Bu sayfa')}>
-                  {page === 'live' && <LivePage data={data} greetName={auth.user.firstName} theme={theme} />}
+                  {page === 'live' && <LivePage data={data} greetName={DEMO_OPEN ? undefined : sessionUser.firstName} theme={theme} />}
                   {page === 'analysis' && <AnalysisPage data={data} />}
                   {page === 'savings' && <SavingsPage data={data} />}
                   {page === 'product' && <ProductPage />}
@@ -124,12 +139,17 @@ export default function App() {
             </AnimatePresence>
           </main>
 
-          <AnimatePresence>
-            {showUsers && auth.user.role === 'admin' && (
-              <AdminUsers key="admin-users" auth={auth} onClose={() => setShowUsers(false)} />
-            )}
-            {showProfile && <ProfileEditor key="profile" auth={auth} onClose={() => setShowProfile(false)} />}
-          </AnimatePresence>
+          {/* GERI BILDIRIM (Teklif programindaki gibi): sag-alt sabit buton -> cekmece. Tum sayfalardan erisilir. */}
+          <FeedbackFab page={page} />
+
+          {!DEMO_OPEN && (
+            <AnimatePresence>
+              {showUsers && auth.user?.role === 'admin' && (
+                <AdminUsers key="admin-users" auth={auth} onClose={() => setShowUsers(false)} />
+              )}
+              {showProfile && <ProfileEditor key="profile" auth={auth} onClose={() => setShowProfile(false)} />}
+            </AnimatePresence>
+          )}
         </div>
       )}
     </div>

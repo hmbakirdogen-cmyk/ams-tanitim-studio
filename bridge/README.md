@@ -1,35 +1,42 @@
-# SMC AMS — Canlı Cihaz Köprüsü (OPC UA ⇄ WebSocket)
+# SMC AMS — Tek-Tık Tanıtım Paketi (gömülü Node + cihaz köprüsü)
 
-Bu küçük köprü, gerçek SMC AMS cihazından **OPC UA** ile veri okuyup tarayıcıdaki AMS Tanıtım Stüdyosu uygulamasına **WebSocket** ile aktarır. (Tarayıcı doğrudan `opc.tcp` konuşamaz.) Tamamen **yerel** çalışır — kurulum dışında internet gerekmez.
+Bu klasör, saha mühendisinin **hiçbir şey kurmadan** SMC AMS Tanıtım Stüdyosu'nu çalıştırması için
+gereken her şeyi içerir: gömülü Node çalışma zamanı, offline uygulama ve gerçek cihaz köprüsü.
 
-> Hedef kitle: SMC mühendisleri. Geliştirici aracı (VS Code vb.) gerekmez.
+> Hedef kitle: SMC mühendisleri. Geliştirici aracı (VS Code, Node kurulumu vb.) **gerekmez**.
 
-## Hızlı başlangıç (önerilen)
-1. Bu bilgisayar cihazla **aynı ağda** olsun (kablo/anahtar/switch).
-2. **Node.js** kurulu olsun — yoksa [nodejs.org](https://nodejs.org) (LTS) → kur.
-3. Bu klasördeki **`baslat.bat`** dosyasına **çift tıklayın**.
-   - İlk açılışta gerekli paketleri (`node-opcua`, `ws`) **kendisi** yükler (tek seferlik, internet gerekir).
-   - Sonra köprüyü başlatır. Açılan **pencere açık kalsın**.
-4. Uygulamada **Ürün Ayarları → Canlı Cihaza Bağlanma Kılavuzu**'ndan cihaz adresini (OPC UA endpoint) ve düğüm kimliklerini girin, **Canlı Moda Geç** deyin.
-5. Bağlandığında uygulamadaki durum **Bağlı ✓** olur.
+## Kullanım (tek tık)
+1. **`Baslat.bat`** dosyasına **çift tıklayın**.
+2. Birkaç saniye içinde tarayıcı **otomatik açılır** (`http://localhost:5180`).
+3. Açılan **siyah pencereyi KAPATMAYIN** — kapatırsanız uygulama ve canlı bağlantı durur.
 
-## Manuel başlatma (alternatif)
-```bat
-cd bridge
-npm install node-opcua ws   :: tek seferlik
-node opcua-bridge.mjs
-```
-Köprü `ws://localhost:4841` adresinde dinler. `WebSocket hazır: ws://localhost:4841` satırını görmelisiniz.
+Kurulum yok, internet yok. Node `runtime\node.exe` olarak **gömülüdür**; paketler `node_modules\` içinde hazırdır.
 
-## Düğüm kimlikleri (Node IDs)
-Cihazın OPC UA düğüm kimlikleri **koddan değil, uygulamadan** (Kılavuz ekranından) gönderilir — kod düzenlemeye gerek yok. UaExpert gibi bir araçla cihazdan okunup girilir.
+## Gerçek cihaza bağlanma (otomatik bulma)
+1. Cihazı bu bilgisayarla **aynı ağa** bağlayın (Ethernet kablosu / switch).
+2. Uygulamada **Ürün Ayarları → Canlı Cihaza Bağlanma Kılavuzu** → **“Cihazı Otomatik Bul”**.
+   - Köprü ağı tarar, OPC UA cihazını bulur; tıklayınca **adres + sensör kimlikleri kendiliğinden dolar**.
+   - Bulamazsa **“Elle gir / Gelişmiş”** ile OPC UA endpoint ve düğüm kimliklerini elle girebilirsiniz.
+3. **“Canlı Moda Geç”** → durum **Bağlı ✓** olur. İstediğiniz an **Demo**'ya dönebilirsiniz.
 
-- Ölçümler: `flow`, `pressure`, `temperature`, `humidity`
-- Mod yazma: `mode`
-- **Hibrit ayar senkronu** (opsiyonel): `standbyPressure`, `standbyThreshold`, `autoIsolationSec`, `valveMode`
-  - Bağlanınca cihazın mevcut ayarları **okunur** (Ürün Ayarları onlarla devam eder); kullanıcı değiştirince cihaza **yazılır**. Cihazda bu düğümler yoksa sessizce atlanır.
+## İçerik
+| Dosya/Klasör | Ne işe yarar |
+|---|---|
+| `Baslat.bat` | Tek-tık başlatıcı (gömülü Node ile `server.mjs`'i çalıştırır) |
+| `runtime\node.exe` | Gömülü Node (kurulum gerektirmez) |
+| `server.mjs` | Uygulamayı yerelden servis eder + cihaz köprüsü + tarayıcıyı açar |
+| `opcua-bridge.mjs` | OPC UA ⇄ WebSocket köprü + otomatik cihaz keşfi (`discoverDevices`/`browseNodeHints`) |
+| `node_modules\` | `node-opcua` + `ws` (offline, hazır) |
+| `app\` | Build edilmiş tanıtım uygulaması (offline) |
+| `geri-bildirimler.json` | Kullanıcı geri bildirimleri burada **toplanır** (çalışınca oluşur) |
+
+## Teknik notlar
+- WebSocket köprüsü yalnız `127.0.0.1:4841` dinler (ağdan yetkisiz erişim yok). Uygulama: `127.0.0.1:5180`.
+- Düğüm kimlikleri **koddan değil uygulamadan** gelir (Kılavuz ekranı). Gerekirse `opcua-bridge.mjs` içindeki
+  `OPCUA_PORTS` / `HINT_PATTERNS` gerçek cihaz özelliğine göre daraltılabilir.
+- Paketi yeniden üretmek için (geliştirici makinesinde): `scripts/paketle-kopru.ps1`.
 
 ## Sorun giderme
-- **Bağlanamıyor:** cihaz adresi/düğüm kimliklerini ve aynı ağda olunduğunu kontrol edin; köprü penceresi açık mı?
-- **`node bulunamadı`:** Node.js kurulu değil → nodejs.org'dan kurun.
-- İstediğiniz an uygulamadan **Demo**'ya dönebilirsiniz (cihaz olmadan da her şey çalışır).
+- **Tarayıcı açılmadı:** elle `http://localhost:5180` adresine gidin.
+- **Cihaz bulunamıyor:** cihazın açık ve **aynı ağda** olduğundan emin olun; kabloyu kontrol edin; tekrar tarayın.
+- Cihaz olmadan da **Demo** modunda her şey çalışır.

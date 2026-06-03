@@ -1,50 +1,25 @@
 @echo off
 chcp 65001 >nul
-title SMC AMS - OPC UA Koprusu
+title SMC AMS - Tanitim Studyosu + Canli Cihaz
 cd /d "%~dp0"
 
 echo ==========================================================
-echo   SMC AMS  -  OPC UA  ^<-^>  WebSocket Koprusu
+echo    SMC AMS  -  Tanitim Studyosu baslatiliyor...
 echo ==========================================================
 echo.
-
-REM 1) Node.js kurulu mu?
-where node >nul 2>nul
-if errorlevel 1 (
-  echo [HATA] Node.js bulunamadi.
-  echo Lutfen once https://nodejs.org adresinden Node.js'i kurun ^(LTS surum^).
-  echo Kurduktan sonra bu dosyaya tekrar cift tiklayin.
-  echo.
-  pause
-  exit /b 1
-)
-
-REM 2) Bagimliliklar (node-opcua + ws) - sadece ILK calistirmada yuklenir (ikisi de kontrol edilir, sabit surumler package.json'da)
-if not exist "node_modules\node-opcua" goto :install
-if not exist "node_modules\ws" goto :install
-goto :run
-:install
-  echo [KURULUM] Ilk calistirma: gerekli paketler yukleniyor ^(node-opcua, ws^)...
-  echo Bu yalnizca BIR KEZ ve internet gerektirir. Sonrasi tamamen cevrimdisi calisir.
-  echo.
-  call npm install
-  if errorlevel 1 (
-    echo.
-    echo [HATA] Paket kurulumu basarisiz. Internet baglantisini kontrol edip tekrar deneyin.
-    pause
-    exit /b 1
-  )
-)
-
-:run
-REM 3) Kopruyu baslat - BU PENCERE ACIK KALSIN
+echo  Birkac saniye icinde tarayici OTOMATIK acilacak.
+echo  Acilmazsa tarayicida su adrese gidin:  http://localhost:5180
 echo.
-echo [HAZIR] Kopru baslatiliyor... Uygulamada "Canli Moda Gec" diyebilirsiniz.
-echo Bu pencereyi KAPATMAYIN (kapatirsaniz canli baglanti kesilir).
-echo Durdurmak icin: Ctrl + C  veya pencereyi kapatin.
+echo  * Bu pencereyi KAPATMAYIN - kapatirsaniz uygulama ve canli
+echo    cihaz baglantisi durur. Durdurmak icin: Ctrl + C
 echo.
-node opcua-bridge.mjs
+
+REM Gomulu Node (kurulum/internet gerekmez) ile tek-tik sunucuyu baslat:
+REM   - tanitim uygulamasini yerelden servis eder (offline)
+REM   - OPC UA <-> WebSocket cihaz koprusunu calistirir
+REM   - varsayilan tarayiciyi acar
+"%~dp0runtime\node.exe" "%~dp0server.mjs"
 
 echo.
-echo Kopru durdu.
+echo Uygulama durdu. Pencereyi kapatabilirsiniz.
 pause

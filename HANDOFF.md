@@ -2,6 +2,27 @@
 
 > Bu dosya, yeni Claude Code oturumunun "neredeyim" sorusuna ilk cevabıdır. **Güncel tut.**
 
+## ŞU AN NEREDEYIZ (2026-06-02 — TEK-TIK OFFLINE PAKET + OTOMATİK CİHAZ KEŞFİ + DEMO GİRİŞ + FEEDBACK)
+
+**Durum:** Kod yazıldı, `typecheck` + `build` **SIFIR hata**, tek-tık paket üretildi, sunucu/feedback/ws **yerelde doğrulandı**, Mehmet Abi **ekran onayı verdi** → **commit + push edildi (master)**.
+🔜 **Sıradaki:** **mobil sürüm** (şu an kapalı: `src/App.tsx` `if (isMobileDevice()) return <MobileBlocked />` + `src/data/connection.ts` mobil=demo kilidi). Mehmet Abi "mobil uygulamasını da açalım" dedi.
+
+**Bu oturumda yapılan (Mehmet Abi istekleri):**
+1. **Tek-tık OFFLINE paket** → `paket/SMC-AMS-Kopru.zip` (~46 MB): gömülü `runtime/node.exe` (v24.14.0) + hazır `node_modules` (node-opcua/ws) + build app.
+   Saha mühendisi **hiçbir şey kurmaz/indirmez** → `Baslat.bat` çift tık → `server.mjs` uygulamayı (`:5180`) + cihaz köprüsünü (`:4841`) çalıştırır + tarayıcıyı açar.
+2. **Otomatik cihaz keşfi** (`bridge/opcua-bridge.mjs`): `discoverDevices` (LAN /24 subnet TCP tarama + getEndpoints) + `browseNodeHints` (ölçüm düğümlerini İSİMDEN tahmin). Kılavuzda **"Cihazı Otomatik Bul"** → seç → endpoint+nodeId otomatik dolar (elle giriş yedek).
+   ⚠️ **Gerçek AMS cihazı YOK** → keşif KÖR yazıldı (her ihtimali dener, bulamazsa elle). İlk donanımda Halil İbrahim Bey ile ince ayar. `OPCUA_PORTS`/`HINT_PATTERNS` daraltılabilir.
+3. **Giriş sadeleşti** (`src/config.ts` `DEMO_OPEN=true`): Halil'e özel personel girişi yerine basit **"Demo'ya Gir"** (DemoWelcome) — herkese tanıtım. Auth kodu **SİLİNMEDİ**; `DEMO_OPEN=false` eski girişi (LoginScreen+auth) aynen geri getirir. Sidebar'da demo iken kullanıcı kartı/Kullanıcılar/Çıkış gizli.
+4. **Geri Bildirim** (Teklif programındaki gibi): sağ-alt FAB → çekmece (Hata/Öneri/Mesaj + mesaj + "Önceki Bildirimlerim"). Offline: `localStorage` + en-iyi-çaba `POST /api/feedback` → host'ta `geri-bildirimler.json` toplar. AMS dili (Tailwind/lucide/framer, Antd değil).
+
+**Yerel doğrulama (headless):** `GET /`=200 (app servis), `POST`+`GET /api/feedback` OK + dosya yazıldı, ws `4841` dinliyor, SPA fallback OK, ws `browse` ölü-endpoint → `nodeHints {}` (graceful), gömülü node node-opcua'yı yüklüyor.
+**Henüz GÖRSEL doğrulanmadı:** DemoWelcome / feedback drawer / yeni kılavuz tarayıcıda Mehmet Abi'ye gösterilecek.
+
+**Yeni/değişen dosyalar:** `src/config.ts`, `src/components/DemoWelcome.tsx`, `src/components/FeedbackFab.tsx`, `src/components/FeedbackDrawer.tsx`, `src/data/feedback.ts`, `src/components/LiveSetupGuide.tsx` (yeniden), `src/App.tsx`+`Sidebar.tsx` (demo), `bridge/server.mjs` (yeni), `bridge/opcua-bridge.mjs` (keşif), `bridge/baslat.bat`, `bridge/README.md`, `scripts/paketle-kopru.ps1`.
+**Paketi yeniden üret:** `scripts/paketle-kopru.ps1` (ağır dosyalar gitignore: `bridge/runtime/`, `node_modules`, `/paket/`, `bridge/geri-bildirimler.json`).
+
+---
+
 ## ŞU AN NEREDEYIZ (2026-06-01 — görsel/analiz/perf turu TAMAMLANDI + PUSH edildi)
 
 **Durum:** origin/master ile senkron (push edildi → canlı deploy). typecheck + build sıfır hata.

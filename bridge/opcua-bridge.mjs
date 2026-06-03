@@ -1,22 +1,31 @@
 /*
- * NE      : Yerel OPC UA <-> WebSocket KOPRUSU. Gercek SMC AMS cihazindan (opc.tcp) okur, tarayicidaki uygulamaya (ws) JSON aktarir.
- * NEDEN   : Tarayici dogrudan opc.tcp konusamaz. Personelin bilgisayarinda bu kopru calisir; uygulama ws://localhost:4841'e baglanir,
- *           "Canli Cihaz" modunda gercek debi/basinc/sicaklik/nem buradan gelir. (Uygulama tarafi HAZIR; bu dosya cihaz olunca calistirilir.)
- * NASIL   : ws sunucu (4841, YALNIZ 127.0.0.1 -> agdan yetkisiz cihaz yazimi engellenir). Uygulama {type:'connect', endpoint, nodeIds} gonderir
- *           -> node-opcua ile cihaza baglan + dugumleri KENDINI-ZAMANLAYAN dongu ile oku (cakisma yok) -> {flow,pressure,temperature,humidity}
- *           JSON ws'e gonderilir. {type:'setMode'/'setSettings'} -> cihaza yaz (donanim gelince). Hata/durum uygulamaya net raporlanir.
- * YAN ETKI: OFFLINE - tamamen yerel. Kurulum (internetli makinede, bir kez): bridge/ icinde `npm install`. Calistir: `node bridge/opcua-bridge.mjs`.
+ * NE      : Yerel OPC UA <-> WebSocket KOPRUSU + OTOMATIK CIHAZ KESFI. Gercek SMC AMS cihazindan (opc.tcp) okur, tarayicidaki
+ *           uygulamaya (ws) JSON aktarir; ayrica agdaki cihazi KENDISI bulur (subnet tarama + getEndpoints) ve dugumleri tahmin eder (browse).
+ * NEDEN   : Tarayici dogrudan opc.tcp konusamaz. Mehmet Abi: "kullaniciyi 'su adresi yaz, su node'u gir' diye UGRASTIRMA - kabloyu
+ *           taksin, cihazi BIZ bulalim." Personel IP/endpoint/nodeId yazmadan, "Cihazi Bul" -> sec -> "Canli Moda Gec" yapsin.
+ * NASIL   : (a) handleAppConnection(socket): app baglaninca {type:'connect'|'setMode'|'setSettings'|'discover'|'browse'} mesajlarini isler.
+ *           (b) discoverDevices(): yerel IPv4 /24 subnet'i OPC UA portlarindan (4840 vb.) TCP tarar -> acik olanlara getEndpoints -> dogrulanan
+ *               OPC UA sunucularini dondurur. (c) browseNodeHints(): cihaza baglanip adres uzayini gezerek flow/pressure/temperature/humidity
+ *               dugumlerini ISIMDEN tahmin eder (TR+EN). Hepsi zaman-kutulu (timeout) + maxRetry:0 -> takilmaz.
+ * YAN ETKI: OFFLINE - tamamen yerel (kesif yalniz LAN'i tarar, internet yok). WS yalniz 127.0.0.1'de dinler (agdan yetkisiz erisim yok).
+ *           Cihaz olmadan da app calisir; bulamazsa kullanici elle girebilir (kilavuz korunur).
  *
- * !! UYARLANABILIR: Node kimlikleri UYGULAMADAN (Urun Ayarlari > Canli Cihaza Baglanma Kilavuzu) gonderilir; koddan elle degistirme GEREKMEZ.
- *    Uygulama gondermezse asagidaki DEFAULT_NODE_IDS (placeholder) kullanilir. mode/ayar DataType'lari da ileride uygulamadan uyarlanabilir.
+ * !! UYARLANABILIR: Node kimlikleri UYGULAMADAN (Kilavuz) gelir; koddan elle degistirme GEREKMEZ. Uygulama gondermezse asagidaki
+ *    DEFAULT_NODE_IDS (placeholder) kullanilir. Kesif portlari/desenleri gercek cihaz ozelligine gore daraltilabilir (bkz OPCUA_PORTS, HINT_PATTERNS).
  */
+import net from 'node:net'
+import os from 'node:os'
 import { WebSocketServer } from 'ws'
-import { OPCUAClient, AttributeIds, DataType } from 'node-opcua'
+import { OPCUAClient, AttributeIds, DataType, BrowseDirection, NodeClass } from 'node-opcua'
 
 const WS_HOST = '127.0.0.1' // YALNIZ loopback: kopru + tarayici ayni makinede; agdan erisim/yetkisiz cihaz yazimi engellenir
 const WS_PORT = 4841
 const POLL_MS = 200 // cihaz okuma araligi (uygulamadaki akisla uyumlu)
 const MAX_ERR = 4 // ardisik okuma hatasi tavani -> yeniden baglan (gecici tek hatada titreme/log spam yok)
+
+// Kesifte denenecek OPC UA portlari. 4840 = IANA varsayilani (cogu cihaz). Digerleri yaygin (guvenli/uretici varyantlari).
+// Gercek AMS portu netlesince burayi tek porta indirmek taramayi hizlandirir.
+const OPCUA_PORTS = [4840, 4843, 48010, 53530]
 
 const DEFAULT_NODE_IDS = {
   flow: 'ns=2;s=AMS.FlowRate',
@@ -31,10 +40,173 @@ const DEFAULT_NODE_IDS = {
   valveMode: 'ns=2;s=AMS.ValveMode',
 }
 
-const wss = new WebSocketServer({ host: WS_HOST, port: WS_PORT })
-console.log(`[kopru] WebSocket hazir: ws://${WS_HOST}:${WS_PORT}`)
+// Dugum ISIMDEN tahmin desenleri (TR+EN). Cihazin browseName/displayName'i bunlara uyarsa o olcume atanir.
+const HINT_PATTERNS = {
+  flow: /(flow|debi|ak[ıi][şs]|t[üu]ket|m3|nm3|sm3)/i,
+  pressure: /(press|bas[ıi]n[çc]|bar(?![a-z])|kpa|mpa)/i,
+  temperature: /(temp|s[ıi]cakl|deg.?c|celsius|°c)/i,
+  humidity: /(humid|nem|moist|\brh\b)/i,
+  mode: /(\bmode\b|\bmod\b|durum|state|status)/i,
+}
 
-wss.on('connection', (socket) => {
+// --- yardimcilar -----------------------------------------------------------
+
+// Bir promise'i zaman-kutula (cihaz cevap vermezse sonsuza kadar beklemesin)
+function withTimeout(promise, ms, label = 'timeout') {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(label)), ms)
+    promise.then((v) => { clearTimeout(t); resolve(v) }, (e) => { clearTimeout(t); reject(e) })
+  })
+}
+
+// Tek host:port'a kisa TCP baglanti denemesi (acik mi?) - tarama bunun uzerine kurulur
+function tcpProbe(host, port, timeout = 350) {
+  return new Promise((resolve) => {
+    const sock = new net.Socket()
+    let done = false
+    const finish = (ok) => { if (done) return; done = true; try { sock.destroy() } catch {} ; resolve(ok) }
+    sock.setTimeout(timeout)
+    sock.once('connect', () => finish(true))
+    sock.once('timeout', () => finish(false))
+    sock.once('error', () => finish(false))
+    try { sock.connect(port, host) } catch { finish(false) }
+  })
+}
+
+// Yerel (internal olmayan) IPv4 arayuzlerinden /24 subnet adaylari cikar (LAN'da en yaygin maske).
+function localSubnets() {
+  const out = []
+  const ifaces = os.networkInterfaces()
+  for (const name of Object.keys(ifaces)) {
+    for (const ni of ifaces[name] || []) {
+      if (ni.family === 'IPv4' && !ni.internal && typeof ni.address === 'string') {
+        const p = ni.address.split('.')
+        if (p.length === 4) out.push({ base: `${p[0]}.${p[1]}.${p[2]}`, self: Number(p[3]), address: ni.address })
+      }
+    }
+  }
+  return out
+}
+
+// Bir endpoint GERCEKTEN OPC UA sunucusu mu? Baglan + getEndpoints -> sunucu adini dondur (degilse null).
+async function getEndpointsSafe(endpoint, timeoutMs = 2500) {
+  const client = OPCUAClient.create({ endpointMustExist: false, connectionStrategy: { maxRetry: 0 } })
+  try {
+    await withTimeout(client.connect(endpoint), timeoutMs, 'connect-timeout')
+    const eps = await withTimeout(client.getEndpoints(), timeoutMs, 'endpoints-timeout')
+    const ep0 = Array.isArray(eps) ? eps[0] : null
+    const name = ep0?.server?.applicationName?.text || ep0?.server?.applicationUri || null
+    return { name }
+  } catch {
+    return null
+  } finally {
+    try { await client.disconnect() } catch {}
+  }
+}
+
+/*
+ * OTOMATIK KESIF: yerel agdaki OPC UA cihazlarini bul.
+ * 1) Yerel /24 subnet(ler)indeki tum host'lara OPCUA_PORTS'tan TCP dene (parti parti, kisa timeout).
+ * 2) Acik bulunanlara getEndpoints ile "sen OPC UA misin?" diye sor; dogrulananlari dondur.
+ * onProgress({scanned,total}) ile UI'ye ilerleme bildirir. Toplam ~birkac saniye.
+ */
+async function discoverDevices({ onProgress } = {}) {
+  const subnets = localSubnets()
+  const candidates = []
+  for (const sn of subnets) {
+    for (let h = 1; h <= 254; h++) {
+      if (h === sn.self) continue // kendini tarama
+      for (const port of OPCUA_PORTS) candidates.push({ host: `${sn.base}.${h}`, port })
+    }
+  }
+  const total = candidates.length
+  if (total === 0) return [] // hic LAN arayuzu yok (yalniz loopback) -> bulunacak cihaz yok
+
+  // Asama 1: TCP tarama (parti parti -> ag/soket bogulmaz)
+  const openHosts = new Set()
+  const BATCH = 128
+  let scanned = 0
+  for (let i = 0; i < candidates.length; i += BATCH) {
+    const batch = candidates.slice(i, i + BATCH)
+    const res = await Promise.all(batch.map((c) => tcpProbe(c.host, c.port).then((ok) => ({ ...c, ok }))))
+    for (const r of res) if (r.ok) openHosts.add(`${r.host}:${r.port}`)
+    scanned += batch.length
+    onProgress?.({ scanned, total })
+  }
+
+  // Asama 2: OPC UA dogrulama (sirayla; genelde 0-1 aday) -> {endpoint, host, port, name}
+  const found = []
+  for (const hp of openHosts) {
+    const idx = hp.lastIndexOf(':')
+    const host = hp.slice(0, idx)
+    const port = Number(hp.slice(idx + 1))
+    const endpoint = `opc.tcp://${host}:${port}`
+    const ok = await getEndpointsSafe(endpoint)
+    if (ok) found.push({ endpoint, host, port, name: ok.name || `OPC UA (${host})` })
+  }
+  return found
+}
+
+/*
+ * DUGUM TAHMINI: bir cihaza baglanip adres uzayini gezerek (browse) olcum dugumlerini ISIMDEN bul.
+ * ObjectsFolder'dan baslayarak sinirli (visited<=500) BFS; degisken (Variable) dugumlerin adi HINT_PATTERNS'a uyarsa atar.
+ * Tahmin -> UI Kilavuzu'na onerilir (kullanici onaylar/duzeltir). Bulamazsa {} doner; var olan elle giris korunur.
+ */
+async function browseNodeHints(endpoint, timeoutMs = 9000) {
+  const client = OPCUAClient.create({ endpointMustExist: false, connectionStrategy: { maxRetry: 0 } })
+  const hints = {}
+  try {
+    await withTimeout(client.connect(endpoint), timeoutMs, 'connect-timeout')
+    const session = await withTimeout(client.createSession(), timeoutMs, 'session-timeout')
+    const queue = ['ns=0;i=85'] // ObjectsFolder
+    const seen = new Set()
+    let visited = 0
+    const wantKeys = Object.keys(HINT_PATTERNS)
+    while (queue.length && visited < 500) {
+      if (wantKeys.every((k) => hints[k])) break // hepsi bulundu -> erken cik
+      const nodeId = queue.shift()
+      if (seen.has(nodeId)) continue
+      seen.add(nodeId); visited++
+      let refs
+      try {
+        const b = await session.browse({
+          nodeId,
+          referenceTypeId: 'HierarchicalReferences',
+          includeSubtypes: true,
+          browseDirection: BrowseDirection.Forward,
+          resultMask: 63,
+        })
+        refs = b?.references || []
+      } catch { continue }
+      for (const ref of refs) {
+        const childId = ref.nodeId?.toString?.()
+        if (!childId) continue
+        const label = ref.displayName?.text || ref.browseName?.name || ''
+        if (ref.nodeClass === NodeClass.Variable) {
+          for (const key of wantKeys) {
+            if (!hints[key] && HINT_PATTERNS[key].test(label)) hints[key] = childId
+          }
+        } else if (ref.nodeClass === NodeClass.Object && !seen.has(childId)) {
+          queue.push(childId)
+        }
+      }
+    }
+    try { await session.close() } catch {}
+    return hints
+  } catch {
+    return hints
+  } finally {
+    try { await client.disconnect() } catch {}
+  }
+}
+
+// --- app baglantisi (per-socket) -------------------------------------------
+
+/*
+ * Bir app (tarayici) baglantisini yonetir. server.mjs (tek-tik) VEYA standalone main() bunu wss'e baglar.
+ * Mesajlar: connect / setMode / setSettings / discover / browse. Cihaz okuma dongusu self-scheduling (cakisma yok).
+ */
+export function handleAppConnection(socket) {
   console.log('[kopru] uygulama baglandi')
   let client = null
   let session = null
@@ -116,6 +288,32 @@ wss.on('connection', (socket) => {
   socket.on('message', async (raw) => {
     let msg
     try { msg = JSON.parse(raw.toString()) } catch { return }
+
+    // OTOMATIK KESIF: agi tara, bulunanlari uygulamaya gonder (ilerleme + sonuc). Kesif sirasinda canli okuma bagimsiz.
+    if (msg.type === 'discover') {
+      send({ type: 'discoverProgress', scanned: 0, total: 0, scanning: true })
+      try {
+        const devices = await discoverDevices({ onProgress: (p) => send({ type: 'discoverProgress', ...p, scanning: true }) })
+        send({ type: 'discovered', devices })
+        console.log(`[kopru] kesif bitti: ${devices.length} cihaz`, devices.map((d) => d.endpoint))
+      } catch (e) {
+        send({ type: 'discovered', devices: [], error: e.message })
+      }
+      return
+    }
+    // DUGUM TAHMINI: secilen cihaza baglanip olcum dugumlerini isimden bul, uygulamaya oner
+    if (msg.type === 'browse' && msg.endpoint) {
+      send({ type: 'nodeHints', hints: {}, browsing: true })
+      try {
+        const hints = await browseNodeHints(msg.endpoint)
+        send({ type: 'nodeHints', hints })
+        console.log('[kopru] dugum tahmini:', msg.endpoint, hints)
+      } catch (e) {
+        send({ type: 'nodeHints', hints: {}, error: e.message })
+      }
+      return
+    }
+
     if (msg.type === 'connect' && msg.endpoint) { await connectDevice(msg.endpoint, msg.nodeIds); return }
     // Yazma komutlari: session yoksa SESSIZCE yutma -> uygulamaya hata bildir
     if (msg.type === 'setMode' || msg.type === 'setSettings') {
@@ -141,4 +339,18 @@ wss.on('connection', (socket) => {
   })
 
   socket.on('close', async () => { console.log('[kopru] uygulama ayrildi'); await cleanup() })
-})
+}
+
+export { discoverDevices, browseNodeHints, DEFAULT_NODE_IDS, WS_HOST, WS_PORT }
+
+// --- standalone calistirma (geriye uyum) -----------------------------------
+// `node opcua-bridge.mjs` ile dogrudan calistirilirsa kendi WS sunucusunu kurar (eski "elle baslatma" yolu korunur).
+// Tek-tik paket ise server.mjs uzerinden gelir (o da handleAppConnection'i kullanir + uygulamayi servis eder).
+const isMain = (() => {
+  try { return import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith(process.argv[1]?.replace(/\\/g, '/')) } catch { return false }
+})()
+if (isMain) {
+  const wss = new WebSocketServer({ host: WS_HOST, port: WS_PORT })
+  console.log(`[kopru] WebSocket hazir: ws://${WS_HOST}:${WS_PORT}`)
+  wss.on('connection', handleAppConnection)
+}

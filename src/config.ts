@@ -1,0 +1,9 @@
+/*
+ * NE      : Uygulama geneli sade yapilandirma bayraklari (TEK yerden ac/kapa).
+ * NEDEN   : Mehmet Abi: "giris Halil'e ozel olmasin SIMDILIK; program herkese TANITIM amacli sunulacak." Tanitim/uretim
+ *           davranis farki tek bayrakla, GERI DONULEBILIR bicimde yonetilsin (kod silinmeden).
+ * NASIL   : DEMO_OPEN=true iken giris/sifre YOK -> basit "Demo'ya Gir" karsilamasi sonrasi uygulama acilir (isimsiz misafir).
+ *           false yapilirsa ESKI personel girisi (LoginScreen + auth/users) AYNEN geri gelir (tum auth kodu yerinde durur).
+ * YAN ETKI: Yok (saf sabit). boolean olarak tiplenir -> her iki dal da gecerli kalir (tsc/eslint "always true" uyarisi cikmaz).
+ */
+export const DEMO_OPEN: boolean = true
