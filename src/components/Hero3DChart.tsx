@@ -17,7 +17,7 @@
  *
  * YAN ETKI: metrics dizisine sensor eklemek = otomatik yeni renkli boru. WINDOW_POINTS, ChartOverlay X-zaman etiketleriyle hizali.
  */
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { MeshReflectorMaterial, Environment, Lightformer, Sparkles } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
@@ -305,21 +305,30 @@ export function Hero3DChart({
 }) {
   // Arkadan-one siralama (z artan) -> dogru derinlik/saydam katmanlanma
   const ordered = useMemo(() => [...metrics].sort((a, b) => a.z - b.z), [metrics])
+  // WEBGL baglam kaybinda Canvas'i komple yeniden kurmak icin remount anahtari (manuel refresh GEREKMESIN)
+  const [ctxKey, setCtxKey] = useState(0)
   // Gunduz modunda sahne zemini/sisi acilir (grafigin alt tarafi koyu kalmasin)
   const light = theme === 'light'
   const fogColor = light ? '#dce8f7' : '#04060f'
   const floorColor = light ? '#c2d4ec' : '#050c1a'
   return (
     <Canvas
+      key={ctxKey}
       dpr={[1, 2]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
       camera={{ position: [0, 2.4, 13], fov: 30 }}
       onCreated={({ gl, invalidate }) => {
-        // WEBGL BAĞLAM KAYBI KURTARMA (Mehmet Abi: "ara ara hata verip yeniden açıyor"): Windows GPU sürücüsü ağır
-        // bloom/multisampling'de kendini reset edebilir (TDR) → bağlam kaybolur. preventDefault ŞART → tarayıcı/three
-        // bağlamı GERİ yükleyebilsin (yoksa panel kalıcı donar/karanır). Restore olunca invalidate → tek karede yeniden çizilir.
+        // WEBGL BAĞLAM KAYBI KURTARMA (Mehmet Abi: "demo bir süre sonra bozuluyor, refresh gerekiyor"): Windows GPU
+        // sürücüsü ağır bloom/reflector/multisampling'de kendini reset edebilir (TDR) → bağlam kaybolur. preventDefault ile
+        // tarayıcının restore denemesine izin ver; AMA EffectComposer/MeshReflector kendi render-target'larını HER ZAMAN temiz
+        // toparlamadığı için panel bozuk/donuk kalabiliyordu. EN GARANTİLİ çözüm: kısa gecikmeyle Canvas'ı KOMPLE remount et
+        // (ctxKey++) → renderer + EffectComposer + MeshReflector + tüm GPU kaynakları sıfırdan kurulur (manuel "refresh"in
+        // otomatiği, ama YALNIZ bu panel; tüm sayfa yenilenmez). Tek seferlik bağlam kaybında kendi kendine toparlar.
         const canvas = gl.domElement
-        canvas.addEventListener('webglcontextlost', (e) => { e.preventDefault() }, false)
+        canvas.addEventListener('webglcontextlost', (e) => {
+          e.preventDefault()
+          window.setTimeout(() => setCtxKey((k) => k + 1), 150)
+        }, false)
         canvas.addEventListener('webglcontextrestored', () => { invalidate() }, false)
       }}
     >

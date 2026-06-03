@@ -143,18 +143,25 @@ export function DeviceFlowChart({
 
     // Foto → SADECE dış arka planı KENARDAN flood-fill ile saydamlaştır (cihazın açık-gri/beyaz GÖVDESİNE dokunma; görüntü bozulmaz,
     // zorla kırpma yok). En-boy korunur. Sonra port ekseni/çapı ölçülür (giriş/çıkış portu = boru ile AYNI eksen+ölçü).
-    const img = new Image()
+    // GPU RESET (TDR) DAYANIKLILIĞI (Mehmet Abi: "görüntü bozulunca AMS ürünü komple kayboluyor"): foto offscreen canvas'ta bir
+    //   kez işlenip her kare çizilir; GPU süreci sıfırlanınca bu offscreen içeriği UÇAR → ürün kaybolur (akış animasyonu sürer).
+    //   ÇÖZÜM: loadDevice() yeniden çağrılabilir → context 'restored' olunca foto yeniden çözülüp işlenir (ürün KENDİ KENDİNE geri gelir).
+    let img: HTMLImageElement | null = null
     let deviceCanvas: HTMLCanvasElement | null = null
     let devAR = 1
     const meas = { axis: FB_AXIS, pipe: FB_PIPE, inX: FB_IN, outX: FB_OUT }
     // Dijital ekran dikdortgenleri (tum-foto orani 0..1) — SABIT foto-olcum (otomatik tespit kaldirildi → const)
     const displays: { x: number; y: number; w: number; h: number }[] = FB_DISPLAYS
-    img.onload = () => {
-      devAR = img.width / img.height
+    const loadDevice = () => {
+     const im = new Image()
+     img = im
+     im.onload = () => {
+      if (img !== im) return // daha yeni bir yükleme başladıysa bu eskiyi yok say
+      devAR = im.width / im.height
       const oc = document.createElement('canvas')
-      oc.width = img.width; oc.height = img.height
+      oc.width = im.width; oc.height = im.height
       const octx = oc.getContext('2d')!
-      octx.drawImage(img, 0, 0)
+      octx.drawImage(im, 0, 0)
       deviceCanvas = oc // taint olursa bile orijinali oldugu gibi goster (bozma)
       try {
         const Wp = oc.width, Hp = oc.height
@@ -216,8 +223,10 @@ export function DeviceFlowChart({
           //   SABİT foto-ölçümlü konuma (FB_DISPLAYS = gerçek üst-orta monitör) kilitli → değerler HER ZAMAN ürünün gerçek ekranında.
         }
       } catch { /* taint → orijinal goster, fallback oranlar */ }
+     }
+     im.src = asset('products/ams-flow.png')   // ÖN-TEMİZ şeffaf PNG (tools/clean-image.py)
     }
-    img.src = asset('products/ams-flow.png')   // ÖN-TEMİZ şeffaf PNG (tools/clean-image.py)
+    loadDevice()
 
     const sig = { flow: 0, pressure: 0, temp: 0, hum: 0, exhaust: 0, reg: 0, valve: 0 }
 
@@ -249,6 +258,11 @@ export function DeviceFlowChart({
     }
     resize()
     const ro = new ResizeObserver(resize); ro.observe(wrap)
+    // 2D canvas GPU-reset dayanikligi: context geri gelince fotoyu YENIDEN isle (urun kaybolmasin → manuel refresh GEREKMEZ)
+    const onCtxLost = (e: Event) => { e.preventDefault() }
+    const onCtxRestored = () => { loadDevice() }
+    canvas.addEventListener('contextlost', onCtxLost)
+    canvas.addEventListener('contextrestored', onCtxRestored)
 
     const drawEngage = (cx: number, cy: number, rgb: string, intensity: number, pulse: number, radius: number) => {
       if (intensity < 0.04) return
@@ -709,7 +723,13 @@ export function DeviceFlowChart({
       raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
-    return () => { cancelAnimationFrame(raf); ro.disconnect(); img.onload = null; saveAccum(accumL) } // foto gec yuklenirse unmount sonrasi bos is yapmasin; totalizer son degeri kalici
+    return () => {
+      cancelAnimationFrame(raf); ro.disconnect()
+      canvas.removeEventListener('contextlost', onCtxLost)
+      canvas.removeEventListener('contextrestored', onCtxRestored)
+      if (img) img.onload = null // foto gec yuklenirse unmount sonrasi bos is yapmasin
+      saveAccum(accumL)          // totalizer son degeri kalici
+    }
   }, [])
 
   return (

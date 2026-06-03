@@ -57,7 +57,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   const greet = hour < 11 ? 'Günaydın' : hour < 18 ? 'İyi günler' : 'İyi akşamlar'
   const subtitle = greetName
     ? `${t(greet)}, ${greetName} Bey — ${t('tüm sensörler canlı akıyor')}`
-    : t('Tüm sensörler tek ekranda, gerçek zamanlı akıyor')
+    : `${t(greet)} — ${t('tüm sensörler tek ekranda, gerçek zamanlı akıyor')}`
 
   // Sağ kolon kompakt kartları (Tasarruf'un altında, hiyerarşik) — yalnız görünür sensörler
   const cardDefs = [byKey.flow, byKey.pressure, byKey.temperature, byKey.humidity].filter(
