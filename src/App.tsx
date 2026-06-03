@@ -28,7 +28,7 @@ import { useTheme } from './hooks/useTheme'
 import { isMobileDevice } from './lib/device'
 import { sound } from './lib/sound'
 import { useLang } from './i18n'
-import { DEMO_OPEN } from './config'
+import { DEMO_OPEN, MOBILE_BLOCKED } from './config'
 import { DemoWelcome } from './components/DemoWelcome'
 import { FeedbackFab } from './components/FeedbackFab'
 import type { User } from './auth/users'
@@ -53,9 +53,9 @@ export default function App() {
     if (!next) sound.click()
   }
 
-  // MOBIL ŞİMDİLİK KAPALI: telefon/tablette uygulama yerine "bilgisayardan açın" ekranı (Mehmet Abi kararı).
-  // Geri açmak için: aşağıdaki tek satırı kaldır (mobil responsive + demo kilidi kodu yerinde duruyor).
-  if (isMobileDevice()) return <MobileBlocked />
+  // MOBIL AÇIK (Mehmet Abi: "mobil uygulamasını da açalım"): telefon/tablet responsive demo'yu gösterir + PWA.
+  // Geri kapatmak: config.ts MOBILE_BLOCKED=true (mobil=demo kilidi connection.ts'te; canlı cihaz yalnız PC'de).
+  if (MOBILE_BLOCKED && isMobileDevice()) return <MobileBlocked />
 
   // GIRIS (DEMO_OPEN — Mehmet Abi: "Halil'e ozel olmasin; herkese tanitim"): sifre/personel girisi YOK.
   // Basit "Demo'ya Gir" karsilamasi (DemoWelcome) gecilince uygulama acilir; kullanici = isimsiz misafir.

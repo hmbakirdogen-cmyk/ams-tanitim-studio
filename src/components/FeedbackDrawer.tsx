@@ -58,7 +58,7 @@ export function FeedbackDrawer({ onClose, sayfa }: { onClose: () => void; sayfa:
       <motion.aside
         initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
         transition={{ type: 'tween', duration: 0.28, ease: 'easeOut' }}
-        className="glass absolute right-0 top-0 flex h-full w-full max-w-md flex-col overflow-hidden rounded-l-3xl"
+        className="glass-solid absolute right-0 top-0 flex h-full w-full max-w-md flex-col overflow-hidden rounded-l-3xl"
       >
         {/* Baslik */}
         <div className="flex items-center justify-between border-b border-[var(--hair)] px-5 py-4">

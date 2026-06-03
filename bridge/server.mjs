@@ -12,11 +12,14 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { exec } from 'node:child_process'
+import os from 'node:os'
 import { WebSocketServer } from 'ws'
 import { handleAppConnection, WS_HOST, WS_PORT } from './opcua-bridge.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const HTTP_HOST = '127.0.0.1'
+// 0.0.0.0: tum arayuzler -> ayni Wi-Fi'daki telefon/tablet de uygulamayi acabilir (mobil demo). Ilk acilista
+// Windows Guvenlik Duvari "Izin Ver" sorabilir (tek seferlik). WS kopru ise GUVENLIK icin yalniz 127.0.0.1 (bkz opcua-bridge).
+const HTTP_HOST = '0.0.0.0'
 const HTTP_PORT = 5180
 
 // Build edilmis uygulamanin yeri (var olan ilk aday): pakette server.mjs ile ayni kokte app/, repo dev'inde ../dist.
@@ -86,6 +89,15 @@ const httpServer = http.createServer((req, res) => {
 
 const APP_URL = `http://localhost:${HTTP_PORT}`
 
+// Ayni agdaki (Wi-Fi) telefon/tablet erisimi icin yerel IPv4 adres(ler)i
+function lanIPv4s() {
+  const out = []
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const ni of list || []) if (ni && ni.family === 'IPv4' && !ni.internal) out.push(ni.address)
+  }
+  return out
+}
+
 function openBrowser(url) {
   // AMS_NO_OPEN: dogrulama/headless calistirmada tarayiciyi acmasin (sevkiyatta bayrak yok -> normalde acar).
   if (process.env.AMS_NO_OPEN) return
@@ -111,7 +123,8 @@ httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
   console.log('  SMC AMS  -  Tanitim Studyosu + Canli Cihaz Koprusu')
   console.log('==========================================================')
   console.log(`[app]   Uygulama: ${APP_URL}   (kaynak: ${APP_DIR})`)
-  console.log(`[kopru] WebSocket: ws://${WS_HOST}:${WS_PORT}`)
+  for (const ip of lanIPv4s()) console.log(`[app]   Telefon/tablet (ayni Wi-Fi): http://${ip}:${HTTP_PORT}`)
+  console.log(`[kopru] WebSocket: ws://${WS_HOST}:${WS_PORT} (yalniz bu bilgisayar)`)
   console.log('Tarayici aciliyor... Acilmazsa yukaridaki adrese gidin.')
   console.log('Bu pencereyi KAPATMAYIN (kapatirsaniz uygulama+cihaz baglantisi durur). Durdurmak: Ctrl+C')
   openBrowser(APP_URL)

@@ -5,7 +5,10 @@
 ## ŞU AN NEREDEYIZ (2026-06-02 — TEK-TIK OFFLINE PAKET + OTOMATİK CİHAZ KEŞFİ + DEMO GİRİŞ + FEEDBACK)
 
 **Durum:** Kod yazıldı, `typecheck` + `build` **SIFIR hata**, tek-tık paket üretildi, sunucu/feedback/ws **yerelde doğrulandı**, Mehmet Abi **ekran onayı verdi** → **commit + push edildi (master)**.
-🔜 **Sıradaki:** **mobil sürüm** (şu an kapalı: `src/App.tsx` `if (isMobileDevice()) return <MobileBlocked />` + `src/data/connection.ts` mobil=demo kilidi). Mehmet Abi "mobil uygulamasını da açalım" dedi.
+**2. parti (mobil + gece düzeltme) — ✅ push edildi:**
+- **Mobil web + PWA AÇIK:** `src/config.ts` `MOBILE_BLOCKED=false` (MobileBlocked korundu, geri kapatılabilir). `bridge/server.mjs` HTTP `0.0.0.0` → aynı Wi-Fi'daki telefon `http://<LAN-IP>:5180` ile açar (LAN IP konsola yazılır); **ws köprü hâlâ 127.0.0.1** (güvenlik). Mobil=demo kilidi (`connection.ts`) korunur.
+- **Gece modu okunabilirlik:** gece `--glass-bg` çok şeffaftı → modal/çekmece metni okunmuyordu. Yeni `.glass-solid` (opak panel, gece+gündüz token) → `LiveSetupGuide` + `FeedbackDrawer`'a uygulandı.
+- ⚠️ İlk `0.0.0.0` açılışında Windows Güvenlik Duvarı "node.exe izin" sorabilir (tek seferlik). Mobil 3D perf gerçek cihazda izlenmeli (gerekirse mobile-özel hafifletme).
 
 **Bu oturumda yapılan (Mehmet Abi istekleri):**
 1. **Tek-tık OFFLINE paket** → `paket/SMC-AMS-Kopru.zip` (~46 MB): gömülü `runtime/node.exe` (v24.14.0) + hazır `node_modules` (node-opcua/ws) + build app.

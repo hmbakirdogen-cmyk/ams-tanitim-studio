@@ -133,7 +133,7 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
       <motion.div
         onClick={(e) => e.stopPropagation()}
         initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-        className="glass max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl p-7"
+        className="glass-solid max-h-[88vh] w-full max-w-2xl overflow-y-auto rounded-3xl p-7"
       >
         <div className="flex items-start justify-between">
           <div>

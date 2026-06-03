@@ -7,3 +7,10 @@
  * YAN ETKI: Yok (saf sabit). boolean olarak tiplenir -> her iki dal da gecerli kalir (tsc/eslint "always true" uyarisi cikmaz).
  */
 export const DEMO_OPEN: boolean = true
+
+/*
+ * MOBIL: Mehmet Abi "mobil uygulamasini da acalim." false -> telefon/tablette MOBIL WEB + PWA acik (responsive demo,
+ * "Ana Ekrana Ekle" ile tam ekran). true -> eski "bilgisayardan acin" engeli (MobileBlocked) geri gelir.
+ * Not: mobilde CANLI cihaz yok (connection.ts mobil=demo kilidi); telefon yalniz demo izler.
+ */
+export const MOBILE_BLOCKED: boolean = false
