@@ -58,11 +58,19 @@ function download(url, dest, timeoutMs = 90000, redirects = 5) {
   })
 }
 
-// Windows yerleşik `tar` (bsdtar/libarchive) zip de açar → ek bağımlılık yok
+// Windows yerleşik bsdtar'ı MUTLAK yoldan çağır: PATH'te GNU tar (Git for Windows vb.) varsa `C:\...` yolunu uzak-host sanıp
+//   "Cannot connect to C:" ile patlar. System32\tar.exe (bsdtar) zip'i sorunsuz açar (ek bağımlılık yok).
+function sysTar() {
+  try {
+    const p = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe')
+    if (fs.existsSync(p)) return p
+  } catch { /* yoksa PATH'teki tar */ }
+  return 'tar'
+}
 function extractZip(zipPath, destDir) {
   return new Promise((resolve, reject) => {
     fs.mkdirSync(destDir, { recursive: true })
-    execFile('tar', ['-xf', zipPath, '-C', destDir], { windowsHide: true }, (err) => (err ? reject(err) : resolve()))
+    execFile(sysTar(), ['-xf', zipPath, '-C', destDir], { windowsHide: true }, (err) => (err ? reject(err) : resolve()))
   })
 }
 

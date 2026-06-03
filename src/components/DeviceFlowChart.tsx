@@ -116,6 +116,9 @@ export function DeviceFlowChart({
   // Hub LCD'sine basilacak GERÇEK ham degerler + ana ekran 2-renk durumu. Birim/renk/cozunurluk cizimde GERCEK cihaza gore
   //   sabittir (MPa/L/min/°C/L; ust=yesil-kirmizi, alt=turuncu) — kullanim kilavuzu om_ams_20-30-40-60. Toplam debi totalizer'dan.
   const readoutRef = useRef<{ pressure: number | null; flow: number | null; temp: number | null; mainRed: boolean }>({ pressure: null, flow: null, temp: null, mainRed: false })
+  // VERİ KALP ATIŞI — GERÇEK-veri tahrikli LED'ler için: reading her degistiginde (yeni paket) say + performance.now damgala.
+  //   Boylece COMM/SIG/PORT vb. SAHTE timer yerine GERÇEK veri akisina gore yanip soner; veri durursa LED de durur.
+  const dataRef = useRef({ prevT: -1, n: 0, lastT: 0 })
   {
     const nv = (k: string) => { const m = byKey[k]; return !m || !reading ? 0 : clamp01((m.get(reading) - m.min) / (m.max - m.min)) }
     targetRef.current = { flow: nv('flow'), pressure: nv('pressure'), temp: nv('temperature'), hum: nv('humidity'), mode }
@@ -130,6 +133,12 @@ export function DeviceFlowChart({
       flow: reading ? reading.flow : null,
       temp: reading ? reading.temperature : null,
       mainRed: mode === 'isolation',
+    }
+    // Yeni veri paketi geldi mi? reading.t her tikte (80ms / canlı cihaz hızı) degisir → GERÇEK paket sayaci + zaman damgasi.
+    if (reading && reading.t !== dataRef.current.prevT) {
+      dataRef.current.prevT = reading.t
+      dataRef.current.n = (dataRef.current.n + 1) % 100000
+      dataRef.current.lastT = performance.now()
     }
   }
   const themeRef = useRef(theme)
@@ -772,13 +781,20 @@ export function DeviceFlowChart({
         //   görevini yapsın"). COMM nabzı = referans "veri blink"i. GERÇEK işlev: güç/durum (PWR/POWER/BF/MODE) SABİT yanar (kesintisiz;
         //   yanıp sönerse arıza/kopma gibi görünür); haberleşme/sinyal/port (COMM/SIG/PORT1/PORT2) COMM tarzı BLINK — her biri farklı
         //   faz/hız (bağımsız veri akışı, kilitlenmiş değil). SF arıza yok → kapalı.
-        const steady = 0.95 + 0.05 * Math.sin(now * 0.004)                 // sabit LED: tam yanık + minik canlılık (COMM "on" şiddeti)
-        const blink = (spd: number, ph: number) => (Math.sin(now * spd + ph) > -0.3 ? 1 : 0.06)  // COMM tarzı veri blink'i (referans)
-        const commI = blink(0.020, 0)        // COMMUNICATION (referans — beğenilen)
-        const powI = blink(0.020, 0.7)       // POWER — Mehmet Abi: "soldaki (COMM) gibi yap" → AYNI blink stili, hafif faz farkı
-        const sigI = blink(0.022, 1.5)       // SIG sinyal/veri — COMM tarzı, farklı faz
-        const p1I = blink(0.013, 3.0)        // PORT1 IO-Link trafiği — daha yavaş, bağımsız
-        const p2I = blink(0.015, 4.6)        // PORT2 IO-Link trafiği — daha yavaş, bağımsız
+        // GERÇEK-VERİ TAHRİKLİ (Mehmet Abi: "gerçekten gerçek veriye göre mi yanıyor?"). Eskiden sahte sin() timer'dı; ARTIK reading
+        //   paket akışına bağlı: COMM/POWER/PORT gerçek paket sayacıyla blink (veri DURURSA söner = gerçek haberleşme göstergesi),
+        //   SIG parlaklığı gerçek DEBİYE bağlı, BF gerçek haberleşme durumuna bağlı. PWR/MODE = güç/mod → SABİT (veriden bağımsız).
+        const d = dataRef.current
+        const dataFlowing = (now - d.lastT) < 600    // son 600ms'de paket geldi mi = gerçek haberleşme var mı
+        const pkt = d.n                              // gerçek paket sayısı (her reading +1)
+        const beat = (period: number, on: number, ph: number) => (dataFlowing && ((pkt + ph) % period) < on ? 1 : 0.06)  // gerçek pakete bağlı blink
+        const steady = 0.92 + 0.08 * Math.sin(now * 0.004)                 // güç/mod LED'i: her zaman yanık (güç ⟂ veri)
+        const commI = beat(5, 3, 0)          // COMMUNICATION — gerçek paket akışı (veri durursa söner)
+        const powI = beat(5, 3, 2)           // POWER — COMM ile aynı stil (Mehmet Abi), hafif faz farkı
+        const sigI = dataFlowing && (pkt % 4 < 2) ? (0.32 + 0.68 * sig.flow) : 0.06  // SIG — blink + parlaklık GERÇEK debiye bağlı
+        const p1I = beat(6, 3, 0)            // PORT1 — gerçek paket akışı (bağımsız periyot)
+        const p2I = beat(7, 3, 3)            // PORT2 — gerçek paket akışı (bağımsız periyot)
+        const bfI = dataFlowing ? steady : 0.30   // BF — bus OK: veri akarken yeşil, haberleşme koparsa söner
         const lighten = (c: number) => Math.round(c + (255 - c) * 0.5)  // sıcak merkez için açık ton
         const dot = (fx: number, fy: number, col: RGB, lit: number, r: number) => {
           const cx = dx + dw * fx, cy = dy + dh * fy
@@ -801,7 +817,7 @@ export function DeviceFlowChart({
           }
         }
         // Hub durum LED satırı (y=0.404 foto-ölçüm). SF foto'da zaten kapalı (arıza yok) → DOKUNULMAZ (şaşma yok).
-        dot(0.504, 0.404, GRN, steady, rHub)   // BF   — bus OK → yeşil SABİT
+        dot(0.504, 0.404, GRN, bfI, rHub)      // BF   — bus OK (veri akarken yeşil, haberleşme koparsa söner)
         dot(0.519, 0.404, GRN, steady, rHub)   // PWR  — güç var → yeşil SABİT
         dot(0.535, 0.404, AMB, steady, rHub)   // MODE — mod → amber SABİT
         dot(0.551, 0.404, AMB, sigI, rHub)     // SIG  — sinyal/veri → COMM tarzı BLINK
