@@ -111,7 +111,7 @@ export default function App() {
           {/* Mobil çekmece arka planı (dokununca kapanır) */}
           {navOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setNavOpen(false)} />}
 
-          <main className="relative min-h-0 min-w-0 flex-1 overflow-hidden p-3 md:p-5">
+          <main className="relative min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-3 lg:overflow-hidden md:p-5">
             {/* Sayfa geçişi: SADECE opacity (transform YOK) — Mehmet Abi "canlı panele geçerken kambur/zorlanma".
                 Canlı panel 3 ağır katman (WebGL Hero3DChart + DeviceFlowChart + AmbientScene) mount eder; y/transform
                 animasyonu bu canvas'ları her karede composite ettirip takıyordu. Opacity GPU-ucuz → akıcı geçiş. */}

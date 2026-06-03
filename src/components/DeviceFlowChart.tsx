@@ -354,7 +354,9 @@ export function DeviceFlowChart({
       const axisY = dy + dh * meas.axis
       const pipeH = Math.max(9, dh * meas.pipe)
       const top = axisY - pipeH / 2, bot = axisY + pipeH / 2
-      const inX = dx + dw * meas.inX, outX = dx + dw * meas.outX
+      const inX = dx + dw * 0.031, outX = dx + dw * 0.969   // rekor ankrajı = ürün kenarına TAM DEĞME (içine geçmez, boşluk da yok — Mehmet Abi)
+      const fitBrassW = pipeH * 0.60, fitCapW = pipeH * 0.18   // rekor x-uzunlukları (boru segmentiyle ORTAK); pirinç biraz daha kısaltıldı (Mehmet Abi)
+      const fitOut = fitBrassW + fitCapW
       const regX0 = dx + dw * REG_FRAC[0], regX1 = dx + dw * REG_FRAC[1]
       const valveCx = dx + dw * VALVE_CX, valveCy = dy + dh * 0.24 // image #1: sağ valf modülü
       // EGZOZ PORTU: valf modülünün ALT-orta noktası (PDF: tahliye aşağı, susturucu valfin altında). Duman TAM buradan çıkar.
@@ -372,24 +374,63 @@ export function DeviceFlowChart({
         ctx.drawImage(deviceCanvas, 0, 0, deviceCanvas.width, srcH, dx, dy, dw, dh * CABLE_CROP)
       }
 
+      // (KENAR-YUMUŞATMA gradyan şeritleri KALDIRILDI — Mehmet Abi: "dikey kalın çizgiler" olarak görünüyordu; ters tepen düzeltmeydi.)
+
       // 2) BORU + giris/cikis hortumu (UÇTAN UCA, port ile AYNI EKSEN+ÇAP). Debi renginde hafif kenar.
       const grad = ctx.createLinearGradient(0, top, 0, bot)
       grad.addColorStop(0, cF(0.14)); grad.addColorStop(0.5, dark ? 'rgba(8,16,28,0.05)' : 'rgba(255,255,255,0.05)'); grad.addColorStop(1, cF(0.09))
-      ctx.fillStyle = grad; ctx.fillRect(0, top, W, pipeH)
-      // BORU CAMI: akış TAM HIZDA olunca (ısı↑ çağrışımı) ÇOK HAFİF kırmızıya meyil. Mehmet Abi: gece çok fazlaydı → kısıldı (tema-duyarlı).
-      const glassWarm = (dark ? 0.018 : 0.04) * sig.flow * sig.flow
-      if (glassWarm > 0.003) { ctx.fillStyle = `rgba(228,72,56,${glassWarm})`; ctx.fillRect(0, top, W, pipeH) }
-      ctx.strokeStyle = cF(0.45); ctx.lineWidth = 1.4
-      ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(W, top); ctx.moveTo(0, bot); ctx.lineTo(W, bot); ctx.stroke()
-      const coupler = (cx: number) => {
-        const cwd = Math.max(7, pipeH * 0.2)
-        const cgr = ctx.createLinearGradient(0, top, 0, bot)
-        cgr.addColorStop(0, 'rgba(196,212,230,0.92)'); cgr.addColorStop(0.5, 'rgba(96,116,140,0.92)'); cgr.addColorStop(1, 'rgba(165,183,203,0.92)')
-        ctx.fillStyle = cgr
-        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(cx - cwd / 2, top - 4, cwd, pipeH + 8, 3); ctx.fill() }
-        else ctx.fillRect(cx - cwd / 2, top - 4, cwd, pipeH + 8)
+      const glassWarm = (dark ? 0.018 : 0.04) * sig.flow * sig.flow  // BORU CAMI: tam hızda hafif kırmızı (tema-duyarlı)
+      // BORU rekor BÖLGELERİNİ ATLAYARAK parçalı çizilir (Mehmet Abi: "rekor üstü/altında ince mavi çizgi olmasın"):
+      //   dış tüp(sol) + iç hava-yolu(rekorlar arası) + dış tüp(sağ). Rekor kendi bölgesinde tek başına görünür.
+      const pipeSegs: [number, number][] = [[0, inX - fitOut], [inX, outX], [outX + fitOut, W]]
+      for (const [a, b] of pipeSegs) {
+        if (b - a <= 1) continue
+        ctx.fillStyle = grad; ctx.fillRect(a, top, b - a, pipeH)
+        if (glassWarm > 0.003) { ctx.fillStyle = `rgba(228,72,56,${glassWarm})`; ctx.fillRect(a, top, b - a, pipeH) }
+        ctx.strokeStyle = cF(0.45); ctx.lineWidth = 1.4
+        ctx.beginPath(); ctx.moveTo(a, top); ctx.lineTo(b, top); ctx.moveTo(a, bot); ctx.lineTo(b, bot); ctx.stroke()
       }
-      coupler(inX); coupler(outX)
+      // GİRİŞ/ÇIKIŞ PORTU = SMC DÜZ PUSH-IN REKOR (yan profil). Mehmet Abi: "port üzerindeki 3D halkaları kaldır, SMC'nin gerçek
+      //   düz rekorlarını koy." Eski "coupler" metalik bar KALDIRILDI. Gövde (porta vidalı hex) + collar (push-in release) + uç lip;
+      //   metalik silindirik gradyan (glow YOK, düz/gerçekçi). dir: -1 giriş (hortum SOLA), +1 çıkış (hortum SAĞA) → collar dışa bakar.
+      const rndOk = !!(ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect
+      const grad3 = (h: number, c0: string, c1: string, c2: string) => {
+        const g = ctx.createLinearGradient(0, axisY - h / 2, 0, axisY + h / 2)
+        g.addColorStop(0, c0); g.addColorStop(0.46, c1); g.addColorStop(1, c2); return g
+      }
+      const rrect = (x: number, y: number, w: number, h: number, r: number) => {
+        if (rndOk) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill() } else ctx.fillRect(x, y, w, h)
+      }
+      // SMC DÜZ PUSH-IN REKOR — GERÇEK görünüm (Mehmet Abi foto): PİRİNÇ gövde + BEYAZ push-in başlık. DIŞ DİŞ (male) porttan İÇERİ
+      //   gömülü (gizli, çizilmez). out: porttan DIŞARI yön = -1 giriş(sol), +1 çıkış(sağ). PİRİNÇ gövde porttan DIŞARI uzanır;
+      //   BEYAZ başlık en dışta; ürün DIŞINDAKİ tüp (boru) başlığa oturur. (Diş porta girer → rekor porta MONTE.)
+      const drawFitting = (cx: number, out: number) => {
+        // FOTO-BİREBİR (Mehmet Abi: "rekoru yan çevir, porta sıkılı koy"): pirinç gövde EN GENİŞ + UZUN; beyaz başlık gövdeyle ~aynı (biraz dar), uçta.
+        const brassW = fitBrassW, brassH = pipeH * 0.90     // uzunluk hoisted (boru segmentiyle ORTAK); çap küçük
+        const capW = fitCapW, capH = pipeH * 1.00            // uzunluk hoisted; çap = BORU çapı (Mehmet Abi)
+        const white = grad3(capH, 'rgba(216,216,212,0.99)', 'rgba(204,204,200,0.99)', 'rgba(184,184,180,0.99)') // ÜRÜN gövde tonu (bembeyaz DEĞİL — Mehmet Abi)
+        // PİRİNÇ gövde: porttan (cx) DIŞARI doğru (out). Diş cx'in İÇ (device) tarafında, gömülü/GİZLİ (çizilmez).
+        const bOut = cx + out * brassW
+        const bx0 = Math.min(cx, bOut)
+        // GERÇEK pirinç silindir parlaması (yatay eksen → DİKEY gradyan): üst kenar koyu → üst-orta PARLAK highlight → orta → alt koyu
+        const bg = ctx.createLinearGradient(0, axisY - brassH / 2, 0, axisY + brassH / 2)
+        bg.addColorStop(0, 'rgba(150,112,50,0.99)'); bg.addColorStop(0.26, 'rgba(243,213,143,0.99)')
+        bg.addColorStop(0.56, 'rgba(196,158,84,0.99)'); bg.addColorStop(1, 'rgba(112,80,36,0.99)')
+        ctx.fillStyle = bg; rrect(bx0, axisY - brassH / 2, brassW, brassH, 2)
+        // (Dikey çentikler KALDIRILDI — Mehmet Abi: pirinç gövde DÜZ/pürüzsüz; sadece silindir parlaması kalır.)
+        // BEYAZ push-in başlık — YANDAN görünüm: DÜZ uçlu (kubbe/elips YOK; Mehmet Abi: ağızlar yandan düz görünsün). Tüp uçtan girer.
+        const cOut = bOut + out * capW
+        const capX = Math.min(bOut, cOut)
+        ctx.fillStyle = white; ctx.fillRect(capX, axisY - capH / 2, capW, capH)   // TAM dikdörtgen başlık (yandan görünüm → radüs YOK, Mehmet Abi)
+        ctx.strokeStyle = 'rgba(230,230,226,0.4)'; ctx.lineWidth = Math.max(1, capH * 0.08)   // üst plastik highlight (yumuşak, bembeyaz değil)
+        ctx.beginPath(); ctx.moveTo(capX + capW * 0.2, axisY - capH * 0.34); ctx.lineTo(capX + capW * 0.8, axisY - capH * 0.34); ctx.stroke()
+        // DIŞ uç = tüp giriş AĞZI (yandan DÜZ): boru çapında dikey ince koyu çizgi — boru tam buraya girer
+        ctx.strokeStyle = 'rgba(148,152,156,0.55)'; ctx.lineWidth = 1.5
+        ctx.beginPath(); ctx.moveTo(cOut, axisY - pipeH * 0.5); ctx.lineTo(cOut, axisY + pipeH * 0.5); ctx.stroke()
+        ctx.strokeStyle = 'rgba(118,108,86,0.5)'; ctx.lineWidth = 1   // brass↔cap geçiş (düz)
+        ctx.beginPath(); ctx.moveTo(bOut, axisY - capH / 2); ctx.lineTo(bOut, axisY + capH / 2); ctx.stroke()
+      }
+      drawFitting(inX, -1); drawFitting(outX, +1)
 
       // 2b) BORU ısı tülü — ÇOK AZ ve sadece ISINDIKÇA (Mehmet Abi: hızlı akışta arka plan kırmızı OLMASIN; boru ısındıkça birazcık
       //     kızarsın). Eşik (0.42) altında tamamen görünmez; üstünde düşük alfa → yumuşak kırmızı/turuncu film. Değer LCD'de net.
@@ -643,6 +684,8 @@ export function DeviceFlowChart({
         }
       }
       // VALF LED'i KALDIRILDI (Mehmet Abi: "led işini beceremedik, valf LED'iyle ilgili ne varsa temizle"). Tek gösterge: REGÜLATÖR LED'i.
+
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1   // LCD/LED öncesi state garanti (orphan ctx.restore KALDIRILDI — clip yok)
 
       // 9) HUB LCD'si (debimetre ekranı) — GERÇEK SMC AMS hub ekranı BİREBİR (Mehmet Abi fotosu + kullanım kılavuzu
       //   om_ams_20-30-40-60, sayfa 19): 2×2 grid + 7-segment LED (sevenSeg.ts), TAM OPAK siyah cam (foto'nun statik değerini gizler).

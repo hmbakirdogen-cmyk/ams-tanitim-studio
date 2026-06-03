@@ -65,33 +65,29 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   ) as MetricDef[]
 
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:h-full">
       <PageHeader
         title="Canlı Panel"
         subtitle={subtitle}
         right={<ModeStrip active={mode} onSelect={setMode} />}
       />
 
-      {/* BİRLEŞİK SAHNE — SOL (grafikler) + SAĞ (veriler). 3D "teknolojik hava akış" sahnesi artık SADECE cihazın hemen arkasında (Mehmet Abi) */}
-      <section className="relative min-h-0 flex-1 overflow-hidden rounded-3xl">
-        {/* Flex düzen (Mehmet Abi: sağ bloğu daha çok daralt) → sağ kolon sabit DAR genişlik; sol kalan tüm alanı kaplar */}
-        <div className="absolute inset-0 flex flex-col gap-4 p-4 lg:flex-row">
+      {/* BİRLEŞİK SAHNE — SOL (grafikler) + SAĞ (veriler). MOBİL/tablet: dikey YIĞIN + SCROLL (sabit panel yükseklikleri → her şey okunur);
+          lg+: tek-ekran flex-row (masaüstü ferah grid). 3D sahne SADECE cihazın hemen arkasında (Mehmet Abi). */}
+      <section className="relative rounded-3xl lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+        {/* lg: absolute fill + row; mobilde: statik dikey yığın (doğal yükseklik → main scroll eder) */}
+        <div className="flex flex-col gap-4 p-1 lg:absolute lg:inset-0 lg:flex-row lg:p-4">
           {/* SOL ANA BLOK: Akış (üst) + Klasik (alt) */}
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-            {/* AKIŞ — cihaz büyük; 3D AmbientScene CİHAZIN HEMEN ARKASINDA (panel içinde, ilk katman) → DeviceFlowChart şeffaf üstüne biner */}
-            <div className="glass relative min-h-0 flex-[3] overflow-hidden rounded-3xl">
-              {/* space: ürün penceresine HAFİF 3D uzay yıldız alanı (Mehmet Abi); alt grafik panelinde yok (sade kalsın). */}
+          <div className="flex flex-col gap-4 lg:min-h-0 lg:min-w-0 lg:flex-1">
+            {/* AKIŞ — mobilde sabit yükseklik (okunur); lg'de flex-[3]. 3D AmbientScene cihaz arkasında → DeviceFlowChart şeffaf üstte. */}
+            <div className="glass relative h-[46vh] min-h-[300px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[3]">
               <AmbientScene theme={theme} flow={flowNorm} space />
-              {/* Cihaz görseli TÜM sensörlerin tek-doğruluk gösterimi → TAM metrics (gizleme yalnız kart/overlay'de; LCD satırları kaymaz) */}
               <DeviceFlowChart reading={reading} metrics={metrics} mode={mode} theme={theme} />
               <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} theme={theme} />
             </div>
-            {/* KLASİK — akışın ALTINDA, tam orantılı; SABİT ~48 sn'lik canlı range. Mehmet Abi "iki panel tertemiz + bütün":
-                AmbientScene ALT panelde de (ilk katman) → iki panel AYNI sakin derinlik zeminini paylaşır; Hero3DChart WebGL şeffaf üstüne biner. */}
-            <div className="glass relative min-h-0 flex-[2] overflow-hidden rounded-3xl">
+            {/* KLASİK — mobilde sabit yükseklik; lg'de flex-[2]. */}
+            <div className="glass relative h-[34vh] min-h-[230px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2]">
               <AmbientScene theme={theme} flow={flowNorm} />
-              {/* WebGL grafiği EN OYNAK katman (bağlam kaybı/GPU reset olabilir) → kendi kalkanında izole;
-                  çökerse sayfanın geri kalanı (cihaz, kartlar, kazanç) akmaya devam eder, yalnız bu panel "Yeniden yükle" der. */}
               <ErrorBoundary variant="inline" label={t('Grafik')}>
                 <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
               </ErrorBoundary>
@@ -99,12 +95,12 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             </div>
           </div>
 
-          {/* SAĞ DAR KOLON: hiyerarşik anlık veriler — Tasarruf üstte + kompakt metrik kartları (sabit dar genişlik) */}
-          <div className="flex min-h-0 shrink-0 flex-col gap-3 lg:w-[clamp(190px,16vw,230px)]">
+          {/* SAĞ KOLON: Tasarruf + kompakt kartlar. Mobil: tam genişlik, 2 sütunlu kart ızgarası. lg: sabit DAR dikey kolon. */}
+          <div className="flex flex-col gap-3 lg:min-h-0 lg:w-[clamp(190px,16vw,230px)] lg:shrink-0">
             <div className="shrink-0">
               <HeroKPI percent={percent} mode={mode} />
             </div>
-            <div className="grid min-h-0 flex-1 grid-rows-4 gap-3">
+            <div className="grid grid-cols-2 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-1 lg:grid-rows-4">
               {cardDefs.map((m) => (
                 <MetricCard key={m.key} def={m} history={history} size="xs" />
               ))}
