@@ -663,7 +663,7 @@ export function DeviceFlowChart({
         const ix = rx + pad, iy = ry + pad, iw = rw - pad * 2, ih = rh - pad * 2
         const rowH = ih / 2
         const GLOW = 0.1                             // LED hâlesi ÇOK KISIK → keskin, haneler karışmaz
-        const edge = iw * 0.012                      // sütunların cam köşesine değmemesi için minik dış pay (köşeye iyice yanaşsın)
+        const edge = iw * 0.045                      // yan kenar payı (Mehmet Abi: "yan kenarlardan birazcık mesafe") → rakamlar kenara değmez
         const leftX = ix + edge                      // SOL sütun SOLA yaslı  → basınç(üst) + sıcaklık(alt) SOL köşelerde
         const rightX = ix + iw - edge                // SAĞ sütun SAĞA yaslı → debi(üst) + toplam(alt) SAĞ köşelerde
         // GERÇEK cihaz çözünürlüğü ile değer string'leri (totalizer 5 hane ile sınırlı → en geniş sabit referansla uyumlu)
@@ -754,6 +754,63 @@ export function DeviceFlowChart({
           ctx.fillText(pv, 0, 0)
           ctx.restore()
         }
+      }
+
+      // 9c) DURUM LED'leri CANLI (Mehmet Abi: "üründeki tüm LED ekran/ışıklar gerçekte çalıştığı gibi olsun; gerçek görünümden şaşma"):
+      //   Konum/renk FOTO-ÖLÇÜM (parlak blob centroid + ince ızgara, tools/_diag) → birebir. Foto zaten gerçek normal durumu gösterir
+      //   (SF kapalı=arıza yok, BF/PWR yeşil, MODE/SIG amber) → aynı renk/konum korunur, üzerine CANLILIK: SIG sinyal verisiyle nabız,
+      //   COMM IO-Link trafiğiyle blink; PWR/POWER/BF/MODE sabit (hafif shimmer). Off/dim'de foto LED'i koyu noktayla örtülür.
+      {
+        // Parlaklık OPTİMİZE (Mehmet Abi: "gerçek üründen parladığı gibi — ne çok ne az"): renkler foto tonuna yaklaştırıldı,
+        //   yarıçap foto LED boyutuna indirildi, glow+çekirdek kısıldı → kompakt, lit ama abartısız (foto LED'leriyle yan yana doğrulandı).
+        const GRN: RGB = [150, 214, 150]                 // yeşil LED (foto-ölçüm tonu, yumuşak/lit)
+        const AMB: RGB = [228, 188, 112]                 // amber LED (foto-ölçüm tonu)
+        const rHub = Math.max(1.4, dw * 0.0038)          // hub LED yarıçapı (foto blob boyutu — kompakt)
+        const rReg = Math.max(1.2, dw * 0.0032)          // regülatör LED'i biraz daha küçük (foto-ölçüm)
+        const rPort = Math.max(1.4, dw * 0.0042)         // merkez modül PORT LED'i (foto-ölçüm: dot ~0.0042R)
+        // YANIP-SÖNME MODELİ (Mehmet Abi: "COMM LED'in konum+şiddeti çok güzel; diğerlerini ona göre optimize et; her LED GERÇEK
+        //   görevini yapsın"). COMM nabzı = referans "veri blink"i. GERÇEK işlev: güç/durum (PWR/POWER/BF/MODE) SABİT yanar (kesintisiz;
+        //   yanıp sönerse arıza/kopma gibi görünür); haberleşme/sinyal/port (COMM/SIG/PORT1/PORT2) COMM tarzı BLINK — her biri farklı
+        //   faz/hız (bağımsız veri akışı, kilitlenmiş değil). SF arıza yok → kapalı.
+        const steady = 0.95 + 0.05 * Math.sin(now * 0.004)                 // sabit LED: tam yanık + minik canlılık (COMM "on" şiddeti)
+        const blink = (spd: number, ph: number) => (Math.sin(now * spd + ph) > -0.3 ? 1 : 0.06)  // COMM tarzı veri blink'i (referans)
+        const commI = blink(0.020, 0)        // COMMUNICATION (referans — beğenilen)
+        const powI = blink(0.020, 0.7)       // POWER — Mehmet Abi: "soldaki (COMM) gibi yap" → AYNI blink stili, hafif faz farkı
+        const sigI = blink(0.022, 1.5)       // SIG sinyal/veri — COMM tarzı, farklı faz
+        const p1I = blink(0.013, 3.0)        // PORT1 IO-Link trafiği — daha yavaş, bağımsız
+        const p2I = blink(0.015, 4.6)        // PORT2 IO-Link trafiği — daha yavaş, bağımsız
+        const lighten = (c: number) => Math.round(c + (255 - c) * 0.5)  // sıcak merkez için açık ton
+        const dot = (fx: number, fy: number, col: RGB, lit: number, r: number) => {
+          const cx = dx + dw * fx, cy = dy + dh * fy
+          if (lit > 0.06) {
+            // 1) yumuşak hale (glow)
+            ctx.save()
+            ctx.shadowColor = `rgba(${col[0]},${col[1]},${col[2]},${0.5 * lit})`
+            ctx.shadowBlur = r * 2.0
+            // 2) NEREDEYSE OPAK lens → altındaki foto'nun KOYU deliği görünmez. (Yarı-saydam olunca orta koyu kalıp "halka / 2 ışık"
+            //    görünüyordu — Mehmet Abi'nin bildirdiği hata.) Tam yanıkta opak.
+            ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${Math.min(1, 0.82 + 0.25 * lit)})`
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+            ctx.restore()
+            // 3) sıcak AÇIK merkez → DOLU lit LED hissi (halka değil, ortası parlak)
+            ctx.fillStyle = `rgba(${lighten(col[0])},${lighten(col[1])},${lighten(col[2])},${0.6 * lit})`
+            ctx.beginPath(); ctx.arc(cx, cy, r * 0.5, 0, Math.PI * 2); ctx.fill()
+          } else {
+            ctx.fillStyle = 'rgba(24,27,33,0.92)'                        // sönük: foto LED'ini koyu noktayla ört
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+          }
+        }
+        // Hub durum LED satırı (y=0.404 foto-ölçüm). SF foto'da zaten kapalı (arıza yok) → DOKUNULMAZ (şaşma yok).
+        dot(0.504, 0.404, GRN, steady, rHub)   // BF   — bus OK → yeşil SABİT
+        dot(0.519, 0.404, GRN, steady, rHub)   // PWR  — güç var → yeşil SABİT
+        dot(0.535, 0.404, AMB, steady, rHub)   // MODE — mod → amber SABİT
+        dot(0.551, 0.404, AMB, sigI, rHub)     // SIG  — sinyal/veri → COMM tarzı BLINK
+        // Regülatör LED'leri (foto-ölçüm çekirdek merkezi: COMM x0.230, POWER x0.254, y0.476). İKİSİ DE solid + blink → birebir eşleşir.
+        dot(0.230, 0.476, GRN, commI, rReg)    // COMMUNICATION — IO-Link BLINK (referans)
+        dot(0.254, 0.476, GRN, powI, rReg)     // POWER — soldaki (COMM) ile AYNI: solid yapı + blink + yuvada tam ortalı (kaçık/sabit-fark giderildi)
+        // Merkez modül PORT durum LED'leri (foto-ölçüm x0.487/0.553, y0.522). IO-Link port trafiği → COMM tarzı blink.
+        dot(0.487, 0.522, GRN, p1I, rPort)     // PORT1 — IO-Link port → COMM tarzı BLINK
+        dot(0.553, 0.522, GRN, p2I, rPort)     // PORT2 — IO-Link port → COMM tarzı BLINK
       }
 
       raf = requestAnimationFrame(draw)
