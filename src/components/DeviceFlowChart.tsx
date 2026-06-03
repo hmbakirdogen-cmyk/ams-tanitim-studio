@@ -654,34 +654,38 @@ export function DeviceFlowChart({
         if (rnd) { ctx.beginPath(); ctx.roundRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1, rad); ctx.stroke() } else ctx.strokeRect(rx + 0.5, ry + 0.5, rw - 1, rh - 1)
 
         const mainCol: RGB = ro2.mainRed ? LCD_RED : LCD_GREEN
-        // Mehmet Abi: "gerçek ekran FERAH; sol sütun solda, sağ sütun sağda, ortada boşluk, rakamlar karışmıyor."
-        //   → BOL kenar boşluğu + MERKEZ KANAL (sütunlar ayrık) + DAR/uzun rakam (değer yarıyı doldurmaz). GLOW kısık (keskin).
-        const pad = Math.min(rw, rh) * 0.04          // kenar boşluğu KÜÇÜLTÜLDÜ → değerler köşelere yaklaşır + daha çok yer (Mehmet Abi: çok rahat)
+        // Mehmet Abi: "rakamlar köşelere yanaşsın, birbirinden ayrı dursun, biraz daha büyük + çok rahat."
+        //   → 4-KÖŞE YERLEŞİMİ: SOL sütun SOLA, SAĞ sütun SAĞA yaslı → 4 değer ZIT köşelere çekilir (maksimum ayrım,
+        //     köşelere yanaşık). Eski tasarım sol sütunu MERKEZE sağa-hizalıyordu → değerler ortaya toplanıyordu.
+        //   → RAKAM BOYU CANLI değerden DEĞİL, SABİT referanstan ölçülür → totalizer (toplam debi) hane sayısı artsa bile
+        //     rakamlar KÜÇÜLMEZ. ("Daha önce güzeldi, sonradan bozuldu" = totalizer uzayınca tüm 7-seg küçülüyordu; kök neden buydu.)
+        const pad = Math.min(rw, rh) * 0.03          // kenar boşluğu küçük → grid camın köşelerine yanaşır (Mehmet Abi: köşelere it)
         const ix = rx + pad, iy = ry + pad, iw = rw - pad * 2, ih = rh - pad * 2
         const rowH = ih / 2
         const GLOW = 0.1                             // LED hâlesi ÇOK KISIK → keskin, haneler karışmaz
-        const iconW = iw * 0.045                     // sağ ikon şeridi daha da küçük → sağ rakamlara daha çok yer
-        const cgap = iw * 0.15                        // MERKEZ KANAL genişletildi → sol/sağ değerler BİRBİRİNDEN daha AYRI (Mehmet Abi)
-        const lMargin = iw * 0.035                   // sol kenar payı küçültüldü → sol değerler sol köşeye yaklaşır
-        // GERÇEK cihaz çözünürlüğü ile değer string'leri
+        const edge = iw * 0.012                      // sütunların cam köşesine değmemesi için minik dış pay (köşeye iyice yanaşsın)
+        const leftX = ix + edge                      // SOL sütun SOLA yaslı  → basınç(üst) + sıcaklık(alt) SOL köşelerde
+        const rightX = ix + iw - edge                // SAĞ sütun SAĞA yaslı → debi(üst) + toplam(alt) SAĞ köşelerde
+        // GERÇEK cihaz çözünürlüğü ile değer string'leri (totalizer 5 hane ile sınırlı → en geniş sabit referansla uyumlu)
         const pStr = ro2.pressure != null ? ro2.pressure.toFixed(3) : '---'   // basınç 0.200
         const fStr = ro2.flow != null ? String(Math.round(ro2.flow)) : '---'  // anlık debi 300
         const tStr = ro2.temp != null ? ro2.temp.toFixed(1) : '---'           // sıcaklık 26.5
-        const aStr = String(Math.floor(accumL) % 1000000)                     // toplam debi 2400 (totalizer)
-        // SÜTUN kenarları: sol değerler merkezin SOLUNDA biter (kanal), sağ değerler ikon şeridinin SOLUNDA (sağ sütun)
-        const lRight = ix + iw * 0.5 - cgap * 0.5            // sol kolon (basınç/sıcaklık) değer SAĞ kenarı
-        const rRight = ix + iw - iconW                       // sağ kolon (debi/toplam) değer SAĞ kenarı — İKİSİ AYNI (hizalı)
-        const leftAvail = lRight - (ix + lMargin)            // sol değerin sığacağı genişlik
-        const rightAvail = rRight - (ix + iw * 0.5 + cgap * 0.5)
-        // TEK BOY rakam (gerçek cihaz: tüm 7-seg AYNI boyut) — en dar sığan değeri baz al; rakam DAR olduğu için değer yarıyı DOLDURMAZ
-        const hBudget = rowH * 0.62                          // rakam yükseklik bütçesi BÜYÜTÜLDÜ (pad küçüldü → ekran içinde kalır)
-        const fitH = (str: string, avail: number) => Math.min(hBudget, avail / Math.max(0.001, measureSevenSeg(str, 1)))
-        const digH = Math.min(fitH(pStr, leftAvail), fitH(tStr, leftAvail), fitH(fStr, rightAvail), fitH(aStr, rightAvail))
-        // DİKEY KONUM (gerçek foto-oran): üst satır rakamları AYNI Y, alt satır AYNI Y. Bol üst/alt kenar boşluğu + satırlar
-        //   arası birim (L/min, °C/L) için NET boşluk (üst-üste binmesin). Konumlar iç-yükseklik (ih) oranı olarak.
-        const uf = Math.max(6, digH * 0.40)          // birim fontu — küçük (gerçek cihaz: rakamla yarışmaz, gaplere sığar)
-        const topNumY = iy + ih * 0.13               // üst satır YUKARI itildi (üst köşelere yaklaşır)
-        const botNumY = iy + ih * 0.60               // alt satır AŞAĞI itildi (alt köşelere yaklaşır; satırlar BİRBİRİNDEN daha AYRI)
+        const aStr = String(Math.floor(accumL) % 100000)                      // toplam debi (totalizer; ≤5 hane → taşmaz/küçültmez)
+        // RAKAM BOYU — SABİT referanstan (tüm 7-seg AYNI boyut, gerçek cihaz). SOL en geniş "0.200", SAĞ en geniş 5-hane "88888".
+        //   → digH artık canlı veriye bağlı DEĞİL → zamanla küçülmez/oynamaz (kararlı/sabit görünüm).
+        const REF_L = measureSevenSeg('0.200', 1)    // sol sütun en geniş sabit referans
+        const REF_R = measureSevenSeg('88888', 1)    // sağ sütun (totalizer) en geniş sabit referans
+        const centerCh = iw * 0.05                   // merkez kanal (sığdırma payı) DARALTILDI → sütunlar genişler → rakam BÜYÜR (ayrım köşe-yaslamadan gelir)
+        const colTotal = iw - edge * 2 - centerCh    // iki sütunun paylaştığı genişlik (referans oranında bölünür → eşit digH)
+        const leftColW = colTotal * REF_L / (REF_L + REF_R)
+        const rightColW = colTotal * REF_R / (REF_L + REF_R)
+        const hBudget = rowH * 0.50                  // dikey rakam bütçesi (Mehmet Abi: 0.50 yap)
+        const digH = Math.min(hBudget, leftColW / REF_L, rightColW / REF_R)   // tek boy; genişlik İZİN verir, yükseklik tavanı koyar
+        // DİKEY KONUM (gerçek foto-oran): üst satır AYNI Y, alt satır AYNI Y. Birimler boşluklara serpiştirilir (üst-üste binmez):
+        //   MPa üst-sol değerin ÜSTÜNDE; L/min üst-sağ değerin ALTINDA (satır arası sağ boşluk); °C/L alt değerlerin ALTINDA.
+        const uf = Math.max(6, digH * 0.30)          // birim fontu KÜÇÜLTÜLDÜ → dikey yer açıldı → rakam daha BÜYÜK olabildi
+        const topNumY = iy + ih * 0.12               // üst satır YUKARI çekildi (üstte MPa + kenar payı tam sığar)
+        const botNumY = iy + ih * 0.575              // alt satır — satır arası L/min'e boşluk + altta °C/L pad içinde kalır (taşma/kesilme yok)
 
         const unit = (txt: string, ux: number, uy: number, col: RGB, align: CanvasTextAlign) => {
           ctx.font = `700 ${uf}px ui-sans-serif, system-ui, sans-serif`
@@ -690,18 +694,18 @@ export function DeviceFlowChart({
           ctx.fillText(txt, ux, uy)
         }
 
-        // TL: Basınç (SOL sütun) — "MPa" değerin ÜSTÜNDE-solunda (foto)
-        drawSevenSeg(ctx, pStr, lRight, topNumY, digH, mainCol, { glow: GLOW, align: 'right' })
-        unit('MPa', lRight - measureSevenSeg(pStr, digH), topNumY - uf * 0.32, mainCol, 'left')
-        // TR: Anlık debi (SAĞ sütun, basınçla AYNI hizada) — "L/min" ALTINDA-sağında; ikon şeridi en sağda
-        drawSevenSeg(ctx, fStr, rRight, topNumY, digH, mainCol, { glow: GLOW, align: 'right' })
-        unit('L/min', rRight, topNumY + digH + uf * 1.0, mainCol, 'right')
-        // BL: Sıcaklık (SOL sütun) — TURUNCU; "°C" değerin ALTINDA-sağında
-        drawSevenSeg(ctx, tStr, lRight, botNumY, digH, LCD_AMBER, { glow: GLOW, align: 'right' })
-        unit('°C', lRight, botNumY + digH + uf * 1.0, LCD_AMBER, 'right')
-        // BR: Toplam debi/totalizer (SAĞ sütun, sıcaklıkla AYNI hizada) — TURUNCU; "L" değerin ALTINDA-sağında
-        drawSevenSeg(ctx, aStr, rRight, botNumY, digH, LCD_AMBER, { glow: GLOW, align: 'right' })
-        unit('L', rRight, botNumY + digH + uf * 1.0, LCD_AMBER, 'right')
+        // TL: Basınç (SOL köşe, SOLA yaslı) — "MPa" değerin ÜSTÜNDE-solunda
+        drawSevenSeg(ctx, pStr, leftX, topNumY, digH, mainCol, { glow: GLOW, align: 'left' })
+        unit('MPa', leftX, topNumY - uf * 0.32, mainCol, 'left')
+        // TR: Anlık debi (SAĞ köşe, SAĞA yaslı) — "L/min" ALTINDA-sağında (satır arası sağ boşluk)
+        drawSevenSeg(ctx, fStr, rightX, topNumY, digH, mainCol, { glow: GLOW, align: 'right' })
+        unit('L/min', rightX, topNumY + digH + uf * 1.0, mainCol, 'right')
+        // BL: Sıcaklık (SOL köşe, SOLA yaslı) — TURUNCU; "°C" değerin ALTINDA-solunda
+        drawSevenSeg(ctx, tStr, leftX, botNumY, digH, LCD_AMBER, { glow: GLOW, align: 'left' })
+        unit('°C', leftX, botNumY + digH + uf * 1.0, LCD_AMBER, 'left')
+        // BR: Toplam debi/totalizer (SAĞ köşe, SAĞA yaslı) — TURUNCU; "L" değerin ALTINDA-sağında
+        drawSevenSeg(ctx, aStr, rightX, botNumY, digH, LCD_AMBER, { glow: GLOW, align: 'right' })
+        unit('L', rightX, botNumY + digH + uf * 1.0, LCD_AMBER, 'right')
 
         // Operation LED — üst-ortada küçük nokta; çıkış ON (standby/izolasyon) yanar (foto/kılavuz: "indicates output status of OUT")
         {
@@ -711,18 +715,8 @@ export function DeviceFlowChart({
           ctx.beginPath(); ctx.arc(lx, ly, lr, 0, Math.PI * 2); ctx.fill()
           ctx.shadowBlur = 0
         }
-        // Sağ ikon şeridi (foto: debinin sağında, satırların ortasında dikey) — kutu / dairesel-ok / kutu; küçük, sönük ana renk
-        {
-          const cxi = ix + iw - iconW * 0.5, bw = iconW * 0.66, bh = rowH * 0.12
-          ctx.strokeStyle = `rgba(${mainCol[0]},${mainCol[1]},${mainCol[2]},0.5)`; ctx.lineWidth = Math.max(0.5, bh * 0.16)
-          const cyMid = iy + rowH                              // satır ayrım çizgisi (ikonlar burada yoğun)
-          const y0 = cyMid - bh * 2.0
-          if (rnd) { ctx.beginPath(); ctx.roundRect(cxi - bw / 2, y0, bw, bh, bh * 0.22); ctx.stroke() }
-          const cyA = cyMid - bh * 0.1, rA = bh * 0.5
-          ctx.beginPath(); ctx.arc(cxi, cyA, rA, Math.PI * 0.4, Math.PI * 1.8); ctx.stroke()   // dairesel ok (accumulate/toplam)
-          const y2 = cyMid + bh * 0.9
-          if (rnd) { ctx.beginPath(); ctx.roundRect(cxi - bw / 2, y2, bw, bh, bh * 0.22); ctx.stroke() }
-        }
+        // (Sağ dekoratif ikon şeridi KALDIRILDI — Mehmet Abi: "rakamlar köşelere yanaşsın." Sağ sütun değerleri artık sağ kenara
+        //   yaslı; küçük kutu/ok ikonları rakamlarla çakışıyordu + sahada okunabilirliğe katkısı yoktu. Köşe ferahlığı öncelik.)
         ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
       }
 

@@ -26,7 +26,8 @@ import type { Reading } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 
 // --- Sahne sabitleri ---
-const SPAN_X = 21 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis(~48sn)" (sol) PANEL KENARINA kadar (Mehmet Abi: uclar "simdi"ye degsin).
+const SPAN_X = 23 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis(~48sn)" (sol). Mehmet Abi: "en ONDEKI cubuk 'simdi' eksenine degsin" →
+//   perspektifte EN ON (kameraya yakin, en buyuk z) boru en saga dustugu icin referans odur; SPAN 21→23 ile uclar saga "simdi" cizgisine ITILDI.
 const MAX_H = 4.0 // normalize deger -> yukseklik
 const L = 600 // ekran penceresi nokta sayisi (~48 sn @80ms tik) — Mehmet Abi GENIS zaman penceresini sevdi (sekme arkaplandayken gordugu ~56sn gibi); kalici/kontrollu
 const RADIAL = 12 // boru kesit cozunurlugu (yuvarlak)
