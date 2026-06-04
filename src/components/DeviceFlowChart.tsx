@@ -288,6 +288,9 @@ export function DeviceFlowChart({
     // TOTALIZER (toplam debi L) — kalıcı; ilk açılışta model debisinden tohumlanır (inandırıcı 4 haneli başlangıç).
     let accumL = loadAccum(Math.round(getActiveModel().baselineFlow))
     let accumSaveT = 0   // periyodik kalıcılaştırma sayacı (saniye)
+    // NE: Önceki karenin valf sinyali. NEDEN: Egzoz, valfin KAPANMA HIZINA bağlanacak (sürekli fışkırma değil, geçişte fışkırma).
+    //   NASIL: Her karede sig.valve ile farkı alınıp valveRate hesaplanır. YAN ETKİ: effect-scoped (kare-başı alloc YOK, sadece sayı).
+    let prevValveSig = 0
 
     let raf = 0, last = performance.now()
     const draw = (now: number) => {
@@ -307,9 +310,14 @@ export function DeviceFlowChart({
       sig.reg += (regTarget - sig.reg) * Math.min(1, dt * 2.5)
       // SOFT-STARTER valfi: basinci KADEMELI verir/keser (ani DEĞİL) → yavaş rampa (dt*0.9)
       sig.valve += (valveTarget - sig.valve) * Math.min(1, dt * 0.9)
-      // Egzoz = valf kapanirken cikis basincini KADEMELI tahliye (soft-start): yavasca yukselip biter
-      const exTarget = sig.valve * (1 - sig.valve * 0.15) // tam kapaninca tahliye biter (basinc tukendi)
-      sig.exhaust += (exTarget - sig.exhaust) * Math.min(1, dt * 1.1)
+      // NE: Egzoz = gerçek rezidüel-basınç tahliye valfi gibi — KAPANMA GEÇİŞİNDE hapsolan basıncı boşaltır, sonra SAKİNLEŞİR.
+      // NEDEN: Eski hesap (sig.valve*(1-0.15)) tam kapalıda bile ~0.85'te SÜREKLİ fışkırıyordu; oysa yorum "tam kapanınca tahliye biter".
+      // NASIL: valveRate = valfin sadece ARTARKEN (kapanırken) hızı → geçişte güçlü egzoz; izolasyon yerleşince yalnız hafif kalıcı tahliye.
+      // YAN ETKİ: prevValveSig effect-scoped (alloc yok); kapanma anında pik, sabit izolasyonda söner (sonsuz fışkırma DEĞİL).
+      const valveRate = Math.max(0, sig.valve - prevValveSig) / Math.max(dt, 1e-3) // valf kapanma hızı (sadece artarken)
+      prevValveSig = sig.valve
+      const exTarget = clamp01(valveRate * 0.7 + sig.valve * 0.14) // GEÇİŞTE güçlü fışkırma + tam izolasyonda HAFİF kalıcı tahliye
+      sig.exhaust += (exTarget - sig.exhaust) * Math.min(1, dt * 2.2)
 
       const fc = colorRef.current.flow, pc = colorRef.current.pressure, hc = colorRef.current.hum
       // ISI RANGE GENİŞLETME: dar sensör bandını orta etrafında AÇ → soğukta daha mavi, sıcakta daha kırmızı (fark net)
@@ -354,9 +362,6 @@ export function DeviceFlowChart({
       const axisY = dy + dh * meas.axis
       const pipeH = Math.max(9, dh * meas.pipe)
       const top = axisY - pipeH / 2, bot = axisY + pipeH / 2
-      const inX = dx + dw * 0.031, outX = dx + dw * 0.969   // rekor ankrajı = ürün kenarına TAM DEĞME (içine geçmez, boşluk da yok — Mehmet Abi)
-      const fitBrassW = pipeH * 0.60, fitCapW = pipeH * 0.18   // rekor x-uzunlukları (boru segmentiyle ORTAK); pirinç biraz daha kısaltıldı (Mehmet Abi)
-      const fitOut = fitBrassW + fitCapW
       const regX0 = dx + dw * REG_FRAC[0], regX1 = dx + dw * REG_FRAC[1]
       const valveCx = dx + dw * VALVE_CX, valveCy = dy + dh * 0.24 // image #1: sağ valf modülü
       // EGZOZ PORTU: valf modülünün ALT-orta noktası (PDF: tahliye aşağı, susturucu valfin altında). Duman TAM buradan çıkar.
@@ -380,57 +385,11 @@ export function DeviceFlowChart({
       const grad = ctx.createLinearGradient(0, top, 0, bot)
       grad.addColorStop(0, cF(0.14)); grad.addColorStop(0.5, dark ? 'rgba(8,16,28,0.05)' : 'rgba(255,255,255,0.05)'); grad.addColorStop(1, cF(0.09))
       const glassWarm = (dark ? 0.018 : 0.04) * sig.flow * sig.flow  // BORU CAMI: tam hızda hafif kırmızı (tema-duyarlı)
-      // BORU rekor BÖLGELERİNİ ATLAYARAK parçalı çizilir (Mehmet Abi: "rekor üstü/altında ince mavi çizgi olmasın"):
-      //   dış tüp(sol) + iç hava-yolu(rekorlar arası) + dış tüp(sağ). Rekor kendi bölgesinde tek başına görünür.
-      const pipeSegs: [number, number][] = [[0, inX - fitOut], [inX, outX], [outX + fitOut, W]]
-      for (const [a, b] of pipeSegs) {
-        if (b - a <= 1) continue
-        ctx.fillStyle = grad; ctx.fillRect(a, top, b - a, pipeH)
-        if (glassWarm > 0.003) { ctx.fillStyle = `rgba(228,72,56,${glassWarm})`; ctx.fillRect(a, top, b - a, pipeH) }
-        ctx.strokeStyle = cF(0.45); ctx.lineWidth = 1.4
-        ctx.beginPath(); ctx.moveTo(a, top); ctx.lineTo(b, top); ctx.moveTo(a, bot); ctx.lineTo(b, bot); ctx.stroke()
-      }
-      // GİRİŞ/ÇIKIŞ PORTU = SMC DÜZ PUSH-IN REKOR (yan profil). Mehmet Abi: "port üzerindeki 3D halkaları kaldır, SMC'nin gerçek
-      //   düz rekorlarını koy." Eski "coupler" metalik bar KALDIRILDI. Gövde (porta vidalı hex) + collar (push-in release) + uç lip;
-      //   metalik silindirik gradyan (glow YOK, düz/gerçekçi). dir: -1 giriş (hortum SOLA), +1 çıkış (hortum SAĞA) → collar dışa bakar.
-      const rndOk = !!(ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect
-      const grad3 = (h: number, c0: string, c1: string, c2: string) => {
-        const g = ctx.createLinearGradient(0, axisY - h / 2, 0, axisY + h / 2)
-        g.addColorStop(0, c0); g.addColorStop(0.46, c1); g.addColorStop(1, c2); return g
-      }
-      const rrect = (x: number, y: number, w: number, h: number, r: number) => {
-        if (rndOk) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill() } else ctx.fillRect(x, y, w, h)
-      }
-      // SMC DÜZ PUSH-IN REKOR — GERÇEK görünüm (Mehmet Abi foto): PİRİNÇ gövde + BEYAZ push-in başlık. DIŞ DİŞ (male) porttan İÇERİ
-      //   gömülü (gizli, çizilmez). out: porttan DIŞARI yön = -1 giriş(sol), +1 çıkış(sağ). PİRİNÇ gövde porttan DIŞARI uzanır;
-      //   BEYAZ başlık en dışta; ürün DIŞINDAKİ tüp (boru) başlığa oturur. (Diş porta girer → rekor porta MONTE.)
-      const drawFitting = (cx: number, out: number) => {
-        // FOTO-BİREBİR (Mehmet Abi: "rekoru yan çevir, porta sıkılı koy"): pirinç gövde EN GENİŞ + UZUN; beyaz başlık gövdeyle ~aynı (biraz dar), uçta.
-        const brassW = fitBrassW, brassH = pipeH * 0.90     // uzunluk hoisted (boru segmentiyle ORTAK); çap küçük
-        const capW = fitCapW, capH = pipeH * 1.00            // uzunluk hoisted; çap = BORU çapı (Mehmet Abi)
-        const white = grad3(capH, 'rgba(216,216,212,0.99)', 'rgba(204,204,200,0.99)', 'rgba(184,184,180,0.99)') // ÜRÜN gövde tonu (bembeyaz DEĞİL — Mehmet Abi)
-        // PİRİNÇ gövde: porttan (cx) DIŞARI doğru (out). Diş cx'in İÇ (device) tarafında, gömülü/GİZLİ (çizilmez).
-        const bOut = cx + out * brassW
-        const bx0 = Math.min(cx, bOut)
-        // GERÇEK pirinç silindir parlaması (yatay eksen → DİKEY gradyan): üst kenar koyu → üst-orta PARLAK highlight → orta → alt koyu
-        const bg = ctx.createLinearGradient(0, axisY - brassH / 2, 0, axisY + brassH / 2)
-        bg.addColorStop(0, 'rgba(150,112,50,0.99)'); bg.addColorStop(0.26, 'rgba(243,213,143,0.99)')
-        bg.addColorStop(0.56, 'rgba(196,158,84,0.99)'); bg.addColorStop(1, 'rgba(112,80,36,0.99)')
-        ctx.fillStyle = bg; rrect(bx0, axisY - brassH / 2, brassW, brassH, 2)
-        // (Dikey çentikler KALDIRILDI — Mehmet Abi: pirinç gövde DÜZ/pürüzsüz; sadece silindir parlaması kalır.)
-        // BEYAZ push-in başlık — YANDAN görünüm: DÜZ uçlu (kubbe/elips YOK; Mehmet Abi: ağızlar yandan düz görünsün). Tüp uçtan girer.
-        const cOut = bOut + out * capW
-        const capX = Math.min(bOut, cOut)
-        ctx.fillStyle = white; ctx.fillRect(capX, axisY - capH / 2, capW, capH)   // TAM dikdörtgen başlık (yandan görünüm → radüs YOK, Mehmet Abi)
-        ctx.strokeStyle = 'rgba(230,230,226,0.4)'; ctx.lineWidth = Math.max(1, capH * 0.08)   // üst plastik highlight (yumuşak, bembeyaz değil)
-        ctx.beginPath(); ctx.moveTo(capX + capW * 0.2, axisY - capH * 0.34); ctx.lineTo(capX + capW * 0.8, axisY - capH * 0.34); ctx.stroke()
-        // DIŞ uç = tüp giriş AĞZI (yandan DÜZ): boru çapında dikey ince koyu çizgi — boru tam buraya girer
-        ctx.strokeStyle = 'rgba(148,152,156,0.55)'; ctx.lineWidth = 1.5
-        ctx.beginPath(); ctx.moveTo(cOut, axisY - pipeH * 0.5); ctx.lineTo(cOut, axisY + pipeH * 0.5); ctx.stroke()
-        ctx.strokeStyle = 'rgba(118,108,86,0.5)'; ctx.lineWidth = 1   // brass↔cap geçiş (düz)
-        ctx.beginPath(); ctx.moveTo(bOut, axisY - capH / 2); ctx.lineTo(bOut, axisY + capH / 2); ctx.stroke()
-      }
-      drawFitting(inX, -1); drawFitting(outX, +1)
+      // BORU tam genişlikte SÜREKLİ çizilir (Mehmet Abi: rekorlar KALDIRILDI → hava yolu uçtan uca tek tüp; parçalı/atlamalı çizim gerekmez).
+      ctx.fillStyle = grad; ctx.fillRect(0, top, W, pipeH)
+      if (glassWarm > 0.003) { ctx.fillStyle = `rgba(228,72,56,${glassWarm})`; ctx.fillRect(0, top, W, pipeH) }
+      ctx.strokeStyle = cF(0.45); ctx.lineWidth = 1.4
+      ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(W, top); ctx.moveTo(0, bot); ctx.lineTo(W, bot); ctx.stroke()
 
       // 2b) BORU ısı tülü — ÇOK AZ ve sadece ISINDIKÇA (Mehmet Abi: hızlı akışta arka plan kırmızı OLMASIN; boru ısındıkça birazcık
       //     kızarsın). Eşik (0.42) altında tamamen görünmez; üstünde düşük alfa → yumuşak kırmızı/turuncu film. Değer LCD'de net.

@@ -15,6 +15,7 @@ import { useMetrics } from '@/data/metrics'
 import { toLocalInputValue, fromLocalInputValue } from '@/lib/datetime'
 import { downsample } from '@/lib/series'
 import { useLang } from '@/i18n'
+import { localeOf } from '@/lib/format'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import type { Reading } from '@/data/types'
 
@@ -22,7 +23,7 @@ import type { Reading } from '@/data/types'
 export interface RangePreset { label: string; start: number; end: number }
 
 const fmt = (v: number, d: number) =>
-  new Intl.NumberFormat('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
+  new Intl.NumberFormat(localeOf(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
 
 function stats(series: number[]) {
   if (!series.length) return { min: 0, max: 0, avg: 0 }
@@ -88,8 +89,13 @@ export function RangeAnalysisModal({
   ]
 
   return (
+    // NE     : Modal kok overlay'ini "absolute inset-0 z-50" -> "fixed inset-0 z-[70]" yaptik.
+    // NEDEN  : Mehmet Abi - absolute, <main> (relative+overflow) ICINE hapsoluyordu; mobilde tam ekrani kaplamiyor,
+    //          ust cubuk/sidebar ile cakisiyordu. FeedbackDrawer gibi viewport'a sabitlenmeli.
+    // NASIL  : fixed ile viewport'a, z-[70] ile drawer'in (z-[60]) ustune tasidik; ic icerik/animasyon/onClose aynen.
+    // YAN ETKI: Masaustunde de viewport tam ekran ortalama dogru calisir; sadece kok konumlandirma degisti.
     <motion.div
-      className="absolute inset-0 z-50 grid place-items-center bg-black/60 p-6"
+      className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-6"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={onClose}
     >
@@ -134,7 +140,7 @@ export function RangeAnalysisModal({
                 min={toLocalInputValue(firstAbs)}
                 max={toLocalInputValue(lastAbs)}
                 onChange={(e) => { const v = fromLocalInputValue(e.target.value); if (!Number.isNaN(v)) clampStart(v) }}
-                className="num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
+                className="force-dark-surface num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
               />
             </div>
             <div>
@@ -146,7 +152,7 @@ export function RangeAnalysisModal({
                 min={toLocalInputValue(firstAbs)}
                 max={toLocalInputValue(lastAbs)}
                 onChange={(e) => { const v = fromLocalInputValue(e.target.value); if (!Number.isNaN(v)) clampEnd(v) }}
-                className="num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
+                className="force-dark-surface num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
               />
             </div>
           </div>

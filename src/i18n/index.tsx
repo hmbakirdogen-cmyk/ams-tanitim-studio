@@ -421,6 +421,56 @@ const EN: Record<string, string> = {
   'Zaman ekseni · dikey: her sensör kendi aralığında %0–%100 (değerler üstte)': 'Time axis · vertical: each sensor 0–100% of its own range (values above)',
   'Tasarruf (canlı oturum)': 'Savings (live session)',
   'Toplam hava': 'Total air',
+  // NE: EN'de eksik olup UI'da t() ile cagrilan (su an TR'ye dusen) anahtarlar — toplu ekleme.
+  // NEDEN: Mehmet Abi "kusursuz, sifir hata" — bugun canli demo; EN modunda hala Turkce gorunen metinler vardi.
+  // NASIL: Anahtarlar ilgili bilesenlerden BIREBIR kopyalandi (kivrik tirnak/tire dahil). YAN ETKI: sadece ceviri; mevcut anahtarlar dokunulmadi.
+  // Canli Panel (LivePage) — kucuk harf varyant
+  'tüm sensörler tek ekranda, gerçek zamanlı akıyor': 'all sensors on one screen, streaming in real time',
+  // Sayfa kabugu (App / hata kalkani)
+  'Bu sayfa': 'This page',
+  'Grafik': 'Chart',
+  // Karsilama (DemoWelcome)
+  'Giriş Yap': 'Enter',
+  'Hoş geldiniz. Hava Yönetim Sistemi’ni canlı verilerle inceleyebilirsiniz.': 'Welcome. Explore the Air Management System with live data.',
+  // Geri Bildirim (FeedbackDrawer / FeedbackFab)
+  'Geri Bildirim': 'Feedback',
+  'Yeni Bildirim': 'New Report',
+  'Hata': 'Bug',
+  'Öneri': 'Suggestion',
+  'Mesaj': 'Message',
+  'Sorunu veya önerinizi detaylıca yazın…': 'Describe the issue or your suggestion in detail…',
+  'Gönder': 'Send',
+  'Bildiriminiz tarafımıza ulaştı. Teşekkür ederiz.': 'Your report has reached us. Thank you.',
+  'Önceki Bildirimlerim': 'My Previous Reports',
+  'Henüz bildirim yok.': 'No reports yet.',
+  // Canli Cihaza Baglanma Kilavuzu (LiveSetupGuide) — sihirbaz akisi
+  '3 Adımda': 'In 3 Steps',
+  'Kurulum yok, internet yok — kabloyu takın, cihazı biz bulalım.': 'No setup, no internet — plug in the cable and we’ll find the device.',
+  'Cihazı bağlayın': 'Connect the device',
+  'Cihazı bu bilgisayarla': 'Connect the device to the',
+  'aynı ağa': 'same network',
+  'bağlayın (Ethernet kablosu veya switch).': 'as this computer (Ethernet cable or switch).',
+  'Köprü uygulamayla birlikte gömülü çalışır — Node kurmanıza, paket indirmenize veya ayrı pencere açmanıza gerek yok.': 'The bridge runs embedded with the app — no need to install Node, download packages or open a separate window.',
+  'Cihazı otomatik bulun': 'Find the device automatically',
+  'Aşağıdaki butona basın; aynı ağdaki SMC cihazını biz arayalım. Bulununca tıklayın — adres ve sensör kimlikleri kendiliğinden dolar.': 'Press the button below and we’ll search for the SMC device on the same network. When found, click it — the address and sensor IDs fill in automatically.',
+  'Aranıyor…': 'Searching…',
+  'Cihazı Otomatik Bul': 'Find Device Automatically',
+  'Ağ taranıyor': 'Scanning the network',
+  'Köprüye ulaşılamadı. Uygulamayı “Baslat.bat” ile açtığınızdan emin olun, sonra tekrar deneyin.': 'Could not reach the bridge. Make sure you opened the app with “Baslat.bat”, then try again.',
+  'Tarama zaman aşımına uğradı. Cihazın açık ve aynı ağda olduğundan emin olup tekrar deneyin.': 'The scan timed out. Make sure the device is powered on and on the same network, then try again.',
+  'Cihaz bulunamadı. Kabloyu/ağı kontrol edip tekrar deneyin veya aşağıdan elle girin.': 'No device found. Check the cable/network and try again, or enter it manually below.',
+  'Sensör kimlikleri okunuyor…': 'Reading sensor IDs…',
+  'Cihaz seçildi. Sensör kimlikleri otomatik dolduruldu — gerekirse “Gelişmiş”ten düzeltebilirsiniz.': 'Device selected. Sensor IDs filled in automatically — you can adjust them under “Advanced” if needed.',
+  'Gelişmiş ayarları gizle': 'Hide advanced settings',
+  'Elle gir / Gelişmiş': 'Enter manually / Advanced',
+  'Cihazı kaydedin ve canlı moda geçin; durum': 'Save the device and switch to live mode; the status should be',
+  'olmalı.': '.',
+  'Bağlanamazsa: cihazın açık ve aynı ağda olduğundan emin olun. İstediğiniz an': 'If it won’t connect: make sure the device is on and on the same network. Any time you can switch back to',
+  '’ya dönebilirsiniz (cihaz olmadan da her şey çalışır).': ' — everything works without a device too.',
+  // Urun Ayarlari (ProductSettingsPage) — yeni baglanma aciklamasi
+  'Canlı veri için cihazı bu bilgisayarla aynı ağa bağlayın ve yukarıdaki': 'For live data, connect the device to the same network as this computer and use the',
+  '“Canlı cihaza bağlanma kılavuzu”': '“Live device connection guide”',
+  'ile bağlanın — köprü uygulamayla birlikte gömülü çalışır; ayrıca kurulum veya dosya gerekmez. Cihaz yoksa Demo’ya dönebilirsiniz.': 'above to connect — the bridge runs embedded with the app; no separate install or file needed. Without a device, switch back to Demo.',
 }
 
 const JA: Record<string, string> = {
@@ -832,6 +882,56 @@ const JA: Record<string, string> = {
   'Zaman ekseni · dikey: her sensör kendi aralığında %0–%100 (değerler üstte)': '時間軸 · 縦：各センサーは自身の範囲の0〜100%（数値は上部）',
   'Tasarruf (canlı oturum)': '節減（ライブセッション）',
   'Toplam hava': '総空気量',
+  // NE: JA'da eksik olup UI'da t() ile cagrilan (su an TR'ye dusen) anahtarlar — EN ile simetrik toplu ekleme.
+  // NEDEN: Mehmet Abi "kusursuz, sifir hata" — bugun canli demo; JA modunda hala Turkce gorunen metinler vardi.
+  // NASIL: Anahtarlar bilesenlerden BIREBIR kopyalandi (EN blogu ile ayni anahtar seti). YAN ETKI: sadece ceviri.
+  // Canli Panel (LivePage) — kucuk harf varyant
+  'tüm sensörler tek ekranda, gerçek zamanlı akıyor': '全センサーを一画面でリアルタイム表示',
+  // Sayfa kabugu (App / hata kalkani)
+  'Bu sayfa': 'このページ',
+  'Grafik': 'グラフ',
+  // Karsilama (DemoWelcome)
+  'Giriş Yap': '入る',
+  'Hoş geldiniz. Hava Yönetim Sistemi’ni canlı verilerle inceleyebilirsiniz.': 'ようこそ。エア・マネジメント・システムをライブデータでご覧いただけます。',
+  // Geri Bildirim (FeedbackDrawer / FeedbackFab)
+  'Geri Bildirim': 'フィードバック',
+  'Yeni Bildirim': '新規報告',
+  'Hata': '不具合',
+  'Öneri': '提案',
+  'Mesaj': 'メッセージ',
+  'Sorunu veya önerinizi detaylıca yazın…': '不具合やご提案を詳しくご記入ください…',
+  'Gönder': '送信',
+  'Bildiriminiz tarafımıza ulaştı. Teşekkür ederiz.': 'ご報告を受け取りました。ありがとうございます。',
+  'Önceki Bildirimlerim': '過去の報告',
+  'Henüz bildirim yok.': 'まだ報告はありません。',
+  // Canli Cihaza Baglanma Kilavuzu (LiveSetupGuide) — sihirbaz akisi
+  '3 Adımda': '3ステップで',
+  'Kurulum yok, internet yok — kabloyu takın, cihazı biz bulalım.': 'インストール不要、インターネット不要 — ケーブルを挿すだけで機器を自動検出します。',
+  'Cihazı bağlayın': '機器を接続',
+  'Cihazı bu bilgisayarla': '機器をこのPCと',
+  'aynı ağa': '同じネットワークに',
+  'bağlayın (Ethernet kablosu veya switch).': '接続してください（Ethernetケーブルまたはスイッチ）。',
+  'Köprü uygulamayla birlikte gömülü çalışır — Node kurmanıza, paket indirmenize veya ayrı pencere açmanıza gerek yok.': 'ブリッジはアプリに組み込まれて動作します — Nodeのインストール、パッケージのダウンロード、別ウィンドウの起動は不要です。',
+  'Cihazı otomatik bulun': '機器を自動検出',
+  'Aşağıdaki butona basın; aynı ağdaki SMC cihazını biz arayalım. Bulununca tıklayın — adres ve sensör kimlikleri kendiliğinden dolar.': '下のボタンを押すと、同じネットワーク上のSMC機器を検索します。見つかったらクリック — アドレスとセンサーIDが自動入力されます。',
+  'Aranıyor…': '検索中…',
+  'Cihazı Otomatik Bul': '機器を自動検出',
+  'Ağ taranıyor': 'ネットワークをスキャン中',
+  'Köprüye ulaşılamadı. Uygulamayı “Baslat.bat” ile açtığınızdan emin olun, sonra tekrar deneyin.': 'ブリッジに到達できません。アプリを「Baslat.bat」で開いたことを確認し、再度お試しください。',
+  'Tarama zaman aşımına uğradı. Cihazın açık ve aynı ağda olduğundan emin olup tekrar deneyin.': 'スキャンがタイムアウトしました。機器の電源が入り、同じネットワーク上にあることを確認して再度お試しください。',
+  'Cihaz bulunamadı. Kabloyu/ağı kontrol edip tekrar deneyin veya aşağıdan elle girin.': '機器が見つかりません。ケーブル/ネットワークを確認して再試行するか、下から手動で入力してください。',
+  'Sensör kimlikleri okunuyor…': 'センサーIDを読み取り中…',
+  'Cihaz seçildi. Sensör kimlikleri otomatik dolduruldu — gerekirse “Gelişmiş”ten düzeltebilirsiniz.': '機器を選択しました。センサーIDは自動入力されました — 必要であれば「詳細設定」から修正できます。',
+  'Gelişmiş ayarları gizle': '詳細設定を隠す',
+  'Elle gir / Gelişmiş': '手動入力 / 詳細設定',
+  'Cihazı kaydedin ve canlı moda geçin; durum': '機器を保存してライブモードに切り替えてください。ステータスは',
+  'olmalı.': 'になります。',
+  'Bağlanamazsa: cihazın açık ve aynı ağda olduğundan emin olun. İstediğiniz an': '接続できない場合：機器の電源が入り、同じネットワーク上にあることを確認してください。いつでも',
+  '’ya dönebilirsiniz (cihaz olmadan da her şey çalışır).': 'に戻せます（機器がなくてもすべて動作します）。',
+  // Urun Ayarlari (ProductSettingsPage) — yeni baglanma aciklamasi
+  'Canlı veri için cihazı bu bilgisayarla aynı ağa bağlayın ve yukarıdaki': 'ライブデータには、機器をこのPCと同じネットワークに接続し、上の',
+  '“Canlı cihaza bağlanma kılavuzu”': '「ライブ機器への接続ガイド」',
+  'ile bağlanın — köprü uygulamayla birlikte gömülü çalışır; ayrıca kurulum veya dosya gerekmez. Cihaz yoksa Demo’ya dönebilirsiniz.': 'で接続してください — ブリッジはアプリに組み込まれて動作し、別途インストールやファイルは不要です。機器がない場合はデモに戻せます。',
 }
 
 const DICT: Record<Lang, Record<string, string>> = { tr: {}, en: EN, ja: JA }

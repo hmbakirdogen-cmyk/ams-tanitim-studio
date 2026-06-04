@@ -198,7 +198,21 @@ function syntheticAt(absMs: number, model: AmsModel, targets: Record<Mode, T>): 
 }
 
 /*
- * DEMO kovasina, simdiden geriye `days` gunluk gercekci gecmis uretir (dakikalik). Sunum tusu bunu cagirir.
+ * Uretilen ham satirlari DEMO kovasina ISLER (budama + localStorage yazma + onbellek tazeleme).
+ * seedDemoHistory (senkron) ve seedDemoHistoryChunked (kademeli) ortak SON adimi -> tek dogru yer, tekrar yok.
+ */
+function commitDemoRows(rows: Sample[], nowMs: number): { count: number } {
+  const pruned = prune(rows, nowMs)
+  write('demo', pruned)
+  const c = cache.demo
+  c.rows = pruned
+  c.lastBucket = pruned.length ? Math.floor(pruned[pruned.length - 1][0] / BUCKET_MS) : -1
+  c.loaded = true
+  return { count: pruned.length }
+}
+
+/*
+ * DEMO kovasina, simdiden geriye `days` gunluk gercekci gecmis uretir (dakikalik). SENKRON surum (geri uyumluluk).
  * Mevcut demo verisini TAZELER (ustune yazar) ki sunum her seferinde temiz/inandirici baslasin.
  */
 export function seedDemoHistory(days: number, nowMs: number): { count: number } {
@@ -208,11 +222,52 @@ export function seedDemoHistory(days: number, nowMs: number): { count: number } 
   const start = nowMs - days * 24 * 60 * 60 * 1000
   let t = Math.ceil(start / BUCKET_MS) * BUCKET_MS
   for (; t <= nowMs; t += BUCKET_MS) rows.push(syntheticAt(t, model, targets))
-  const pruned = prune(rows, nowMs)
-  write('demo', pruned)
-  const c = cache.demo
-  c.rows = pruned
-  c.lastBucket = pruned.length ? Math.floor(pruned[pruned.length - 1][0] / BUCKET_MS) : -1
-  c.loaded = true
-  return { count: pruned.length }
+  return commitDemoRows(rows, nowMs)
+}
+
+/*
+ * NE      : seedDemoHistory'nin KADEMELI (chunked) surumu - ayni 30 gunluk deseni uretir AMA ana thread'i kilitlemez.
+ * NEDEN   : Mehmet Abi: zayif PC'de ~43k ornegi tek seferde uretmek sayfayi saniyelerce dondurup "kusursuz" hissi bozuyordu.
+ * NASIL   : Uretim araligini (start..nowMs) bekleyen tek bir kuyruk; her requestAnimationFrame'de SADECE bir parca (CHUNK)
+ *           ornek uretip BELLEKTE biriktirir, ilerlemeyi (0..1) bildirir. Loop bitince TEK seferde commitDemoRows ile yazar
+ *           -> localStorage'a yalniz 1 yazma (ara yazma yok). syntheticAt birebir ayni cagrilir -> desen/anlamca AYNI veri.
+ * YAN ETKI: Asenkron tamamlanir; cagiran onProgress/onDone ile UI gunceller. Iptal: dondurulen fonksiyon cagrilirsa rAF durur
+ *           ve commit YAPILMAZ (mevcut demo verisi bozulmaz). Math.random tohumsuz oldugu icin sonuc senkron surumle
+ *           istatistiksel olarak aynidir (ayni kovalar, ayni gun/gece+hafta sonu ritmi, ayni gurultu genligi).
+ */
+const SEED_CHUNK = 1500 // her frame'de uretilecek ornek adedi (~43k icin ~29 frame -> yarim saniyeden az, donma yok)
+
+export function seedDemoHistoryChunked(
+  days: number,
+  nowMs: number,
+  onProgress: (ratio: number) => void,
+  onDone: (result: { count: number }) => void,
+): () => void {
+  const model = getActiveModel()
+  const targets = targetsFor(model)
+  const start = nowMs - days * 24 * 60 * 60 * 1000
+  const first = Math.ceil(start / BUCKET_MS) * BUCKET_MS
+  const total = Math.max(0, Math.floor((nowMs - first) / BUCKET_MS) + 1) // toplam uretilecek ornek (ilerleme paydasi)
+  const rows: Sample[] = []
+  let t = first
+  let done = 0
+  let raf = 0
+  let cancelled = false
+
+  const step = () => {
+    if (cancelled) return
+    const limit = Math.min(SEED_CHUNK, total - done) // bu frame'de uretilecek adet
+    for (let i = 0; i < limit; i++, t += BUCKET_MS) rows.push(syntheticAt(t, model, targets))
+    done += limit
+    onProgress(total > 0 ? done / total : 1)
+    if (done >= total) {
+      onDone(commitDemoRows(rows, nowMs)) // TEK yazma: tum desen hazir -> localStorage'a bir kez
+      return
+    }
+    raf = requestAnimationFrame(step)
+  }
+  raf = requestAnimationFrame(step)
+
+  // Iptal kancasi: rAF'i durdur, ara veriyi at -> mevcut demo kovasi olduğu gibi kalir
+  return () => { cancelled = true; if (raf) cancelAnimationFrame(raf) }
 }

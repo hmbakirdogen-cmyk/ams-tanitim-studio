@@ -13,6 +13,7 @@ import { X, Send, Bug, Lightbulb, MessageSquare, CheckCircle2 } from 'lucide-rea
 import { addFeedback, listFeedback, type Feedback, type FeedbackTur } from '@/data/feedback'
 import { sound } from '@/lib/sound'
 import { useLang } from '@/i18n'
+import { localeOf } from '@/lib/format'
 
 const TURLER: { tur: FeedbackTur; label: string; icon: typeof Bug; color: string }[] = [
   { tur: 'hata', label: 'Hata', icon: Bug, color: '#ff6b6b' },
@@ -25,7 +26,7 @@ const MAX = 1000
 function formatTarih(iso: string): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString(localeOf(), { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 export function FeedbackDrawer({ onClose, sayfa }: { onClose: () => void; sayfa: string }) {
@@ -50,7 +51,7 @@ export function FeedbackDrawer({ onClose, sayfa }: { onClose: () => void; sayfa:
     window.setTimeout(() => setBasarili(false), 2800)
   }
 
-  const field = 'w-full rounded-xl border border-[var(--hair)] bg-[#0a1424] px-3 py-2.5 text-[13px] text-white outline-none transition focus:border-[var(--smc-bright)] resize-none'
+  const field = 'force-dark-surface w-full rounded-xl border border-[var(--hair)] bg-[#0a1424] px-3 py-2.5 text-[13px] text-white outline-none transition focus:border-[var(--smc-bright)] resize-none'
 
   return (
     <motion.div className="fixed inset-0 z-[60]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

@@ -25,12 +25,21 @@ import { useDeviceSettings } from '@/data/deviceSettings'
 import { useEconomy } from '@/data/economy'
 import { fmtInt, fmt2 } from '@/lib/format'
 import { useLang } from '@/i18n'
-import { useMemo } from 'react'
+import { isMobileDevice } from '@/lib/device'
+import { useMemo, useState, useEffect } from 'react'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
 export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
   const { reading, history, setMode } = data
   const { t } = useLang()
+  const mobile = isMobileDevice() // mobilde ağır arka plan katmanlarını azalt (ısınma/refresh önlenir)
+  // CANLI PANEL'E GEÇİŞ AKICILIĞI (Mehmet Abi: "geçerken gecikme/görüntü kirliliği/takılma"): ağır katmanlar (WebGL 3D + 2D akış +
+  //   ambient) sayfa geçiş animasyonu (~0.22s) BİTTİKTEN sonra mount edilir → opacity geçişi GPU/shader init'iyle ÇAKIŞMAZ; sonra fade-in.
+  const [heavyReady, setHeavyReady] = useState(false)
+  useEffect(() => {
+    const id = window.setTimeout(() => setHeavyReady(true), 180)
+    return () => window.clearTimeout(id)
+  }, [])
   const metrics = useMetrics() // aktif modele gore reaktif (debi/basinc olcegi modelle gelir)
   const byKey = Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<MetricKey, MetricDef>
   const { visible } = useSensorVisibility()
@@ -80,17 +89,28 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
           {/* SOL ANA BLOK: Akış (üst) + Klasik (alt) */}
           <div className="flex flex-col gap-4 lg:min-h-0 lg:min-w-0 lg:flex-1">
             {/* AKIŞ — mobilde sabit yükseklik (okunur); lg'de flex-[3]. 3D AmbientScene cihaz arkasında → DeviceFlowChart şeffaf üstte. */}
-            <div className="glass relative h-[46vh] min-h-[300px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[3]">
-              <AmbientScene theme={theme} flow={flowNorm} space />
-              <DeviceFlowChart reading={reading} metrics={metrics} mode={mode} theme={theme} />
+            {/* NE: Mobil/taban yükseklik 46vh/300px → 42vh/240px küçültüldü. NEDEN: Mehmet Abi — küçük telefonda Akış+Klasik alt alta ekranı taşırıyordu, içerik sığmıyordu. NASIL: yalnız taban sınıflar düşürüldü; lg:* AYNEN korundu. YAN ETKİ: masaüstü (lg+) görünüm değişmez; sadece mobilde paneller kısalır. */}
+            <div className="glass relative h-[42vh] min-h-[240px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[3]">
+              {heavyReady && (
+                <div className="ams-fade-in absolute inset-0">
+                  <AmbientScene theme={theme} flow={flowNorm} space />
+                  <DeviceFlowChart reading={reading} metrics={metrics} mode={mode} theme={theme} />
+                </div>
+              )}
               <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} theme={theme} />
             </div>
             {/* KLASİK — mobilde sabit yükseklik; lg'de flex-[2]. */}
-            <div className="glass relative h-[34vh] min-h-[230px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2]">
-              <AmbientScene theme={theme} flow={flowNorm} />
-              <ErrorBoundary variant="inline" label={t('Grafik')}>
-                <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
-              </ErrorBoundary>
+            {/* NE: Mobil/taban yükseklik 34vh/230px → 30vh/190px küçültüldü. NEDEN: Mehmet Abi — Akış paneliyle birlikte küçük telefonda toplam yükseklik ekranı taşırıyordu. NASIL: yalnız taban sınıflar düşürüldü; lg:* AYNEN korundu. YAN ETKİ: masaüstü (lg+) görünüm değişmez; sadece mobilde panel kısalır. */}
+            <div className="glass relative h-[30vh] min-h-[190px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2]">
+              {heavyReady && (
+                <div className="ams-fade-in absolute inset-0">
+                  {/* MOBİL: bu 2. AmbientScene (3D grafiğin ARKASINDA, çoğu görünmez) ÇİZİLMEZ → boşa dönen canvas yok. Masaüstünde kalır. */}
+                  {!mobile && <AmbientScene theme={theme} flow={flowNorm} />}
+                  <ErrorBoundary variant="inline" label={t('Grafik')}>
+                    <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
+                  </ErrorBoundary>
+                </div>
+              )}
               <ChartOverlay reading={reading} history={history} metrics={visibleMetrics} />
             </div>
           </div>

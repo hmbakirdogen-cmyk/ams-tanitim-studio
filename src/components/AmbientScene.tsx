@@ -9,12 +9,13 @@
  * YAN ETKI: Şeffaf çizer (clearRect) → arkadaki glass/sahne sızar; üstündeki paneller de yarı saydam olduğundan sahne görünür.
  */
 import { useEffect, useRef } from 'react'
+import { isMobileDevice } from '@/lib/device'
 
-// Akış zerresi (yatay süzülen parlak ışık) sayısı + derinlik kıvılcımı sayısı.
-// Mehmet Abi: "tertemiz / sakin derinlik" → zerre sayısı 96→54'e indirildi (gürültü azaldı, ferah/premium), glow küresi 4→3.
-const FLOW_N = 54
-const GLOW_N = 3
-const STAR_N = 70 // 'space' modunda (ürün penceresi) hafif 3D uzay yıldız alanı nokta sayısı
+// Akış zerresi/glow/yıldız sayıları MOBİLDE düşürülür (telefon CPU/GPU'su 3 ayrı canvas + WebGL ile boğulmasın → ısınma/refresh yok).
+// Masaüstü değerleri (Mehmet Abi onaylı "tertemiz/sakin derinlik": 96→54) AYNEN korunur.
+const FLOW_N_DESKTOP = 54, FLOW_N_MOBILE = 22
+const GLOW_N_DESKTOP = 3, GLOW_N_MOBILE = 2
+const STAR_N_DESKTOP = 70, STAR_N_MOBILE = 26 // 'space' modu (ürün penceresi) yıldız alanı
 
 export function AmbientScene({ theme = 'dark', flow = 0.4, space = false }: { theme?: 'dark' | 'light'; flow?: number; space?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -27,10 +28,15 @@ export function AmbientScene({ theme = 'dark', flow = 0.4, space = false }: { th
     const canvas = canvasRef.current, wrap = wrapRef.current
     if (!canvas || !wrap) return
     const ctx = canvas.getContext('2d')!
+    // MOBİL: parçacık sayıları + dpr düşürülür (telefonda 3 canvas + WebGL aynı anda → ısınma/takılma/refresh önlenir).
+    const mobile = isMobileDevice()
+    const FLOW_N = mobile ? FLOW_N_MOBILE : FLOW_N_DESKTOP
+    const GLOW_N = mobile ? GLOW_N_MOBILE : GLOW_N_DESKTOP
+    const STAR_N = mobile ? STAR_N_MOBILE : STAR_N_DESKTOP
 
     let W = 0, H = 0, dpr = 1
     const resize = () => {
-      dpr = Math.min(2, window.devicePixelRatio || 1)
+      dpr = Math.min(mobile ? 1 : 2, window.devicePixelRatio || 1)
       W = wrap.clientWidth; H = wrap.clientHeight
       canvas.width = Math.max(1, Math.round(W * dpr)); canvas.height = Math.max(1, Math.round(H * dpr))
       canvas.style.width = W + 'px'; canvas.style.height = H + 'px'

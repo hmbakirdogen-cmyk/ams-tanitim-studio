@@ -7,10 +7,9 @@
  * YAN ETKI: Offline (yerel kopru, internet yok). DemoDataSource ile AYNI sozlesme -> sayfalar degismeden canli veriyi cizer.
  */
 import type { DataSource, Mode, Reading } from './types'
-import { setConnStatus, type ConnStatus, type NodeIds } from './connection'
+import { setConnStatus, BRIDGE_URL, type ConnStatus, type NodeIds } from './connection'
 import type { DeviceSettings } from './deviceSettings'
 
-const BRIDGE_URL = 'ws://localhost:4841' // personelin bilgisayarindaki yerel OPC UA koprusu
 const RECONNECT_MS = 2500
 
 // Cihaz mod bilgisi vermezse debiden kabaca turet (gorsel tutarlilik)

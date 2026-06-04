@@ -12,9 +12,11 @@ import { ArrowDown, ArrowUp } from 'lucide-react'
 import type { MetricDef } from '@/data/metrics'
 import type { Reading } from '@/data/types'
 import { useLang } from '@/i18n'
+import { localeOf } from '@/lib/format'
+import { isMobileDevice } from '@/lib/device'
 
 function fmt(v: number, d: number): string {
-  return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
+  return new Intl.NumberFormat(localeOf(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
 }
 
 export function PipeOverlay({
@@ -32,6 +34,9 @@ export function PipeOverlay({
 }) {
   const { t } = useLang()
   const modeColor = MODE_COLOR[mode]
+  // NE: Cihaz mobil mi? bir kez hesaplanir. NEDEN: Mehmet Abi — dar Akis penceresinde alt-sol izgara cihaz gorseli+rozetle cakisiyor;
+  //   mobile ozgu sikilastirma gerek. NASIL: isMobileDevice() (lib/device). YAN ETKI: masaustu (lg+) dalini DEGISTIRMEZ, sadece mobil dallanir.
+  const mobile = isMobileDevice()
   // Gölge TEMA-UYUMLU: gündüz BEYAZ hale (koyu metin açık zemin/akış üstünde okunur) / gece KOYU hale (açık metin okunur).
   const shadow = theme === 'light'
     ? { textShadow: '0 1px 4px rgba(255,255,255,0.92), 0 0 2px rgba(255,255,255,0.85)' }
@@ -54,16 +59,20 @@ export function PipeOverlay({
             <span className="text-sm font-bold text-white">{t(MODE_LABEL[mode])}</span>
           </div>
           <div className="text-[11px] text-[var(--ink-soft)]">{t(MODE_DESC[mode])}</div>
-          {/* Hangi bilesen DEVREDE: Tasarruf=oransal regulator, Kesinti=tahliye valfi */}
+          {/* Hangi bilesen DEVREDE: Tasarruf=oransal regulator, Kesinti=tahliye valfi.
+              NE: Cipleri saran kabi force-dark-surface ile sariyoruz + cip zemini koyu tabanli (0.18->0.28). NEDEN: Mehmet Abi —
+              kok force-dark-surface KALKTIGI icin gunduzde acik glass uzerinde soluk cipler dusuk kontrast/zor okunuyordu. NASIL: ust mod
+              rozeti gibi force-dark-surface daima koyu zemin verir + renkli ton koyu #050b18 taban uzerine biner. YAN ETKI: gece gorunum
+              neredeyse ayni (zaten koyuydu), gunduz net okunur; cip parlak metin rengi korunur. */}
           {(mode === 'standby' || mode === 'isolation') && (
-            <div className="mt-1.5 flex flex-wrap gap-1.5">
+            <div className="force-dark-surface mt-1.5 flex flex-wrap gap-1.5">
               {mode === 'standby' && (
-                <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'rgba(54,224,200,0.18)', color: '#36E0C8' }}>
+                <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'linear-gradient(rgba(54,224,200,0.28), rgba(54,224,200,0.28)), #050b18', color: '#36E0C8' }}>
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#36E0C8', boxShadow: '0 0 6px #36E0C8' }} /> {t('Regülatör devrede')}
                 </span>
               )}
               {mode === 'isolation' && (
-                <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'rgba(255,176,77,0.18)', color: '#FFB04D' }}>
+                <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'linear-gradient(rgba(255,176,77,0.28), rgba(255,176,77,0.28)), #050b18', color: '#FFB04D' }}>
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#FFB04D', boxShadow: '0 0 6px #FFB04D' }} /> {t('Valf devrede')}
                 </span>
               )}
@@ -80,7 +89,10 @@ export function PipeOverlay({
 
       {/* SOL-ALT anlık değerler (Mehmet Abi: akışın ALTINDA temiz bölgede → DIŞ ÇERÇEVE YOK; değerler HİYERARŞİK/İRİ yüzer.
           2 sütun grid; ad küçük (ikincil) + İRİ beyaz değer (birincil) + birim/eşik küçük. text-shadow → çerçevesiz okunaklı. */}
-      <div className="absolute bottom-7 left-3 grid grid-cols-2 gap-x-6 gap-y-2.5">
+      {/* NE: Mobilde tek sutun + sikistirilmis konum. NEDEN: Mehmet Abi — dar Akis penceresinde 2-sutun izgara cihaz gorseli+ust rozetle
+          ust uste biniyordu. NASIL: mobile ? tek sutun (grid-cols-1) + daha sıkı bottom/gap, masaustunde AYNEN grid-cols-2/gap-x-6. YAN ETKI:
+          masaustu (lg+) gorunum DEGISMEZ; mobilde izgara daralip cakisma cozulur. */}
+      <div className={`absolute left-3 grid gap-y-2.5 ${mobile ? 'bottom-6 grid-cols-1 gap-x-0' : 'bottom-7 grid-cols-2 gap-x-6'}`}>
         {metrics.map((m) => {
           const v = reading ? m.get(reading) : m.min
           const thr = thresholds[m.key]
@@ -92,7 +104,8 @@ export function PipeOverlay({
                 <span className="text-[11px] font-medium text-[var(--ink-soft)]">{t(m.name)}</span>
               </div>
               <div className="mt-0.5 flex items-baseline gap-1" style={shadow}>
-                <span className="num text-2xl font-bold leading-none text-[var(--ink)]">{fmt(v, m.digits)}</span>
+                {/* Iri rakam: mobilde text-lg (kucuk, sikisik pencereye sigsin), masaustunde AYNEN text-2xl. */}
+                <span className={`num font-bold leading-none text-[var(--ink)] ${mobile ? 'text-lg' : 'text-2xl'}`}>{fmt(v, m.digits)}</span>
                 <span className="text-[11px] font-medium text-[var(--ink-soft)]">{t(m.unitShort)}</span>
                 {thr && (
                   <span className="ml-0.5 flex items-center gap-0.5 text-[9px]" style={{ color: below ? '#FFB04D' : 'var(--c-saving)' }}>
@@ -108,7 +121,11 @@ export function PipeOverlay({
       {/* ALT: zaman/akis aciklamasi */}
       <div className="absolute inset-x-3 bottom-2 flex items-center justify-between text-[10px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
         <span>{t('giriş')} →</span>
-        <span>{t('hava soldan sağa akıyor · sağ uç = anlık çıkış')}</span>
+        {/* NE: Ortadaki uzun aciklamayi mobilde gizle (yan giris/cikis etiketleri kalir). NEDEN: Mehmet Abi — dar mobil pencerede orta metin
+            sıkışıp diger etiketlere/izgaraya biniyor + eskiden CSS hidden sm:block (640px) ile gizleniyordu, izgara/rakam ise JS mobile
+            bayragiyla -> dar masaustunde ayrisiyordu. NASIL: ayni mobile (isMobileDevice) bayragina baglandi -> TEK tutarli mobil olcut.
+            YAN ETKI: masaustu (lg+) AYNEN gorunur; sadece mobil/masaustu ayrismasi giderilir. */}
+        {!mobile && <span>{t('hava soldan sağa akıyor · sağ uç = anlık çıkış')}</span>}
         <span>→ {t('çıkış')}</span>
       </div>
     </div>

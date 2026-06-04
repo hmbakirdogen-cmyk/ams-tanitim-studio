@@ -8,6 +8,7 @@
 import { METRICS, type MetricDef } from '@/data/metrics'
 import { WINDOW_POINTS } from './Hero3DChart'
 import { useLang } from '@/i18n'
+import { localeOf } from '@/lib/format'
 import type { Reading } from '@/data/types'
 
 const LEVELS = [100, 75, 50, 25, 0]
@@ -52,7 +53,7 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS }: { rea
         <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3 py-1.5 backdrop-blur-md">
           {metrics.map((m) => {
             const v = reading ? m.get(reading) : m.min
-            const txt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(v)
+            const txt = new Intl.NumberFormat(localeOf(), { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(v)
             return (
               <div key={m.key} className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />

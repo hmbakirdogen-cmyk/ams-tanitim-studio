@@ -2,6 +2,40 @@
 
 > Bu dosya, yeni Claude Code oturumunun "neredeyim" sorusuna ilk cevabıdır. **Güncel tut.**
 
+## ŞU AN NEREDEYIZ (2026-06-04 — MOBİL-CANLI + PERF/REFRESH + ANİMASYON + KUSURSUZLAŞTIRMA)
+
+**Durum:** Bugünkü canlı demo (TR; PC + mobil; **GERÇEK cihaz LAN köprüsüyle**) için kusursuzlaştırma turu. `typecheck` + `build` **SIFIR hata**. Test: yerelde Vite `:5180` + köprü `:4841`. **Paket/Release YAPILMADI** (Mehmet Abi onayı bekliyor).
+
+> ⚠️ **Eski "Mobil = yalnız demo / mobilde canlı mod gizli / mobil=demo kilidi korunur" ifadeleri (aşağıdaki 2026-06-02 vb. bölümlerde) ARTIK GEÇERSİZ.** Mobil de canlı moda geçebilir — aşağıya bakın.
+
+**MOBİL-CANLI (Mehmet Abi onayı):**
+- Köprü WS artık `0.0.0.0` dinler (LAN açık) — `bridge/opcua-bridge.mjs` (`WS_HOST='0.0.0.0'`) + `bridge/server.mjs` (`HTTP_HOST='0.0.0.0'`).
+- Uygulama köprü adresini **host'tan türetir**: `src/data/connection.ts` → `BRIDGE_URL = ws://<location.hostname>:4841` (PC'de `localhost`, telefonda PC'nin LAN IP'si).
+- `ProductSettingsPage`'de **Demo/Canlı seçimi + bağlanma kılavuzu MOBİLDE de görünür** (artık `isMobileDevice` ile gizlenmiyor).
+- `connection.ts`'teki **"mobil=demo zorlaması" KALDIRILDI** → telefon, PC'deki köprüden CANLI cihaz verisi görür + set ayarı yapar.
+- **GÜVENLİK:** güvenilir saha ağı varsayımı (aynı Wi-Fi'daki cihazlar köprüye/cihaza yazabilir). İlk `0.0.0.0` açılışında Windows Güvenlik Duvarı tek seferlik izin sorabilir.
+
+**PERF/REFRESH (mobil):**
+- `Hero3DChart` mobilde **yansıma (MeshReflector) / Bloom / multisampling / yüksek dpr KAPALI** + WebGL bağlam-kaybı remount **TAVANLI** → "ekran kendini yeniliyor / zoom" sorunu KÖKTEN bitti.
+- `AmbientScene` mobilde az parçacık + **2. örnek çizilmiyor**; `CinematicBackground` aurora mobilde hafif.
+- **Canlı Panel'e geçiş:** ağır katmanlar geçiş bitince mount + `ams-fade-in` (takılma yok).
+
+**ANİMASYON:**
+- `DeviceFlowChart` **rekorları KALDIRILDI** (boru tek tüp).
+- Valf egzozu artık **GEÇİŞTE fışkırıp İZOLASYONDA sakinleşir** (gerçekçi).
+- Regülatör continuity tutarlı (dokunulmadı).
+
+**YERLEŞİM/TEMA:**
+- Modallar (`RangeAnalysisModal` / `LiveSetupGuide`) `fixed inset-0 z-[70]` → mobilde **tam ekran**.
+- Mobil panel yükseklikleri küçültüldü; `PipeOverlay` mobilde **tek sütun**.
+- Gece/gündüz okunmazlığı gideren `force-dark-surface` (4 input + çipler).
+- `Tilt3D` mobilde **pasif**; 5 sayfaya **FAB alt boşluğu**; Analiz mod-sayımı **NaN guard**.
+
+**i18n:** 41 eksik anahtar **EN + JA** eklendi.
+- **BEKLEYEN (demo-engeli DEĞİL):** tam sayı / tarih / % locale (EN/JA) refactor **ertelendi** (TR demoda görünmez).
+
+---
+
 ## ŞU AN NEREDEYIZ (2026-06-03 — STABİLİTE/PERFORMANS TURU + premium giriş + hitap)
 
 **Durum:** Canlı demo üzerinde Mehmet Abi ile hızlı iterasyon; `typecheck`+`build` sıfır hata; push'lı (`4b75a7d`→`fbaaf4f`→`ae82548`→bu turun commit'i).
@@ -26,7 +60,7 @@
 
 **Durum:** Kod yazıldı, `typecheck` + `build` **SIFIR hata**, tek-tık paket üretildi, sunucu/feedback/ws **yerelde doğrulandı**, Mehmet Abi **ekran onayı verdi** → **commit + push edildi (master)**.
 **2. parti (mobil + gece düzeltme) — ✅ push edildi:**
-- **Mobil web + PWA AÇIK:** `src/config.ts` `MOBILE_BLOCKED=false` (MobileBlocked korundu, geri kapatılabilir). `bridge/server.mjs` HTTP `0.0.0.0` → aynı Wi-Fi'daki telefon `http://<LAN-IP>:5180` ile açar (LAN IP konsola yazılır); **ws köprü hâlâ 127.0.0.1** (güvenlik). Mobil=demo kilidi (`connection.ts`) korunur.
+- **Mobil web + PWA AÇIK:** `src/config.ts` `MOBILE_BLOCKED=false` (MobileBlocked korundu, geri kapatılabilir). `bridge/server.mjs` HTTP `0.0.0.0` → aynı Wi-Fi'daki telefon `http://<LAN-IP>:5180` ile açar (LAN IP konsola yazılır). ~~ws köprü hâlâ 127.0.0.1; Mobil=demo kilidi (`connection.ts`) korunur.~~ **⚠️ GÜNCELLENDİ (2026-06-04): ws köprü artık `0.0.0.0`; mobil=demo kilidi KALDIRILDI — bkz. en üstteki 2026-06-04 bölümü.**
 - **Gece modu okunabilirlik:** gece `--glass-bg` çok şeffaftı → modal/çekmece metni okunmuyordu. Yeni `.glass-solid` (opak panel, gece+gündüz token) → `LiveSetupGuide` + `FeedbackDrawer`'a uygulandı.
 - ⚠️ İlk `0.0.0.0` açılışında Windows Güvenlik Duvarı "node.exe izin" sorabilir (tek seferlik). Mobil 3D perf gerçek cihazda izlenmeli (gerekirse mobile-özel hafifletme).
 

@@ -6,7 +6,6 @@
  * YAN ETKI: Offline (yerel koprü; internet yok). Mod degisince useLiveReadings kaynagi (Demo/Canli) yeniden secer.
  */
 import { useSyncExternalStore } from 'react'
-import { isMobileDevice } from '@/lib/device'
 
 export type ConnMode = 'demo' | 'live'
 export type ConnStatus = 'demo' | 'connecting' | 'connected' | 'error'
@@ -43,6 +42,14 @@ export const DEFAULT_NODE_IDS: NodeIds = {
 export const DEFAULT_CONN: ConnSettings = { mode: 'demo', endpoint: 'opc.tcp://192.168.1.50:4840', nodeIds: { ...DEFAULT_NODE_IDS } }
 const KEY = 'ams_connection_v1'
 
+// Yerel OPC UA koprusu WS adresi — uygulamayi SERVIS EDEN host'a baglanir (location.hostname):
+//   PC'de (localhost:5180) → ws://localhost:4841 ; telefon PC'nin IP'sinden acinca (http://<PC-IP>:5180) → ws://<PC-IP>:4841.
+//   Boylece MOBIL de PC'deki kopru uzerinden CANLI cihaz verisi gorur (kopru 0.0.0.0 dinler; Mehmet Abi onayi).
+export const BRIDGE_URL: string =
+  typeof window !== 'undefined' && window.location?.hostname
+    ? `ws://${window.location.hostname}:4841`
+    : 'ws://localhost:4841'
+
 function load(): ConnSettings {
   let s: ConnSettings
   try {
@@ -53,8 +60,8 @@ function load(): ConnSettings {
   } catch {
     s = { ...DEFAULT_CONN, nodeIds: { ...DEFAULT_NODE_IDS } }
   }
-  // MOBIL = yalniz DEMO gosterimi (canli cihaz PC surumunde). Telefon/tablette canli moda kilitlenmez.
-  if (isMobileDevice()) s.mode = 'demo'
+  // Mobil de CANLI moda gecebilir (Mehmet Abi: telefon, uygulamayi acan PC'deki kopruye LAN uzerinden baglanip canli cihaz
+  //   verisi gorur + set ayari yapar). Varsayilan yine DEMO (DEFAULT_CONN); kullanici Canli'yi secince mobilde de aktif olur.
   return s
 }
 

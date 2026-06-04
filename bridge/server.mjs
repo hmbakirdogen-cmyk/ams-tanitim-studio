@@ -18,8 +18,8 @@ import { handleAppConnection, WS_HOST, WS_PORT } from './opcua-bridge.mjs'
 import { applyStagedUpdate, checkForUpdate } from './updater.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-// 0.0.0.0: tum arayuzler -> ayni Wi-Fi'daki telefon/tablet de uygulamayi acabilir (mobil demo). Ilk acilista
-// Windows Guvenlik Duvari "Izin Ver" sorabilir (tek seferlik). WS kopru ise GUVENLIK icin yalniz 127.0.0.1 (bkz opcua-bridge).
+// 0.0.0.0: tum arayuzler -> ayni Wi-Fi'daki telefon/tablet de uygulamayi acabilir (mobil CANLI takip + set ayari). Ilk acilista
+// Windows Guvenlik Duvari "Izin Ver" sorabilir (tek seferlik). WS kopru de artik LAN'a acik (0.0.0.0; bkz opcua-bridge, Mehmet Abi onayi).
 const HTTP_HOST = '0.0.0.0'
 const HTTP_PORT = 5180
 
@@ -133,7 +133,7 @@ httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
   console.log('==========================================================')
   console.log(`[app]   Uygulama: ${APP_URL}   (kaynak: ${APP_DIR})`)
   for (const ip of lanIPv4s()) console.log(`[app]   Telefon/tablet (ayni Wi-Fi): http://${ip}:${HTTP_PORT}`)
-  console.log(`[kopru] WebSocket: ws://${WS_HOST}:${WS_PORT} (yalniz bu bilgisayar)`)
+  console.log(`[kopru] WebSocket: ws://${WS_HOST}:${WS_PORT} (ayni Wi-Fi'daki cihazlar erisebilir)`)
   console.log('Tarayici aciliyor... Acilmazsa yukaridaki adrese gidin.')
   console.log('Bu pencereyi KAPATMAYIN (kapatirsaniz uygulama+cihaz baglantisi durur). Durdurmak: Ctrl+C')
   openBrowser(APP_URL)

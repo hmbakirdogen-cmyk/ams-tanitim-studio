@@ -24,6 +24,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import type { Reading } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
+import { isMobileDevice } from '@/lib/device'
 
 // --- Sahne sabitleri ---
 const SPAN_X = 23 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis(~48sn)" (sol). Mehmet Abi: "en ONDEKI cubuk 'simdi' eksenine degsin" →
@@ -238,24 +239,30 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
   )
 }
 
-function ReflectiveFloor({ color }: { color: string }) {
+function ReflectiveFloor({ color, reflective }: { color: string; reflective: boolean }) {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
       <planeGeometry args={[70, 44]} />
-      {/* 60fps: resolution + blur olculu (sis+opacity altinda gorsel fark minimal, kazanc buyuk) */}
-      <MeshReflectorMaterial
-        mirror={0.5}
-        blur={[128, 32]}
-        resolution={256}
-        mixBlur={1}
-        mixStrength={3.5}
-        roughness={0.85}
-        depthScale={1.1}
-        minDepthThreshold={0.3}
-        maxDepthThreshold={1.4}
-        color={color}
-        metalness={0.6}
-      />
+      {/* 60fps: resolution + blur olculu (sis+opacity altinda gorsel fark minimal, kazanc buyuk).
+          MOBIL (reflective=false): yansima render-pass'i (her kare AYRI sahne cizimi = en agir GPU yuku) ATLANIR →
+          duz hafif metalik zemin. Gorsel cok benzer (koyu/sisli) ama bedava → baglam kaybi/"ekran yenileniyor" engellenir. */}
+      {reflective ? (
+        <MeshReflectorMaterial
+          mirror={0.5}
+          blur={[128, 32]}
+          resolution={256}
+          mixBlur={1}
+          mixStrength={3.5}
+          roughness={0.85}
+          depthScale={1.1}
+          minDepthThreshold={0.3}
+          maxDepthThreshold={1.4}
+          color={color}
+          metalness={0.6}
+        />
+      ) : (
+        <meshStandardMaterial color={color} roughness={0.7} metalness={0.4} />
+      )}
     </mesh>
   )
 }
@@ -291,8 +298,12 @@ export function Hero3DChart({
 }) {
   // Arkadan-one siralama (z artan) -> dogru derinlik/saydam katmanlanma
   const ordered = useMemo(() => [...metrics].sort((a, b) => a.z - b.z), [metrics])
+  // MOBIL: agir GPU yolu (yansima/bloom/multisampling/yuksek dpr) KAPATILIR → telefon GPU'su bunlari kaldiramayinca WebGL
+  //   baglami dusuyor + her dokunusta/zoom'da remount = "ekran kendini yeniliyor". Yuku dusurunce baglam kaybi olmaz → KOKTEN biter.
+  const mobile = useMemo(() => isMobileDevice(), [])
   // WEBGL baglam kaybinda Canvas'i komple yeniden kurmak icin remount anahtari (manuel refresh GEREKMESIN)
   const [ctxKey, setCtxKey] = useState(0)
+  const remounts = useRef(0) // TAVAN: tekrar tekrar remount ("ekran SUREKLI yenileniyor") engellenir; yuk dusuk oldugu icin normalde tetiklenmez
   // Gunduz modunda sahne zemini/sisi acilir (grafigin alt tarafi koyu kalmasin)
   const light = theme === 'light'
   const fogColor = light ? '#dce8f7' : '#04060f'
@@ -300,21 +311,19 @@ export function Hero3DChart({
   return (
     <Canvas
       key={ctxKey}
-      dpr={[1, 1.5]}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+      dpr={mobile ? 1 : [1, 1.5]}
+      gl={{ antialias: !mobile, alpha: true, powerPreference: mobile ? 'default' : 'high-performance' }}
       camera={{ position: [0, 2.4, 13], fov: 30 }}
       onCreated={({ gl, invalidate }) => {
-        // WEBGL BAĞLAM KAYBI KURTARMA (Mehmet Abi: "demo bir süre sonra bozuluyor, refresh gerekiyor"): Windows GPU
-        // sürücüsü ağır bloom/reflector/multisampling'de kendini reset edebilir (TDR) → bağlam kaybolur. preventDefault ile
-        // tarayıcının restore denemesine izin ver; AMA EffectComposer/MeshReflector kendi render-target'larını HER ZAMAN temiz
-        // toparlamadığı için panel bozuk/donuk kalabiliyordu. EN GARANTİLİ çözüm: kısa gecikmeyle Canvas'ı KOMPLE remount et
-        // (ctxKey++) → renderer + EffectComposer + MeshReflector + tüm GPU kaynakları sıfırdan kurulur (manuel "refresh"in
-        // otomatiği, ama YALNIZ bu panel; tüm sayfa yenilenmez). Tek seferlik bağlam kaybında kendi kendine toparlar.
+        // WEBGL BAĞLAM KAYBI KURTARMA: bağlam kaybında tarayıcının restore'una izin ver (preventDefault); R3F'in GPU kaynaklarını
+        //   garanti toparlamak için kısa gecikmeyle Canvas'ı remount et (ctxKey++) — AMA TAVANLI (en çok 3 kez). Yük artık düşük
+        //   olduğundan normalde HİÇ tetiklenmez; tetiklense de sonsuz "yenileniyor" döngüsüne girmez (Mehmet Abi şikâyetinin kökü).
         const canvas = gl.domElement
-        canvas.addEventListener('webglcontextlost', (e) => {
+        const onLost = (e: Event) => {
           e.preventDefault()
-          window.setTimeout(() => setCtxKey((k) => k + 1), 150)
-        }, false)
+          if (remounts.current < 3) { remounts.current += 1; window.setTimeout(() => setCtxKey((k) => k + 1), 200) }
+        }
+        canvas.addEventListener('webglcontextlost', onLost, false)
         canvas.addEventListener('webglcontextrestored', () => { invalidate() }, false)
       }}
     >
@@ -325,23 +334,26 @@ export function Hero3DChart({
       <SweepLight />
 
       {/* Prosedurel studyo ortami (OFFLINE - HDR indirmez, frames=1 statik) -> zeminde/boruda hafif yansima */}
-      <Environment resolution={128} frames={1}>
+      <Environment resolution={mobile ? 64 : 128} frames={1}>
         <Lightformer form="rect" intensity={2.2} color="#2E9BFF" position={[0, 6, -8]} scale={[14, 5, 1]} />
         <Lightformer form="rect" intensity={1.3} color="#36E0C8" position={[-9, 3, 2]} scale={[6, 8, 1]} />
         <Lightformer form="rect" intensity={1.2} color="#ffffff" position={[9, 4, 3]} scale={[6, 8, 1]} />
       </Environment>
       {/* Atmosferik isilti parcaciklari - sinematik derinlik */}
-      <Sparkles count={36} scale={[26, 10, 14]} position={[0, 4, -2]} size={2.4} speed={0.25} color="#8fd0ff" opacity={0.5} />
+      <Sparkles count={mobile ? 14 : 36} scale={[26, 10, 14]} position={[0, 4, -2]} size={2.4} speed={0.25} color="#8fd0ff" opacity={0.5} />
 
       {ordered.map((m) => (
         <TubeStrand key={m.key} history={history} m={m} />
       ))}
-      <ReflectiveFloor color={floorColor} />
+      <ReflectiveFloor color={floorColor} reflective={!mobile} />
       <ParallaxRig />
 
-      <EffectComposer multisampling={2}>
-        <Bloom intensity={0.85} luminanceThreshold={0.22} luminanceSmoothing={0.9} mipmapBlur radius={0.8} />
-      </EffectComposer>
+      {/* AĞIR post-processing (Bloom + multisampling) yalnız MASAÜSTÜ — mobilde GPU'yu boğup bağlam kaybına yol açıyordu. */}
+      {!mobile && (
+        <EffectComposer multisampling={2}>
+          <Bloom intensity={0.85} luminanceThreshold={0.22} luminanceSmoothing={0.9} mipmapBlur radius={0.8} />
+        </EffectComposer>
+      )}
     </Canvas>
   )
 }

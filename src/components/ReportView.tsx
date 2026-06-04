@@ -18,13 +18,13 @@ import { litersToSavings, tickLitersSaved } from '@/lib/savings'
 import { pointsToCSV, download } from '@/data/recordings'
 import { fmtDateTime, fmtClock } from '@/lib/datetime'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
-import { fmtInt, fmt1, fmtCompact, fmtTLCompact } from '@/lib/format'
+import { fmtInt, fmt1, fmtCompact, fmtTLCompact, localeOf, fmtPct } from '@/lib/format'
 import { PRODUCT } from '@/data/product'
 import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
 
 const fmt = (v: number, d: number) =>
-  new Intl.NumberFormat('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
+  new Intl.NumberFormat(localeOf(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
 
 // Rapor BEYAZ KAGIT icin bilerek KOYU mod varyanti (ekran paleti types.MODE_COLOR'dan ayri - yazdirmada okunaklilik).
 const MODE_COLOR: Record<Mode, string> = { normal: '#0072CE', standby: '#1f9d57', isolation: '#c77700' }
@@ -188,7 +188,7 @@ export function ReportView({
                     <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                       <div className="h-full rounded-full" style={{ width: `${pct}%`, background: MODE_COLOR[mo] }} />
                     </div>
-                    <span className="num w-12 text-right text-sm font-semibold text-slate-900">%{fmt1(pct)}</span>
+                    <span className="num w-12 text-right text-sm font-semibold text-slate-900">{fmtPct(pct, 1)}</span>
                   </div>
                 )
               })}

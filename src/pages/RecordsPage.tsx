@@ -15,12 +15,13 @@ import { useConnection } from '@/data/connection'
 import { queryHistory, historyExtent } from '@/data/history'
 import { sound } from '@/lib/sound'
 import { useLang } from '@/i18n'
+import { localeOf } from '@/lib/format'
 import type { LiveState } from '@/hooks/useLiveReadings'
 import type { Reading } from '@/data/types'
 
-const fmtDate = (ms: number) => new Date(ms).toLocaleString('tr-TR', { dateStyle: 'medium', timeStyle: 'short' })
+const fmtDate = (ms: number) => new Date(ms).toLocaleString(localeOf(), { dateStyle: 'medium', timeStyle: 'short' })
 const durationSec = (pts: Reading[]) => (pts.length > 1 ? (pts[pts.length - 1].t - pts[0].t) / 1000 : 0)
-const nf0 = new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 })
+const nf0 = (v: number) => new Intl.NumberFormat(localeOf(), { maximumFractionDigits: 0 }).format(v)
 const DAY = 86400000
 
 // Tarihsel rapor icin TAKVIM on-ayarlari (mutlak ms) - gecmis deposunun kapsamina gore.
@@ -93,7 +94,8 @@ export function RecordsPage({ data }: { data: LiveState }) {
   const exportCSV = (rec: Recording) => download(`${rec.name}.csv`, toCSV(rec), 'text/csv;charset=utf-8')
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
+    // pb-20: sag-alt sabit Geri Bildirim FAB'i (bottom-5, h-12) son karti/kaydi ortmesin diye dis kaba alt bosluk (Mehmet Abi).
+    <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1 pb-20">
       <PageHeader
         title="Kayıtlar"
         subtitle="Ölçümleri kaydedin, zaman aralığına göre analiz edin, dışa aktarın"
@@ -111,7 +113,7 @@ export function RecordsPage({ data }: { data: LiveState }) {
           <div className="text-sm font-semibold text-white">{t('Geçmiş Veriler — Tarihsel Rapor')}</div>
           <div className="text-[11px] text-[var(--ink-soft)]">
             {hx
-              ? <>{t('Kayıtlı')}: <b className="num text-[var(--ink)]">{nf0.format(hx.count)}</b> {t('ölçüm')} · ~<b className="num text-[var(--ink)]">{Math.max(1, Math.round((hx.last - hx.first) / DAY))}</b> {t('gün')} ({src === 'demo' ? t('demo') : t('canlı')}). {t('Takvimden gün + saat seçip rapor alın.')}</>
+              ? <>{t('Kayıtlı')}: <b className="num text-[var(--ink)]">{nf0(hx.count)}</b> {t('ölçüm')} · ~<b className="num text-[var(--ink)]">{Math.max(1, Math.round((hx.last - hx.first) / DAY))}</b> {t('gün')} ({src === 'demo' ? t('demo') : t('canlı')}). {t('Takvimden gün + saat seçip rapor alın.')}</>
               : <>{t('Henüz geçmiş veri yok. Ürün Ayarları’ndan')} <b className="text-[var(--ink)]">{t('demo geçmişi')}</b> {t('oluşturun ya da cihaz bağlanınca birikir.')}</>}
           </div>
         </div>
@@ -186,7 +188,7 @@ export function RecordsPage({ data }: { data: LiveState }) {
                 <div className="mt-0.5 flex items-center gap-3 text-[11px] text-[var(--ink-soft)]">
                   <span className="flex items-center gap-1"><Clock size={11} /> {fmtDate(rec.createdAt)}</span>
                   <span className="num">{rec.points.length} {t('ölçüm')}</span>
-                  <span className="num">{new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 0 }).format(durationSec(rec.points))} {t('sn')}</span>
+                  <span className="num">{new Intl.NumberFormat(localeOf(), { maximumFractionDigits: 0 }).format(durationSec(rec.points))} {t('sn')}</span>
                 </div>
               </div>
               <div className="ml-auto flex shrink-0 items-center gap-2">

@@ -7,7 +7,7 @@
  *           guncellenir, slider araliklari modele uyarlanir. useModules ile moduller. Demo'da senaryoyu canli surer, canlida OPC UA.
  * YAN ETKI: Model degisimi tum uygulamaya yansir (grafik olcegi/PageHeader/demoSource). Degerlerin yaninda BIRIMI (KATI kural).
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { PageHeader } from '@/components/PageHeader'
 import { LiveSetupGuide } from '@/components/LiveSetupGuide'
@@ -19,10 +19,9 @@ import { useModel, AMS_MODELS, defaultsForModel, TYPE_LABEL } from '@/data/model
 import { useModules, MODULES } from '@/data/modules'
 import { useEconomy } from '@/data/economy'
 import { useConnection, type ConnStatus } from '@/data/connection'
-import { seedDemoHistory, clearHistory, historyExtent } from '@/data/history'
+import { seedDemoHistoryChunked, clearHistory, historyExtent } from '@/data/history'
 import { sound } from '@/lib/sound'
-import { fmt2, fmtInt } from '@/lib/format'
-import { isMobileDevice } from '@/lib/device'
+import { fmt2, fmtInt, fmtPct } from '@/lib/format'
 import { useLang } from '@/i18n'
 import {
   Gauge, Timer, Wind, ToggleRight, Info, RotateCcw, Eye, EyeOff, Boxes, Wifi, Zap, Network, Server, Plus, Radio,
@@ -83,19 +82,30 @@ export function ProductSettingsPage() {
   // Demo gecmisi (sunum): takvimsel rapor icin gercekci 30 gunluk gecmis uret/temizle
   const [demoHist, setDemoHist] = useState(() => historyExtent('demo'))
   const [seeding, setSeeding] = useState(false)
+  const [seedPct, setSeedPct] = useState(0) // uretim ilerlemesi (0..100) - kademeli uretimde "Olusturuluyor… %X"
+  const cancelSeedRef = useRef<(() => void) | null>(null) // calisan kademeli uretimin iptal kancasi
   const seedDemo = () => {
+    if (seeding) return // cift tiklamada ikinci uretim baslamasin (tek akis)
     setSeeding(true)
-    // bir sonraki frame'de uret -> "Olusturuluyor..." gorunur (30 gun ~43k ornek senkron ama hizli)
-    requestAnimationFrame(() => {
-      seedDemoHistory(30, Date.now())
-      setDemoHist(historyExtent('demo'))
-      setSeeding(false)
-      sound.click()
-    })
+    setSeedPct(0)
+    // KADEMELI uretim: ~43k ornek parca parca (rAF) uretilir -> ana thread kilitlenmez, donma yok.
+    // EN SONDA tek seferde localStorage'a yazilir (chunked fn ici); biz sadece ilerleme + bitis akisini surduruyoruz.
+    cancelSeedRef.current = seedDemoHistoryChunked(
+      30,
+      Date.now(),
+      (ratio) => setSeedPct(Math.round(ratio * 100)),
+      () => {
+        cancelSeedRef.current = null
+        setDemoHist(historyExtent('demo'))
+        setSeeding(false)
+        sound.click()
+      },
+    )
   }
+  // Sayfa kapanir/unmount olursa calisan rAF uretimini durdur (sizinti/iptalde demo verisi bozulmaz)
+  useEffect(() => () => { cancelSeedRef.current?.() }, [])
   const clearDemo = () => { clearHistory('demo'); setDemoHist(historyExtent('demo')); sound.click() }
   const [showGuide, setShowGuide] = useState(false) // Canli cihaza baglanma kilavuzu (adim adim)
-  const mobile = isMobileDevice() // MOBIL = yalniz demo gosterimi -> canli secenek/kilavuz gizlenir
 
   // Model degisince: o modele EN MANTIKLI calisma degerleri kullanicinin karsisina cikar
   const onSelectModel = (code: string) => {
@@ -108,7 +118,9 @@ export function ProductSettingsPage() {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
+    // pb-20: sag-alt sabit Geri Bildirim FAB'i (bottom-5, h-12) son bolumu (Sensorler) ortmesin diye dis kaba alt bosluk (Mehmet Abi).
+    // NOT: canli-mod/Demo-Canli secimi + input force-dark-surface ZATEN duzenli; sadece dis sarmala pb eklendi, ic duzene dokunulmadi.
+    <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1 pb-20">
       <PageHeader
         title="Ürün Ayarları"
         subtitle="Önce ürün modelini seçin — tüm değerler o modele göre en mantıklı haline gelir"
@@ -197,44 +209,32 @@ export function ProductSettingsPage() {
               <div className="text-xs text-[var(--ink-soft)]">{t('Demo verisi mi, gerçek cihazdan canlı veri mi (OPC UA)')}</div>
             </div>
           </div>
-          {/* Demo/Canli secimi - SADECE PC (masaustu). Mobilde gizli: mobil = yalniz demo gosterimi. */}
-          {!mobile && (
-            <div className="flex gap-2">
-              {([['demo', 'Demo Verisi'], ['live', 'Canlı Cihaz']] as const).map(([m, label]) => {
-                const on = conn.mode === m
-                return (
-                  <button
-                    key={m}
-                    onClick={() => setConnMode(m)}
-                    className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
-                    style={on ? { background: 'rgba(46,155,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : { border: '1px solid var(--hair)' }}
-                  >
-                    {t(label)}
-                  </button>
-                )
-              })}
-            </div>
-          )}
+          {/* Demo/Canlı seçimi — MOBİL dâhil (Mehmet Abi: telefon de canlı cihazı LAN üzerinden görür + ayar yapar). */}
+          <div className="flex gap-2">
+            {([['demo', 'Demo Verisi'], ['live', 'Canlı Cihaz']] as const).map(([m, label]) => {
+              const on = conn.mode === m
+              return (
+                <button
+                  key={m}
+                  onClick={() => setConnMode(m)}
+                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
+                  style={on ? { background: 'rgba(46,155,255,0.2)', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : { border: '1px solid var(--hair)' }}
+                >
+                  {t(label)}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        {/* PC: adim adim kurulum kilavuzu. MOBIL: demo-gosterim bilgisi (canli cihaz PC surumunde). */}
-        {!mobile ? (
-          <button
-            onClick={() => setShowGuide(true)}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:brightness-110"
-            style={{ borderColor: 'rgba(46,155,255,0.4)', background: 'rgba(46,155,255,0.1)', color: 'var(--smc-bright)' }}
-          >
-            <Cable size={16} /> {t('Canlı cihaza bağlanma kılavuzu (adım adım)')}
-          </button>
-        ) : (
-          <div className="mt-4 flex items-start gap-2.5 rounded-xl border px-4 py-3 text-[13px] leading-snug" style={{ borderColor: '#FFB04D55', background: '#FFB04D12', color: 'var(--ink)' }}>
-            <Radio size={18} className="mt-0.5 shrink-0 text-[var(--c-temp)]" />
-            <div>
-              <b className="text-white">{t('Mobil sürüm — yalnızca demo gösterimi.')}</b> {t('Bu uygulama telefonda örnek/demo verileri izlemek (oynatmak) içindir.')}
-              {' '}{t('Gerçek cihazdan')} <b className="text-white">{t('canlı veri PC sürümünde')}</b> {t('görüntülenir (cihaza kablo/ağ ile bağlı bilgisayar). Gerekirse ileride mobilden de canlı takip eklenebilir.')}
-            </div>
-          </div>
-        )}
+        {/* Adım adım canlı cihaza bağlanma kılavuzu (MOBİL + PC). Telefon, uygulamayı açtığı PC'nin köprüsüne LAN üzerinden bağlanır. */}
+        <button
+          onClick={() => setShowGuide(true)}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:brightness-110"
+          style={{ borderColor: 'rgba(46,155,255,0.4)', background: 'rgba(46,155,255,0.1)', color: 'var(--smc-bright)' }}
+        >
+          <Cable size={16} /> {t('Canlı cihaza bağlanma kılavuzu (adım adım)')}
+        </button>
 
         {conn.mode === 'live' && (
           <div className="mt-4">
@@ -245,10 +245,10 @@ export function ProductSettingsPage() {
               onBlur={commitEndpoint}
               onKeyDown={(e) => { if (e.key === 'Enter') (e.currentTarget as HTMLInputElement).blur() }}
               placeholder="opc.tcp://192.168.1.50:4840"
-              className="num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
+              className="force-dark-surface num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[var(--smc-bright)]"
             />
             <div className="mt-2 text-[11px] text-[var(--ink-soft)]">
-              {t('Canlı veri için bilgisayarda yerel')} <b className="text-[var(--ink)]">{t('OPC UA köprüsü')}</b> {t('çalışmalı')} (<span className="num">bridge/opcua-bridge.mjs</span>). {t('Cihaz yoksa Demo’ya dönün.')}
+              {t('Canlı veri için cihazı bu bilgisayarla aynı ağa bağlayın ve yukarıdaki')} <b className="text-[var(--ink)]">{t('“Canlı cihaza bağlanma kılavuzu”')}</b> {t('ile bağlanın — köprü uygulamayla birlikte gömülü çalışır; ayrıca kurulum veya dosya gerekmez. Cihaz yoksa Demo’ya dönebilirsiniz.')}
             </div>
           </div>
         )}
@@ -269,7 +269,7 @@ export function ProductSettingsPage() {
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <button onClick={seedDemo} disabled={seeding} className="keep-white flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-50" style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}>
-              <History size={15} /> {seeding ? t('Oluşturuluyor…') : t('Demo geçmişi oluştur (30 gün)')}
+              <History size={15} /> {seeding ? `${t('Oluşturuluyor…')} ${fmtPct(seedPct)}` : t('Demo geçmişi oluştur (30 gün)')}
             </button>
             {demoHist && (
               <button onClick={clearDemo} className="flex items-center gap-1.5 rounded-lg border border-[var(--hair)] px-3 py-2 text-sm font-medium text-[#ff8a8a] transition hover:bg-white/5">

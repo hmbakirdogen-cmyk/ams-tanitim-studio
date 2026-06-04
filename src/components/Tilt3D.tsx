@@ -7,6 +7,16 @@
  */
 import { useRef, type ReactNode } from 'react'
 import { motion, useMotionTemplate, useMotionValue, useSpring, useTransform } from 'framer-motion'
+import { isMobileDevice } from '@/lib/device'
+
+/*
+ * NE      : Mobilde (telefon/tablet) 3D tilt etkisini tamamen pasifle; kart DUZ render edilir.
+ * NEDEN   : Mehmet Abi: dokunmatikte fareyle egim takibi calismaz -> faydasiz; ustelik egilen kart z-overflow ile
+ *           komsu karta tasiyor/ustune binebiliyordu. Mobil demo "kusursuz" olmali. Masaustu tilt AYNEN korunur.
+ * NASIL   : Ilk yuklemede isMobileDevice() sabit sonuc verir (oryantasyon onemsiz). Mobilse mouse dinleyicileri
+ *           hic baglanmaz, motion transform/glare uygulanmaz; sade <div> dondurulur (className aynen tasinir).
+ * YAN ETKI: Mobilde motion-value/spring hesaplari hic kurulmaz -> ekstra GPU/CPU yok. Masaustunde davranis degismez.
+ */
 
 interface Tilt3DProps {
   children: ReactNode
@@ -16,6 +26,9 @@ interface Tilt3DProps {
 }
 
 export function Tilt3D({ children, className, max = 8, lift = 16 }: Tilt3DProps) {
+  // Mobil sezimi ilk render'da sabit (device.ts: yuklemede tek sonuc) -> render boyunca degismez,
+  // Hook kurallari guvenli (asagidaki motion hook'lari her zaman cagrilir, sadece mobilde KULLANILMAZ).
+  const mobile = isMobileDevice()
   const ref = useRef<HTMLDivElement>(null)
   const px = useMotionValue(0.5)
   const py = useMotionValue(0.5)
@@ -36,6 +49,11 @@ export function Tilt3D({ children, className, max = 8, lift = 16 }: Tilt3DProps)
   const reset = () => {
     px.set(0.5)
     py.set(0.5)
+  }
+
+  // MOBIL: tilt yok -> dinleyici baglama, transform/glare uygulama; duz kart (komsu karta tasma riski sifir).
+  if (mobile) {
+    return <div className={className}>{children}</div>
   }
 
   return (

@@ -128,6 +128,10 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
 .animate-live   { animation: live-pulse 1.6s ease-in-out infinite; }
 .animate-float  { animation: float-soft 7s ease-in-out infinite; }
 
+/* Canli Panel agir katmanlari (3D/akis/ambient) sayfa GECISINDEN SONRA mount edilince yumusak belirir (gecis akiciligi; "kirlilik/takilma" yok). */
+@keyframes ams-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.ams-fade-in { animation: ams-fade-in 0.45s ease both; will-change: opacity; }
+
 /* Canli nokta dis halkasi */
 .live-ring::after {
   content: '';
@@ -141,7 +145,7 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
 /* --- Hareket azaltma (a11y / WCAG 2.3.3): kullanici "reduced motion" istediyse SONSUZ CSS animasyonlarini durdur --- */
 /* (sinif-hedefli → transition/tema-gecisi BOZULMAZ; r3f WebGL sahne ayri katman, bu media query onu etkilemez.) */
 @media (prefers-reduced-motion: reduce) {
-  .smc-logo-glow, .animate-aurora, .animate-live, .animate-float, .live-ring::after { animation: none !important; }
+  .smc-logo-glow, .animate-aurora, .animate-live, .animate-float, .live-ring::after, .ams-fade-in { animation: none !important; }
 }
 
 /* --- Ince scrollbar (gerekirse) --- */

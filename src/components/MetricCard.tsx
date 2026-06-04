@@ -10,6 +10,7 @@ import type { Reading } from '@/data/types'
 import { Tilt3D } from './Tilt3D'
 import { Sparkline } from './Sparkline'
 import { useLang } from '@/i18n'
+import { localeOf } from '@/lib/format'
 
 // 'xs' = birleşik Canlı Panel sağ kolonu için KOMPAKT karo (Mehmet Abi: kartlar büyük olmasın) — sıkı, hiyerarşik düzen.
 type Size = 'lg' | 'md' | 'sm' | 'xs'
@@ -17,7 +18,7 @@ const NUM_SIZE: Record<Size, string> = { lg: 'text-5xl', md: 'text-4xl', sm: 'te
 const SPARK_H: Record<Size, number> = { lg: 56, md: 44, sm: 38, xs: 30 }
 
 // Eksen ucu etiketi (min/max) — kısa/okunaklı: gereksiz ondalık basmaz (örn. 0 / 8 / 100 / 0,9)
-const rangeFmt = (v: number) => new Intl.NumberFormat('tr-TR', { maximumFractionDigits: 1 }).format(v)
+const rangeFmt = (v: number) => new Intl.NumberFormat(localeOf(), { maximumFractionDigits: 1 }).format(v)
 
 export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; history: Reading[]; size?: Size }) {
   const { t } = useLang()
@@ -26,7 +27,7 @@ export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; hist
   // aynı tikte tükettiği için artık ekranda TEK sayı görünür (eskiden kart geriden gelip "aynı veri farklı sayı" oluyordu).
   // Demo kaynağı zaten ease ile yumuşak akıyor; ekstra lerp gereksiz + tutarsızdı.
   const v = series.length ? series[series.length - 1] : def.min
-  const text = new Intl.NumberFormat('tr-TR', {
+  const text = new Intl.NumberFormat(localeOf(), {
     minimumFractionDigits: def.digits,
     maximumFractionDigits: def.digits,
   }).format(v)

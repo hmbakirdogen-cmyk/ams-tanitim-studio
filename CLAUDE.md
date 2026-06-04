@@ -26,6 +26,7 @@ Vite + React + TS + Tailwind v4 + Framer Motion + **three/@react-three/fiber/dre
 - **Birimi olan her sayının yanında birimi** görünür; **kafa karıştıran kısaltma yok** (büyük değerler kompakt: 1,2 Mn ₺).
 - Grafikler **gerçek 3D, akıcı (60fps), yuvarlak**; sahte/pikselli ışık yok. Her yüzeyde 3D derinlik (Tilt3D).
 - **Offline** korunur (CDN/online bağımlılık ekleme; fontlar/varlıklar gömülü).
+- **Mobil de CANLI moda geçebilir** (LAN köprü, 2026-06-04 Mehmet Abi kararı): köprü WS `0.0.0.0` dinler, uygulama köprü adresini host'tan türetir (`connection.ts` `BRIDGE_URL`), telefon PC'deki köprüden canlı cihaz verisi görür + set ayarı yapar. Güvenilir saha ağı varsayımı. (Eski "mobil = yalnız demo" yaklaşımı GEÇERSİZ.)
 - DB/script/terminal/deploy işlerini **CC çalıştırır**.
 
 ## Marka

@@ -11,11 +11,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { X, Cable, PlugZap, Save, CheckCircle2, Radar, Loader2, SlidersHorizontal, Wifi, AlertTriangle } from 'lucide-react'
-import { useConnection, type ConnStatus, type NodeIds } from '@/data/connection'
+import { useConnection, BRIDGE_URL, type ConnStatus, type NodeIds } from '@/data/connection'
 import { sound } from '@/lib/sound'
 import { useLang } from '@/i18n'
-
-const BRIDGE_URL = 'ws://localhost:4841' // uygulamayla gomulu yerel kopru
+import { fmtPct } from '@/lib/format'
 
 const CONN_UI: Record<ConnStatus, { label: string; color: string }> = {
   demo: { label: 'Demo verisi', color: '#FFB04D' },
@@ -121,12 +120,17 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
   }
 
   const ui = CONN_UI[status]
-  const field = 'num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2 text-[12.5px] text-white outline-none transition focus:border-[var(--smc-bright)]'
+  const field = 'force-dark-surface num w-full rounded-lg border border-[var(--hair)] bg-[#0a1424] px-3 py-2 text-[12.5px] text-white outline-none transition focus:border-[var(--smc-bright)]'
   const pct = progress && progress.total ? Math.round((progress.scanned / progress.total) * 100) : 0
 
   return (
+    // NE     : Kilavuz kok overlay'ini "absolute inset-0 z-50" -> "fixed inset-0 z-[70]" yaptik.
+    // NEDEN  : Mehmet Abi - absolute, <main> (relative+overflow) ICINE hapsoluyordu; mobilde tam ekrani kaplamiyor,
+    //          ust cubuk/sidebar ile cakisiyor, dar alanda sikisiyordu. FeedbackDrawer gibi viewport'a sabitlenmeli.
+    // NASIL  : fixed ile viewport'a, z-[70] ile drawer'in (z-[60]) ustune tasidik; glass-solid panel/animasyon/onClose aynen.
+    // YAN ETKI: Masaustunde de viewport tam ekran ortalama dogru calisir; sadece kok konumlandirma degisti.
     <motion.div
-      className="absolute inset-0 z-50 grid place-items-center bg-black/60 p-6"
+      className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-6"
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       onClick={onClose}
     >
@@ -173,7 +177,7 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
                   <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: 'linear-gradient(90deg,#0072CE,#2E9BFF)' }} />
                 </div>
-                <div className="mt-1 text-[11px] text-[var(--ink-soft)]">{t('Ağ taranıyor')} {pct ? `· %${pct}` : '…'}</div>
+                <div className="mt-1 text-[11px] text-[var(--ink-soft)]">{t('Ağ taranıyor')} {pct ? `· ${fmtPct(pct)}` : '…'}</div>
               </div>
             )}
 

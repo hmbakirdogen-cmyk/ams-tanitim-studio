@@ -17,14 +17,14 @@ import { useEconomy } from '@/data/economy'
 import { useConnection } from '@/data/connection'
 import { queryHistory, historyExtent } from '@/data/history'
 import { litersToSavings, tickLitersSaved } from '@/lib/savings'
-import { fmtInt, fmt1, fmtCompact, fmtTLCompact } from '@/lib/format'
+import { fmtInt, fmt1, fmtCompact, fmtTLCompact, localeOf, fmtPct } from '@/lib/format'
 import { sound } from '@/lib/sound'
 import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
 const fmt = (v: number, d: number) =>
-  new Intl.NumberFormat('tr-TR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
+  new Intl.NumberFormat(localeOf(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
 
 const PRESETS: { label: string; start: number; end: number }[] = [
   { label: 'Tümü', start: 0, end: 100 },
@@ -94,9 +94,10 @@ export function AnalysisPage({ data }: { data: LiveState }) {
   const win: Reading[] = log.slice(si, ei + 1)
   const spanSec = win.length > 1 ? (win[win.length - 1].t - win[0].t) / 1000 : 0
 
-  // Mod dagilimi
+  // Mod dagilimi. GUARD (Mehmet Abi: canli modda saglamlik): canli kopruden beklenmedik bir mod string'i gelirse
+  //   modeCount[bilinmeyen] = undefined+1 = NaN olur → barlar/yuzdeler bozulurdu. Sadece BILINEN modlari say.
   const modeCount: Record<Mode, number> = { normal: 0, standby: 0, isolation: 0 }
-  win.forEach((r) => (modeCount[r.mode] += 1))
+  win.forEach((r) => { if (modeCount[r.mode] !== undefined) modeCount[r.mode] += 1 })
   const total = win.length || 1
 
   // Secili aralikta tasarruf + TOPLAM hava tuketimi (Mehmet Abi: "ekranda toplam veri + zaman araligi en mantikli yere, karmasasiz")
@@ -112,11 +113,12 @@ export function AnalysisPage({ data }: { data: LiveState }) {
   const sv = litersToSavings(liters, economy)
   // Donem etiketi: secili pencerenin baslangic->bitis saati (toplam veri gostergesi icin)
   // GERÇEK saat = startedAt (t=0 duvar saati) + göreli t. Eskiden new Date(win[0].t) -> t göreli ms olduğu için 1970'e sabitleniyordu (BUG).
-  const fromClock = win.length > 1 ? new Date(data.startedAt + win[0].t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
-  const toClock = win.length > 1 ? new Date(data.startedAt + win[win.length - 1].t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
+  const fromClock = win.length > 1 ? new Date(data.startedAt + win[0].t).toLocaleTimeString(localeOf(), { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
+  const toClock = win.length > 1 ? new Date(data.startedAt + win[win.length - 1].t).toLocaleTimeString(localeOf(), { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : ''
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
+    // pb-20: sag-alt sabit Geri Bildirim FAB'i (bottom-5, h-12) son sensor kartini ortmesin diye dis kaba alt bosluk (Mehmet Abi).
+    <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1 pb-20">
       <PageHeader
         title="Geçmiş Analizi"
         subtitle="Tüm veri geçmişinden bir zaman aralığı seçin — o aralığın tüm analizleri"
@@ -152,8 +154,10 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                   {t(p.label)}
                 </button>
               ))}
-              {/* DONEM GOSTERGESI: zaman araligi (baslangic->bitis) + sure + olcum + TOPLAM hava (toplam veri, sade) */}
-              <span className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs text-[var(--ink-soft)]">
+              {/* DONEM GOSTERGESI: zaman araligi (baslangic->bitis) + sure + olcum + TOPLAM hava (toplam veri, sade).
+                  MOBIL HIZA (Mehmet Abi): dar ekranda preset butonlarinin ALTINA tam-genislik tek satir (sola yasli, duzgun);
+                  sm+ ekranda eskisi gibi saga yasli (ml-auto). Boylece dar telefonda "ml-auto" garip kaymasi olmaz. */}
+              <span className="flex w-full flex-wrap items-center justify-start gap-x-3 gap-y-1 text-xs text-[var(--ink-soft)] sm:ml-auto sm:w-auto sm:justify-end">
                 <span className="num flex items-center gap-1.5 text-[var(--ink)]">
                   <Clock size={13} className="text-[var(--smc-bright)]" />
                   {win.length > 1 ? `${fromClock} → ${toClock}` : t('Seçili')}
@@ -164,11 +168,11 @@ export function AnalysisPage({ data }: { data: LiveState }) {
             </div>
             <div className="space-y-2">
               <div>
-                <div className="mb-1 text-[11px] text-[var(--ink-soft)]">{t('Başlangıç')} (%{startPct})</div>
+                <div className="mb-1 text-[11px] text-[var(--ink-soft)]">{t('Başlangıç')} ({fmtPct(startPct)})</div>
                 <input type="range" min={0} max={99} value={startPct} onChange={(e) => setStartPct(Math.min(parseInt(e.target.value, 10), endPct - 1))} className="w-full" style={{ accentColor: '#2E9BFF' }} />
               </div>
               <div>
-                <div className="mb-1 text-[11px] text-[var(--ink-soft)]">{t('Bitiş')} (%{endPct})</div>
+                <div className="mb-1 text-[11px] text-[var(--ink-soft)]">{t('Bitiş')} ({fmtPct(endPct)})</div>
                 <input type="range" min={1} max={100} value={endPct} onChange={(e) => setEndPct(Math.max(parseInt(e.target.value, 10), startPct + 1))} className="w-full" style={{ accentColor: '#41E08A' }} />
               </div>
             </div>
@@ -187,7 +191,7 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                       <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-white/5">
                         <div className="h-full rounded-full" style={{ width: `${pct}%`, background: MODE_COLOR[m], boxShadow: `0 0 12px ${MODE_COLOR[m]}` }} />
                       </div>
-                      <span className="num w-12 text-right text-sm font-semibold text-[var(--ink)]">%{fmt1(pct)}</span>
+                      <span className="num w-12 text-right text-sm font-semibold text-[var(--ink)]">{fmtPct(pct, 1)}</span>
                     </div>
                   )
                 })}

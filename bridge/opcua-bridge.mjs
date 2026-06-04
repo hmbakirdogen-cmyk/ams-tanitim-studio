@@ -7,7 +7,7 @@
  *           (b) discoverDevices(): yerel IPv4 /24 subnet'i OPC UA portlarindan (4840 vb.) TCP tarar -> acik olanlara getEndpoints -> dogrulanan
  *               OPC UA sunucularini dondurur. (c) browseNodeHints(): cihaza baglanip adres uzayini gezerek flow/pressure/temperature/humidity
  *               dugumlerini ISIMDEN tahmin eder (TR+EN). Hepsi zaman-kutulu (timeout) + maxRetry:0 -> takilmaz.
- * YAN ETKI: OFFLINE - tamamen yerel (kesif yalniz LAN'i tarar, internet yok). WS yalniz 127.0.0.1'de dinler (agdan yetkisiz erisim yok).
+ * YAN ETKI: OFFLINE - tamamen yerel (kesif yalniz LAN'i tarar, internet yok). WS 0.0.0.0'da dinler (LAN ACIK - Mehmet Abi onayi: telefon de baglanir; guvenilir saha agi varsayimi).
  *           Cihaz olmadan da app calisir; bulamazsa kullanici elle girebilir (kilavuz korunur).
  *
  * !! UYARLANABILIR: Node kimlikleri UYGULAMADAN (Kilavuz) gelir; koddan elle degistirme GEREKMEZ. Uygulama gondermezse asagidaki
@@ -18,7 +18,7 @@ import os from 'node:os'
 import { WebSocketServer } from 'ws'
 import { OPCUAClient, AttributeIds, DataType, BrowseDirection, NodeClass } from 'node-opcua'
 
-const WS_HOST = '127.0.0.1' // YALNIZ loopback: kopru + tarayici ayni makinede; agdan erisim/yetkisiz cihaz yazimi engellenir
+const WS_HOST = '0.0.0.0' // LAN ACIK (Mehmet Abi onayi): ayni Wi-Fi'daki telefon/tablet de PC'deki kopruye baglanip CANLI veri gorur + set ayari yapar. GUVENLIK: guvenilir saha agi varsayilir (ayni agdaki cihazlar cihaza yazabilir).
 const WS_PORT = 4841
 const POLL_MS = 200 // cihaz okuma araligi (uygulamadaki akisla uyumlu)
 const MAX_ERR = 4 // ardisik okuma hatasi tavani -> yeniden baglan (gecici tek hatada titreme/log spam yok)

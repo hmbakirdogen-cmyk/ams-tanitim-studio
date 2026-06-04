@@ -73,7 +73,8 @@ export function ProductPage() {
   const { modules } = useModules()
   const activeModules = MODULES.filter((m) => modules[m.id]) // secili bagli moduller -> baglanabilirlik vitrinine eklenir
   return (
-    <div className="flex h-full flex-col gap-5 overflow-y-auto pr-1">
+    // pb-20: sag-alt sabit Geri Bildirim FAB'i (bottom-5, h-12) son bolumu (teknik ozellikler) ortmesin diye dis kaba alt bosluk (Mehmet Abi).
+    <div className="flex h-full flex-col gap-5 overflow-y-auto pr-1 pb-20">
       <PageHeader title="Ürün & Teknoloji" subtitle="SMC Hava Yönetim Sistemi — AMS20/30/40/60 Serisi" />
       {/* not: const dizilerdeki (CAPABILITIES/MODES/COMPONENTS/CONNECT/SPECS) Turkce metinler render'da t() ile cevrilir */}
 
@@ -100,7 +101,8 @@ export function ProductPage() {
               className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
             />
-            <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>{model.code}</span>
+            {/* keep-white: rozet SOLID SMC-mavisi zeminde — gunduz temada `text-white` koyuya donmesin (model kodu okunsun). Mehmet Abi: hicbir yerde okunmazlik. */}
+            <span className="keep-white absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>{model.code}</span>
           </div>
         </Tilt3D>
       </Reveal>

@@ -17,6 +17,7 @@ import { LangSwitcher } from './LangSwitcher'
 import { Signature } from './Signature'
 import { useConnection } from '@/data/connection'
 import { useLang } from '@/i18n'
+import { localeOf } from '@/lib/format'
 import { Avatar } from './Avatar'
 import type { User } from '@/auth/users'
 import type { Theme } from '@/hooks/useTheme'
@@ -54,7 +55,7 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
     const id = window.setInterval(() => setNow(new Date()), 1000)
     return () => window.clearInterval(id)
   }, [])
-  const time = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const time = now.toLocaleTimeString(localeOf(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   const { t } = useLang()
 
   // Veri kaynagi rozeti - Demo mu Canli cihaz mi (Urun Ayarlari'ndan)

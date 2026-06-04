@@ -4,7 +4,14 @@
  * NASIL   : Tum renkler CSS degiskenlerinden (--scene, --aurora-op, --grid-line, --vignette) -> tema tek noktadan yonetir.
  * YAN ETKI: Dekoratif (pointer-events yok). Isik modunda aurora soner, sahne acilir; koyu modda sinematik kalir.
  */
+import { isMobileDevice } from '@/lib/device'
+
 export function CinematicBackground() {
+  // MOBİL: ağır blur(40-50px) + sürekli aurora animasyonu (GPU compositor yükü) kısılır → telefonda ısınma/takılma azalır.
+  const mobile = isMobileDevice()
+  const auroraAnim = mobile ? '' : 'animate-aurora'
+  const blur1 = mobile ? 26 : 40
+  const blur2 = mobile ? 30 : 50
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       {/* Temel sahne - iki katman cross-fade (gunduz/gece gecisi YUMUSAK; gradyan dogrudan transition edilemez, opacity ile karistiririz) */}
@@ -13,10 +20,10 @@ export function CinematicBackground() {
 
       {/* Aurora isik 1 - SMC mavisi */}
       <div
-        className="animate-aurora absolute -top-1/4 left-1/2 h-[70vh] w-[70vw] -translate-x-1/2 rounded-full"
+        className={`${auroraAnim} absolute -top-1/4 left-1/2 h-[70vh] w-[70vw] -translate-x-1/2 rounded-full`}
         style={{
           background: 'radial-gradient(circle, rgba(0,114,206,0.40), transparent 62%)',
-          filter: 'blur(40px)',
+          filter: `blur(${blur1}px)`,
           mixBlendMode: 'screen',
           opacity: 'var(--aurora-op)',
           transition: 'opacity 0.5s ease',
@@ -24,10 +31,10 @@ export function CinematicBackground() {
       />
       {/* Aurora isik 2 - teal vurgu */}
       <div
-        className="animate-aurora absolute top-1/3 -right-24 h-[55vh] w-[55vw] rounded-full"
+        className={`${auroraAnim} absolute top-1/3 -right-24 h-[55vh] w-[55vw] rounded-full`}
         style={{
           background: 'radial-gradient(circle, rgba(54,224,200,0.20), transparent 60%)',
-          filter: 'blur(50px)',
+          filter: `blur(${blur2}px)`,
           mixBlendMode: 'screen',
           animationDelay: '-8s',
           opacity: 'var(--aurora-op)',

@@ -9,7 +9,7 @@ import { Tilt3D } from '@/components/Tilt3D'
 import { useSmoothNumber } from '@/hooks/useSmoothNumber'
 import { annualProjection, savingPercent } from '@/lib/savings'
 import { useEconomy } from '@/data/economy'
-import { fmtInt, fmt1, fmtTLCompact, fmtCompact } from '@/lib/format'
+import { fmtInt, fmt1, fmtTLCompact, fmtCompact, fmtPct } from '@/lib/format'
 import { Percent, Wind, Zap, Cloud, RotateCcw, SlidersHorizontal, type LucideIcon } from 'lucide-react'
 import { useLang } from '@/i18n'
 import type { LiveState } from '@/hooks/useLiveReadings'
@@ -63,7 +63,8 @@ export function SavingsPage({ data }: { data: LiveState }) {
   const air = useSmoothNumber(savedFlow, 0.12)
 
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1">
+    // pb-20: sag-alt sabit Geri Bildirim FAB'i (bottom-5, h-12) son karti ortmesin diye dis kaba alt bosluk (Mehmet Abi).
+    <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1 pb-20">
       <PageHeader title="Tasarruf Analizi" subtitle="AMS ile yıllık tahmini enerji, para ve karbon kazancı" />
 
       <Tilt3D className="glass relative overflow-hidden rounded-3xl p-8" max={4}>
@@ -83,7 +84,7 @@ export function SavingsPage({ data }: { data: LiveState }) {
       </Tilt3D>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard icon={Percent} color="#41E08A" label="Anlık Tasarruf" value={`%${fmt1(p)}`} sub="normal çalışmaya göre" />
+        <StatCard icon={Percent} color="#41E08A" label="Anlık Tasarruf" value={fmtPct(p, 1)} sub="normal çalışmaya göre" />
         <StatCard icon={Wind} color="#2E9BFF" label="Kısılan Hava" value={fmtInt(air)} sub="l/dak" />
         <StatCard icon={Zap} color="#FFB04D" label="Yıllık Enerji" value={fmtCompact(kwh)} sub="kWh" />
         <StatCard icon={Cloud} color="#7CE0FF" label="Yıllık Karbon" value={fmtCompact(co2)} sub="kg CO₂" />
