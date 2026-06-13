@@ -55,6 +55,32 @@
 - ⬜ İstenirse `gece-fuar-fix` → master merge + push (fuar bitti).
 
 ---
+## 3c) YENİ İSTEKLER (2026-06-13 gece, Mehmet abi) — DERİN TODO
+> Bunlar "## 2 birebir"in ÜSTÜNE gelen yeni kapsam. Çok-açılı analiz workflow'u (variant+animasyon) bunlara plan çıkarıyor.
+
+### ✅ Yapıldı (bu oturum)
+- ✅ **A5+A6 regülatör A↔B swap** (commit 07b91f1): Tip A risksiz (temel foto), Tip B'de AR görseli bindir + dijital reg LCD/LED gizle. `REG_SWAP_X/Y` tunable. getActiveModel() RAF'ta canlı.
+
+### ⬜ TAM VARIANT (sadece regülatör DEĞİL — parça koduna göre HER komponent)
+- Mehmet abi: "tüm resimleri analiz et, tam kodlarıyla ürünü kıyasla." İki gerçek variant:
+  **AMS30A-R03D-SA-KLG** (Tip A): IO-Link/oransal regülatör · hub LED **ST/SA**/PWR/MODE/SIG · IO-Link konnektör.
+  **AMS30B-R03C-PN-KLG** (Tip B): elle-ayar regülatör (knob+analog saat) · hub LED **SF/BF**/PWR/MODE/SIG · **PROFINET PORT1/PORT2** (M12).
+- Değişmesi gerekenler: regülatör ✅ + **hub/haberleşme modülü** (LED etiketleri + konnektör tipi) + olası valf/govde/port. Mimari: analiz önerecek (çok-foto / komponent-overlay katmanı / parametrik LED-konnektör çizimi). getActiveModel()'e bağlı.
+
+### ⬜ ÇALIŞAN ANALOG SAAT (Tip B regülatör)
+- Mehmet abi: "analog saat bile çalışsın, net orijinal SMC saati." Spec → **CIHAZ-GERCEK-REFERANS.md → Analog saat**.
+- Otantik SMC "square embedded" saatini **prosedürel** çiz (beyaz kadran, 0–1.0 MPa, 0/.2/.4/.6/.8/1, MPa+SMC, ~270° yay) → **ibre canlı basınçla döner** (lerp, statik değil).
+
+### ⬜ HAVA AKIŞ ANİMASYONU — TOP-SEVİYE OVERHAUL
+- Mehmet abi: "bu akış animasyonunu sevmiyorum; özellikle **geri dönüş** + **egzozdan çıkış** hareketleri/görselleri çok kötü."
+- Hedef: kullanıcının gözüne hitap + **her sensörün karakteristiğini** yansıt (debi→hız/yoğunluk, basınç→sıkışma, sıcaklık→ısı/renk, nem→damla/buğu) + **TÜM verilere TAM SENKRON** + **veri ŞİDDETİNE göre** otomatik ayrışma.
+- "En iyi araçlar/yazılımlar çekinmeden kullan" (Mehmet abi) → analiz: ileri Canvas 2D (curl-noise/flow-field) vs WebGL (regl/PixiJS/three points/GPU particles). Offline + 60fps.
+
+### ⬜ KÜTÜPHANE
+- Mehmet abi: "en iyi toolları çekinmeden kullan, **kütüphanemizi genişlet**." Kullanılan her elit araç/teknik → `Projeler/cephanelik/ARAÇLAR.md` (+ proje notu). Compound.
+
+### ⬜ Devam (önceki birebir): A2 optimizasyon · A7 gerçek-LED · A8 hub LCD birebir (bar/x10²) · A9 reg LCD set-basınç · mobil QR/IP · paket yenile · merge/push
+
 ## 4) İLGİLİ DOSYALAR
 - `bridge/opcua-bridge.mjs` (köprü: bağlantı+ölçek+oto-node+durum+PKI) · `bridge/pki/` (.gitignore, kalıcı cert)
 - `src/components/DeviceFlowChart.tsx` (cihaz görseli — A2/A5-A9 burada) · `src/data/{types,liveSource,connection,metrics,model}.ts`

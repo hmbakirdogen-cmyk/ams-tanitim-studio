@@ -19,7 +19,15 @@
 
 ## Regülatör ekranı
 - **Tip A (IO-Link):** kırmızı dijital, **MPa** (ör. `2.87`). "IO-Link REGULATOR MPa" + COMMUNICATION/POWER LED.
-- **Tip B (AR/elle):** dijital YOK → **analog saat** (0–1.0 MPa, ibre).
+- **Tip B (AR/elle):** dijital YOK → **analog saat** (0–1.0 MPa, ibre) — **ÇALIŞACAK: ibre canlı basınçla döner (statik değil).**
+
+### Analog saat — BİREBİR spec (Mehmet abi net SMC görseli verdi: "Square embedded type pressure gauge")
+- **Tip:** SMC "Square embedded type pressure gauge" (Right angle) — KARE açık-gri gövde içine gömülü YUVARLAK kadran.
+- **Kadran:** beyaz; ölçek **0 – 1.0 MPa**; rakamlar **0 · 0.2 · 0.4 · 0.6 · 0.8 · 1**; ortada **"MPa"** + altında **"SMC" logo**.
+- **Yerleşim/sweep:** 0 = SOL-ALT (~7 yön), saat yönünde yukarı; 0.2 sol-üst, 0.4-0.6 üst, 0.8 sağ-üst, 1 = SAĞ-ALT (~5 yön). Toplam yay ≈ **270° saat yönü**.
+- **İbre:** SİYAH, merkez göbekten; **ucu uzun** (ölçüm) + **kısa kuyruk** (karşı yön). İnce, keskin.
+- **Tikler:** her rakam arası **majör** + aralarda **minör** çizgiler. Üstte "OPEN", sağ-altta "COVER" yazısı + iki yeşil tırnak (üst).
+- **NASIL (çalışan):** prosedürel Canvas çiz (bu otantik SMC görünümünü birebir taklit) → ibre açısı = pressure'ı 0..1.0 MPa → 270° yay'a eşle, canlı veriyle yumuşak (lerp) dön. Statik resim DEĞİL; "yaşayan" saat.
 
 ## ÖLÇEK/BİRİM düzeltmesi (kritik)
 - Ham `514` → gerçek **5.14 bar = 0.514 MPa**. Yani: **bar = ham÷100**, **MPa = ham÷1000** (aynı fiziksel değer).
