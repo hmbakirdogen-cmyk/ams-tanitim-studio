@@ -52,7 +52,7 @@ const FB_DISPLAYS = [{ x: 0.4304, y: 0.1742, w: 0.1414, h: 0.0842 }]  // image #
 const REG_FRAC: [number, number] = [0.155, 0.305] // standby/oransal regülatör — regüle hücresi (Mehmet Abi: biraz genişletildi)
 const REG_DISP: [number, number, number, number] = [0.211, 0.4467, 0.0624, 0.0233] // regülatör KIRMIZI dijital LCD — BİREBİR foto-ölçüm (tools/_regscreen.py: ışın-tarama, siyah cam kenarı) [x,y,w,h]
 const VALVE_CX = 0.74                            // tahliye valfi merkezi (image #1: sağ modül)
-const EXHAUST_CX = 0.72, EXHAUST_CY = 0.46       // egzoz = valf modülünün altındaki SİYAH SUSTURUCU ağzı (foto-ızgara ölçümü; Mehmet abi "tam egzozu ortalayıp çıkmıyor" → susturucu ağzına indirildi); hava AŞAĞI atılır
+const EXHAUST_CX = 0.78, EXHAUST_CY = 0.41       // egzoz portu (Mehmet abi tarifi: sağa+yukarı, sonra "çok az daha sağda") → 0.78/0.41; hava AŞAĞI atılır
 // PDF LED konumu (tum-foto orani): SADECE regülatör POWER LED'i (valf LED'i Mehmet Abi kararıyla KALDIRILDI).
 const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (image #1: ekranın ALTINDA, foto-ölçüm) — YEŞİL, devredeyken parlar
 // REGÜLATÖR KOMPONENT DEĞİŞİMİ (model.type): temel foto Tip A (IO-Link/oransal) → Tip A'da DOKUNULMAZ (risksiz).
