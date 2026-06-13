@@ -18,20 +18,8 @@ export function CinematicBackground() {
       <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% -10%, #08183a 0%, #050e1d 45%, #02030a 100%)', opacity: 'var(--scene-dark-op, 1)', transition: 'opacity 0.5s ease' }} />
       <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% -10%, #ffffff 0%, #e6eefa 45%, #cfe0f4 100%)', opacity: 'var(--scene-light-op, 0)', transition: 'opacity 0.5s ease' }} />
 
-      {/* Nokta-matris derinlik katmanı — ekranın ORTASINDA (panellerin arkasında) dümdüz koyu kalmasın; cam panellerin ARDINDAN
-          sızan ince teknik nokta dokusu = "uzayda yüzen pano" derinliği. Mehmet Abi: "nokta bile göremiyorum" → işte noktalar.
-          Saf CSS tekrarlı radyal nokta + merkeze yoğun maske; ANİMASYON YOK, statik tek katman → RAM/GPU bedava. Gündüz: söner. */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: 'radial-gradient(rgba(130,200,255,0.38) 1.3px, transparent 1.8px)',
-          backgroundSize: '34px 34px',
-          maskImage: 'radial-gradient(135% 100% at 50% 40%, black 45%, transparent 92%)',
-          WebkitMaskImage: 'radial-gradient(135% 100% at 50% 40%, black 45%, transparent 92%)',
-          opacity: 'var(--aurora-op)',
-          transition: 'opacity 0.5s ease',
-        }}
-      />
+      {/* (Nokta-matris katmanı KALDIRILDI — Mehmet Abi: "noktalar tüm ekranda olmasın, sadece grafik kartlarının arkasında + rakama göre
+          ölçekli olsun" → noktalar artık .dot-bg ile YALNIZ veri kartlarının yüzeyinde, değere göre canlanır; index.css + MetricCard.) */}
 
       {/* Aurora isik 1 - SMC mavisi */}
       <div

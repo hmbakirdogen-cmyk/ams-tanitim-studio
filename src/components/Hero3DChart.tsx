@@ -157,7 +157,9 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
       const denom = Math.max(m.max - m.min, 1e-6)
       for (let i = 0; i < L; i++) {
         const h = 0.2 + THREE.MathUtils.clamp((raw[i] - m.min) / denom, 0, 1) * MAX_H
-        y[i] += (h - y[i]) * 0.13
+        // Mehmet Abi "mini titresimi yok et, YAG GIBI suzulsunler": yapisma 0.13->0.06 (daha viskoz) → kucuk veri dalgalanmalari
+        //   titreme yerine puruzsuz/akici suzulur. Maliyet AYNI (tek carpan; per-frame tahsis yok).
+        y[i] += (h - y[i]) * 0.06
       }
     }
     // 2) Egri noktalari (komsu yumusatma -> kirilmasiz)
