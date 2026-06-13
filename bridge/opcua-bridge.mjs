@@ -237,10 +237,17 @@ export function handleAppConnection(socket) {
       try { await probe.disconnect() } catch { /* yok */ }
     } catch (e) { console.log('[kopru] endpoint listesi alinamadi:', e.message) }
 
-    // GUVENLIK/KIMLIK DENEME ZINCIRI: None+anonim -> Sign&Encrypt+admin/admin -> Sign&Encrypt+anonim -> Sign+admin.
-    //   (SMC EXA1 genelde SIFRELI + admin/admin ister - kendi kilavuzu. Demo icin EN HIZLISI cihazdan None+anonim acmaktir.)
+    // NE: OPC UA guvenlik/kimlik deneme zinciri (sirayla dener, ilk tutani kullanir).
+    // NEDEN: Sahada UaExpert ile KANITLANDI -> cihazin (SMC EXA1) calisan kapisi: Security Policy=None,
+    //   Message Security Mode=None, AMA kimlik ANONIM DEGIL -> Username='admin' (sifre cihaz web sifresi 'admin').
+    //   Eski kod None'da yalniz anonim deniyordu; cihaz anonimi reddedince None hic acilamiyordu. ASIL EKSIK: None+admin.
+    // NASIL: None+admin/admin EN BASTA (kanitli yol) -> None+admin/(bos sifre) -> None+anonim -> sifreli yedekler.
+    // YAN ETKI: yok; basarisiz deneme temizlenip sonrakine gecilir, ilk basari donguyu kirar.
     const ADMIN = { type: UserTokenType.UserName, userName: process.env.OPCUA_USER || 'admin', password: process.env.OPCUA_PASS || 'admin' }
+    const ADMIN_BOSSIFRE = { type: UserTokenType.UserName, userName: process.env.OPCUA_USER || 'admin', password: '' }
     const SEC_ATTEMPTS = [
+      { name: 'None/admin', mode: MessageSecurityMode.None, pol: SecurityPolicy.None, user: ADMIN },
+      { name: 'None/admin-bossifre', mode: MessageSecurityMode.None, pol: SecurityPolicy.None, user: ADMIN_BOSSIFRE },
       { name: 'None/anonim', mode: MessageSecurityMode.None, pol: SecurityPolicy.None, user: null },
       { name: 'Sign&Encrypt/Basic256Sha256/admin', mode: MessageSecurityMode.SignAndEncrypt, pol: SecurityPolicy.Basic256Sha256, user: ADMIN },
       { name: 'Sign&Encrypt/Basic256Sha256/anonim', mode: MessageSecurityMode.SignAndEncrypt, pol: SecurityPolicy.Basic256Sha256, user: null },
