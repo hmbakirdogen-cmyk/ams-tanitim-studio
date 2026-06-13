@@ -105,6 +105,21 @@
 9. ⬜ **DOĞRULAMA**: tsc 0 + build 0 + Demo=Canlı aynı + A↔B anında + 60fps + lite/fuar-PC bozulmadı.
 > KORUNACAK: mevcut Float32Array havuz + fade-rect motion-blur + 'lighter' glow + GPU-reset dayanıklılık + Tip B reg overlay (şu an bayrak KAPALI, doğrulanınca aç). Mehmet abi'nin BEĞENDİĞİ ekran yapısı BOZULMAZ.
 
+## 3e) KOMPAKT-DEVİR NOTU (2026-06-13 — CC'nin kaldığı yer; kompakttan sonra BURADAN devam)
+> Dal: **gece-fuar-fix** (fuar bitti, teslim Mehmet abi onayıyla). AMS dev: `npm run dev -- --port 5190` (M3MO, cihazsız=Demo).
+> **ARAÇ:** `scripts/shot.mjs` — headless Chrome screenshot (CC kendi gözüyle doğrular). `node scripts/shot.mjs <url> <out.png> "giriş" 1600 1000` → DemoWelcome'a tıklayıp Canlı Panel'i çeker. Read ile gör. ÇOKLU boyutta çek → askeri nizam (üst-üste binme) tara.
+> **İLKELER (kalıcı):** ASKERİ NİZAM (hiç üst-üste binme; ekran-görüntüsüyle doğrula) + KALİTE+RAM+JANK (kalite tavan, düşük RAM, sıfır jank; ucuza-elit). Beğenilen ekran yapısını BOZMA; kör değişiklik YOK.
+
+### BU OTURUMDA YAPILANLAR (commit'li, gece-fuar-fix)
+- ✅ Bağlantı kökten + kalibrasyon + oto-node + mobil + 3 analiz + dil(ja/tr/en) + ErrorBoundary i18n + Japonca font + SHOWCASE_MODE + caption pill (okunabilirlik) + kod-bölme + flowField.ts.
+- ✅ Regülatör molekül **edge-fade** (uçlarda yumuşak belir/sön — "belli çizgide belirip yok olma" çözüldü). İri/Bernoulli denemesi GERİ ALINDI (Mehmet abi orijinali sevdi).
+- ⏳ **Görünürlük pası (Mehmet abi EYE-CONFIRM BEKLİYOR, commit 721e09c):** grafik sensör çizgileri tüm-gövde görünür (Hero3DChart kuyruk-alfa 0.06→0.22); CinematicBackground 3D-ızgara belirgin (--grid-line 0.26, zemin 58vh). Mehmet abi "halen göremiyorum" dedi → Canlı Panel YOĞUN (içerik bg'yi örtüyor); muhtemel doğru hedef = grafiğin sensör ÇİZGİLERİ (her renk) daha belirgin + gerçekçi. SONRAKİ: çizgi parlaklığı/genişliği + her sensör renginin netliği (screenshot ile doğrula); gerekirse Mehmet abi'ye 3 seçenek sun.
+
+### AÇIK İNCE-AYARLAR (Mehmet abi gözüyle)
+- ⬜ **Regülatör REG_FRAC sınırı** gövdeye tam otursun (animasyon nerede başlıyor/bitiyor = gerçek regülatör gövde kenarları). reg-cands.png ile aday çizgiler çizildi; ölç + REG_FRAC/chokeF ayarla + screenshot.
+- ⬜ **Canlı Panel arka plan derinliği** — Mehmet abi net görmek istiyor; sayfa yoğun. Karar: global derinlik mi / sayfaya-özel mi / referans-sayfa mı (sor).
+- ⬜ **Grafik sensör çizgileri** "her etiket kendi renginde + görünür + gerçekçi" (devam).
+
 ## 4) İLGİLİ DOSYALAR
 - `bridge/opcua-bridge.mjs` (köprü: bağlantı+ölçek+oto-node+durum+PKI) · `bridge/pki/` (.gitignore, kalıcı cert)
 - `src/components/DeviceFlowChart.tsx` (cihaz görseli — A2/A5-A9 burada) · `src/data/{types,liveSource,connection,metrics,model}.ts`

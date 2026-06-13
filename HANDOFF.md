@@ -2,6 +2,43 @@
 
 > Bu dosya, yeni Claude Code oturumunun "neredeyim" sorusuna ilk cevabıdır. **Güncel tut.**
 
+## ŞU AN NEREDEYIZ (2026-06-13 — JAPONYA TESLİM HAZIRLIĞI + AKIŞ OVERHAUL maratonu) ⭐⭐ EN GÜNCEL
+**Bağlam:** Turgay Bey "bu programı SMC Japonya'ya gönderin" dedi → kusursuz olmalı. Dal **`gece-fuar-fix`** (canlıya PUSH YOK). Dev: `npm run dev -- --port 5190` (M3MO, cihazsız=Demo). Tüm iş Mehmet abi ile **canlı, gözüyle, iteratif** yapıldı; her görsel ekran-görüntüsüyle doğrulandı.
+
+**BİTTİ ve COMMIT'Lİ (bu maraton):**
+- 🎬 **Cihaz akışı OVERHAUL** (`DeviceFlowChart.tsx`): egzoz gerçek **round-jet** (genişleyen koni, ağız nokta-parlaması yok); geri-dönüş **dar-radüs çeyrek-elbow** valf ekseninde (hava boruda yatay gelir, valf ekseninde döner, eksen boyunca egzoza iner — eski sahte dirsek+ışınlama + "düşey çizgiler" + "saçma" GİTTİ); geliş-gidiş **çarpışma** (supply valf yüzünde yumuşak birikir + basınç parıltısı); **nem azaltıldı** (hava baskın). Egzoz ekseni 0.775 (valf "mavi düğme" düşey ekseni); halka da o eksende. Mehmet abi: **"tamam"**. Sıfır kare-başı tahsis.
+- 🔧 **Regülatör REG_FRAC gövdeye ortalı** `[0.15,0.33]` (Mehmet abi kırmızı-çizgi referansı + canlı ince-ayar "merkez 0.24 tam") → molekül/orifis/venturi/halka gövde merkezinde.
+- 🇯🇵 **Japonya i18n** (`i18n/index.tsx` + 8 bileşen): 12 görünür Türkçe kalıntı `t()` ile sarıldı + 7 yeni EN/JA anahtar (3-ajan workflow denetimi). 'Bey'→EN:''/JA:'様'. **JA modda GÖRSEL doğrulandı** (welcome + Canlı Panel Japonca render, layout temiz).
+- 🖥️ **Askeri nizam TAM:** tüm sayfalar **narrow(900)+wide(1120/1280)** TEMİZ. Dar-pencere grafik çakışması düzeltildi (`ChartOverlay`: uzun açıklama + dikey 'Seviye' etiketi yalnız lg+ + nowrap). **DERS: nizamı SADECE geniş değil, NARROW/stacked'te de kontrol et.**
+- 🔧 **Cihaz birebir-DOĞRULAMA:** temel foto = **AMS40A-R04C-PN-MLG** (Tip A, PROFINET) = varsayılan model AMS40A → **birebir uyuşuyor** (varsayılan/teslim görünümü gerçek üniteyle aynı). `deviceVariants.ts` omurgası kuruldu.
+- ⏱️ **Tip B çalışan analog saat** (`drawAnalogGauge`, 270° SMC, iğne canlı basınçla) HAZIR ama **`DEVICE_B_GAUGE_ENABLED=false` (guard'lı)** — temel foto Tip A olduğundan saat "havada" duruyor (Mehmet abi "bu ne?"). Guard kapalıyken Tip B de dijital LCD gösterir (bilinen-iyi, tuhaf görüntü YOK). Oransal (Tip A) DOKUNULMADI.
+
+**AÇIK İŞLER (Mehmet abi girdisi/son adım):**
+1. **Tip-B analog saat AÇ:** Mehmet abi **Tip-B (elle-ayar, analog saatli) AMS fotoğrafı** atınca → `GAUGE_B_POS` ([x,y,r]) gözle oturt + `DEVICE_B_GAUGE_ENABLED=true`. Kod hazır.
+2. **Para birimi (₺→¥ JPY?):** Japonya ¥ ister; offline kur sabit mi/ayarlanabilir mi → **Mehmet abi yaklaşımı seçecek** (finansal varsayım, onun kararı).
+3. **Offline paket yenile:** `scripts/paketle-kopru.ps1` (build → `paket/SMC-AMS-Kopru/app` → zip). **Son adım** (tüm görseller kilitlenince, KAPANIŞ).
+4. **PLD vitrin gerçeklik pas 2** (ayrı).
+
+**ARAÇLAR (CC kendi gözüyle doğrular):** `scripts/shot.mjs` (+ `SHOT_LANG=ja-JP` dil, `SHOT_MODEL=AMS40B` variant), `shot-frames.mjs` (çok-kare, hareket/izolasyon), `shot-pages.mjs` (çok-sayfa nav). Hepsi headless Chrome CDP, kütüphanesiz. Kırpma+zoom: PowerShell System.Drawing.
+
+**İLKE (acı derslerle):** Asla kırık/tuhaf görüntü → doğrulanmamış görsel **guard'lı** (REG_SWAP_ENABLED / DEVICE_B_GAUGE_ENABLED = false). Her görsel **ekran-görüntüsüyle** doğrula. RAM-safe (sıfır kare-başı tahsis, sabit havuz). Mehmet abi'ye az soru — **sen karar ver, yap, kanıt göster.**
+
+---
+
+## ŞU AN NEREDEYIZ (2026-06-13 gece — FUAR SAHA: TV stabilite + cihaz bağlantı)
+**Bağlam:** SMC uluslararası fuar standında AMS yazılımı büyük ekranda + GERÇEK AMS donanımı (foto var). İki saha sorunu:
+(1) TV'de görüntü bir süre sonra kayboluyor / "site kendini yeniliyor" → zayıf fuar-PC + büyük/4K TV → WebGL GPU context-loss.
+(2) Cihaz bağlanmıyor → arkadaş uygulamayı **SİTEDEN (PWA)** açmış → köprü yok; köprü YALNIZ `Baslat.bat` paketinde.
+
+**Yapıldı (otonom gece — `gece-fuar-fix` dalı, canlıya PUSH YOK / fuar sürüyor):**
+- **TV stabilite** (`Hero3DChart.tsx` + `lib/device.ts`): otomatik HAFİF-MOD (context-loss'ta kalıcı `markLite()`) + `isLiteForced()` (`?lite/?safe/?kiosk` URL veya `localStorage ams_lite`) + `dprBudget()` piksel-bütçesi (4K'da render çözünürlüğü tavanlı). Ağır yol (reflector/bloom/yüksek dpr) artık yalnız güçlü PC'de; zayıf PC'de kendini kısar → "yenilenme/kaybolma" kökten biter.
+- **Cihaz bağlantı** (`bridge/opcua-bridge.mjs`): `OPCUA_PORTS` genişledi (5xxx dahil — saha ":5" portu yakalansın), OPC UA güvenlik **None/anonim** (Sign&Encrypt el-sıkışma takılmasın), elle giriş **foolproof** (bare IP → `opc.tcp://IP:4840`).
+- **Paket** yeniden üretildi + DOĞRULANDI: `paket/SMC-AMS-Kopru.zip` (45.8MB; köprü/server sözdizimi OK, node-opcua importları geçerli, gömülü node v24). typecheck + build **SIFIR hata**.
+
+**Mehmet abi'ye:** kökteki **`FUAR-SABAH-NOTU.md`** → arkadaşa zip'i gönder + `Baslat.bat` (siteden DEĞİL) + HDMI kablo + "Cihazı Otomatik Bul". **Hâlâ lazım:** cihazın IP / ":5" portu veya bağlanma ekranı fotosu → 3-tık-bağlanan sürüm kesinleşir.
+
+---
+
 ## ŞU AN NEREDEYIZ (2026-06-04 — MOBİL-CANLI + PERF/REFRESH + ANİMASYON + KUSURSUZLAŞTIRMA)
 
 **Durum:** Bugünkü canlı demo (TR; PC + mobil; **GERÇEK cihaz LAN köprüsüyle**) için kusursuzlaştırma turu. `typecheck` + `build` **SIFIR hata**. Test: yerelde Vite `:5180` + köprü `:4841`. **Paket/Release YAPILMADI** (Mehmet Abi onayı bekliyor).
