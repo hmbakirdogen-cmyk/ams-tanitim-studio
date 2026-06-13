@@ -31,7 +31,8 @@ const SPAN_X = 23 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis(~4
 //   perspektifte EN ON (kameraya yakin, en buyuk z) boru en saga dustugu icin referans odur; SPAN 21→23 ile uclar saga "simdi" cizgisine ITILDI.
 const MAX_H = 4.0 // normalize deger -> yukseklik
 const L = 600 // ekran penceresi nokta sayisi (~48 sn @80ms tik) — Mehmet Abi GENIS zaman penceresini sevdi (sekme arkaplandayken gordugu ~56sn gibi); kalici/kontrollu
-const RADIAL = 12 // boru kesit cozunurlugu (yuvarlak)
+const RADIAL = 22 // boru kesit cozunurlugu — Mehmet Abi "radusler kesik kesik; yaglanmis/cilalanmis PURUZSUZ seffaf boru olsun": 12->22
+//   (kesit cok-kenarli koselilik gider → yuvarlak cam boru silueti). Geometri BIR KEZ kurulur; per-frame writeTube biraz artar ama 60fps korunur (RAM-safe).
 const TWO_PI = Math.PI * 2
 
 // ChartOverlay'deki X-zaman etiketleri ekranda cizilen son N nokta ile hizali olsun (-> "simdi <-> ~-48 sn", L=600 @80ms)

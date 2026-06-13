@@ -33,22 +33,18 @@ export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; hist
   }).format(v)
   const Icon = def.icon
 
-  // RAKAMA GÖRE ÖLÇEKLİ NOKTA DOKUSU (Mehmet Abi: "noktalar grafik kartlarının arkasında + rakama göre ölçekli olsunlar"):
-  //   değeri 0..1'e normalize et → nokta SIKLIĞI (aralık) + belirginliği canlı değere göre artar (yüksek değer = yoğun/parlak doku).
-  //   Kart KENDİ renginde. RAM-bedava: yalnız inline stil; her okumada React render eder (kare-başı canvas/tahsis YOK).
-  const norm = Math.max(0, Math.min(1, (v - def.min) / Math.max(1e-6, def.max - def.min)))
-  const dotSize = 17 - norm * 7        // 17px seyrek (düşük değer) → 10px sık (yüksek değer)
-  const dotOpacity = 0.06 + norm * 0.20 // 0.06 sönük → 0.26 belirgin
-  const dotLayer = (
+  // HAFİF ÇİZGİLERLE DERİNLİK (Mehmet Abi: "dot'ları boşver sevmedim; hafif çizgilerle derinlik hissi ver yeter"):
+  //   kart yüzeyine 2 ince cam-parıltısı ışık bandı (diyagonal) → yüzey "ışığı yakalayan cam" gibi derinlik/eğim kazanır.
+  //   Kart KENDİ renginde, çok sönük. RAM-bedava: tek statik inline katman (kare-başı canvas/tahsis YOK).
+  const depthLayer = (
     <span
       aria-hidden
       className="pointer-events-none absolute inset-0 rounded-[inherit]"
       style={{
         color: def.color,
-        backgroundImage: 'radial-gradient(currentColor 0.8px, transparent 1.4px)',
-        backgroundSize: `${dotSize}px ${dotSize}px`,
-        opacity: dotOpacity,
-        transition: 'opacity 0.5s ease, background-size 0.5s ease',
+        backgroundImage:
+          'linear-gradient(118deg, transparent 22%, currentColor 36%, transparent 45%, transparent 64%, currentColor 76%, transparent 89%)',
+        opacity: 0.08,
       }}
     />
   )
@@ -58,7 +54,7 @@ export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; hist
   if (size === 'xs') {
     return (
       <Tilt3D className="glass relative flex h-full flex-col overflow-hidden rounded-xl px-3.5 py-2.5">
-        {dotLayer}
+        {depthLayer}
         <span className="absolute inset-x-0 top-0 h-0.5" style={{ background: def.color, boxShadow: `0 0 12px ${def.color}` }} />
         {/* 3D DERİNLİK (Mehmet Abi): köşeden metrik renginde hafif radyal vurgu + ust-ic isik / alt-ic golge → kart boşlukta yüzer */}
         <span
@@ -102,7 +98,7 @@ export function MetricCard({ def, history, size = 'md' }: { def: MetricDef; hist
 
   return (
     <Tilt3D className="glass relative flex h-full flex-col gap-3 overflow-hidden rounded-2xl p-5">
-      {dotLayer}
+      {depthLayer}
       {/* Ust renk seridi - grafikteki cizgiyle BIREBIR ayni renk */}
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: def.color, boxShadow: `0 0 18px ${def.color}` }} />
 
