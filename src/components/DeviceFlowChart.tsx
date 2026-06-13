@@ -26,8 +26,13 @@ import type { Reading, Mode } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 import { getActiveModel } from '@/data/model'
 import { drawSevenSeg, measureSevenSeg, type RGB } from '@/lib/sevenSeg'
+import { sampleCurl } from '@/lib/flowField'   // curl-noise akış alanı (divergence-free, TAHSİSSİZ) — geri-dönüş sink + egzoz round-jet doğal salınımı
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
+// Hermite smoothstep — yumuşak uç-maskesi (sert doğum/ölüm çizgisi YOK). Modül kapsamı → kare-başı alloc YOK.
+const sstep = (x: number) => { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 - 2 * x) }
+// sampleCurl çıktı tamponu — TEK paylaşılan 2'li tuple (geri-dönüş + egzoz ardışık kullanır; değer anında okunur → çakışma yok, alloc yok).
+const _cv: [number, number] = [0, 0]
 
 // Cihaz canvas'i neredeyse doldurur (kirpilmis icerik → cok BUYUK)
 const DEV_FILL = 0.985
@@ -47,7 +52,7 @@ const FB_DISPLAYS = [{ x: 0.4304, y: 0.1742, w: 0.1414, h: 0.0842 }]  // image #
 const REG_FRAC: [number, number] = [0.155, 0.305] // standby/oransal regülatör — regüle hücresi (Mehmet Abi: biraz genişletildi)
 const REG_DISP: [number, number, number, number] = [0.211, 0.4467, 0.0624, 0.0233] // regülatör KIRMIZI dijital LCD — BİREBİR foto-ölçüm (tools/_regscreen.py: ışın-tarama, siyah cam kenarı) [x,y,w,h]
 const VALVE_CX = 0.74                            // tahliye valfi merkezi (image #1: sağ modül)
-const EXHAUST_CX = 0.76, EXHAUST_CY = 0.335      // egzoz = valf orta-ekseninin BİRAZ SAĞINDAKİ siyah parça (Mehmet Abi); hava AŞAĞI atılır
+const EXHAUST_CX = 0.72, EXHAUST_CY = 0.46       // egzoz = valf modülünün altındaki SİYAH SUSTURUCU ağzı (foto-ızgara ölçümü; Mehmet abi "tam egzozu ortalayıp çıkmıyor" → susturucu ağzına indirildi); hava AŞAĞI atılır
 // PDF LED konumu (tum-foto orani): SADECE regülatör POWER LED'i (valf LED'i Mehmet Abi kararıyla KALDIRILDI).
 const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (image #1: ekranın ALTINDA, foto-ölçüm) — YEŞİL, devredeyken parlar
 // REGÜLATÖR KOMPONENT DEĞİŞİMİ (model.type): temel foto Tip A (IO-Link/oransal) → Tip A'da DOKUNULMAZ (risksiz).
@@ -329,7 +334,7 @@ export function DeviceFlowChart({
       // YAN ETKİ: prevValveSig effect-scoped (alloc yok); kapanma anında pik, sabit izolasyonda söner (sonsuz fışkırma DEĞİL).
       const valveRate = Math.max(0, sig.valve - prevValveSig) / Math.max(dt, 1e-3) // valf kapanma hızı (sadece artarken)
       prevValveSig = sig.valve
-      const exTarget = clamp01(valveRate * 0.7 + sig.valve * 0.14) // GEÇİŞTE güçlü fışkırma + tam izolasyonda HAFİF kalıcı tahliye
+      const exTarget = clamp01(valveRate * 0.6 + sig.valve * 0.30) // GEÇİŞTE güçlü fışkırma + izolasyonda SÜREKLİ GÖRÜNÜR hafif tahliye (Mehmet abi: egzoz net görünsün)
       sig.exhaust += (exTarget - sig.exhaust) * Math.min(1, dt * 2.2)
 
       const fc = colorRef.current.flow, pc = colorRef.current.pressure, hc = colorRef.current.hum
@@ -438,45 +443,37 @@ export function DeviceFlowChart({
         const lane = fLane[i]
         const prof = 1 - 0.5 * lane * lane   // parabolik laminar hız: merkez hızlı, cidar yavaş (hız YALNIZCA lane'e bağlı)
         const x0 = fPhase[i] * W
-        // GERİ AKIŞ (izolasyon): valf SAĞINDAKI trapped basınçlı hava valfe doğru akar, egzozun üstünde DÜZGÜN DİRSEKLE döner ve
-        //   egzoz portundan aşağı çıkar. Mehmet Abi: dönüş animasyonu OPTİMİZE → yatay geri-akış → yumuşak çeyrek dirsek (bezier)
-        //   → dik iniş; porta yaklaşınca söner, section-7 jeti devralır (kesintisiz/bağlantılı). Tüm faz x ≥ valf (sınıflama temiz).
+        // GERİ AKIŞ (izolasyon) = EMME DELİĞİ (sink): valf sağındaki trapped hava sağ uçtan (s=1) porta (s=0) TEMİZ LAMİNAR sola akar;
+        //   porta yaklaşınca kesit funnel ile daralıp YUMUŞAK aşağı bükülür + opaklık delik içinde 0'a söner (görünmeden yutulur).
+        //   Recycle yalnız yutulunca + birth-maskesi → SAHTE DİRSEK/IŞINLAMA YOK. (Mehmet abi "geri dönüş saçmaladı" → curl jitter
+        //   KALDIRILDI, dalış yumuşatıldı (quadratic), kesit forward ile EŞİTLENDİ → temiz/okunur laminar drain; sıfır alloc.)
         if (sig.valve > 0.12 && x0 > valveCx) {
-          const exFrac = exOx / W, vFrac = valveCx / W
-          const ELBW = 0.08                      // dirsek fphase genişliği
-          const elbStart = exFrac + ELBW         // dirsek başlangıcı (egzozun biraz sağı)
-          const elbY = axisY + pipeH * 1.35      // dirsek bitiş y (dik inişin başı)
-          const off = lane * pr * 0.4            // kesit-içi konum (laminar şerit) — köşede Y→X döner, porta funnel ile daralır
-          // FAZ HIZI: yatay HIZLI; dirsek+iniş YAVAŞ (graceful dönüş + iniş görünür olsun)
-          let dec = (0.11 + 0.5 * sig.valve) * prof
-          if (fPhase[i] <= elbStart) dec *= 0.4
+          const exFrac = exOx / W                            // egzoz portu fazı (drain merkezi)
+          const span = Math.max(1e-3, 1 - exFrac)            // port → sağ uç bandı
+          const dec = (0.12 + 0.5 * sig.valve) * prof        // sağ→sol drain hızı (laminar; per-molekül rastgele YOK → karışmaz)
           fPhase[i] -= dec * dt
-          if (fPhase[i] <= vFrac) { fPhase[i] = (W - 2) / W; continue } // egzoza indi → çıkış ucuna ışınla (döngü)
-          let px: number, py: number, dirx: number, diry: number, fade = 1
-          if (fPhase[i] > elbStart) {
-            // YATAY geri-akış — kesit Y'de yayılı (şerit), sağdan sola
-            px = fPhase[i] * W; py = axisY + off
-            dirx = -1; diry = 0
-          } else if (fPhase[i] > exFrac) {
-            // DİRSEK — bezier çeyrek dönüş; KESİT yayılımı Y→X döner (akış köşeyi dönerken kesiti de döner)
-            const tt = (elbStart - fPhase[i]) / ELBW, omt = 1 - tt, p0x = elbStart * W
-            const bx = omt * omt * p0x + (1 - omt * omt) * exOx
-            const by = axisY + (elbY - axisY) * tt * tt
-            px = bx + off * 0.7 * tt              // X yayılımı büyür
-            py = by + off * (1 - tt)              // Y yayılımı söner
-            dirx = 2 * omt * (exOx - p0x); diry = 2 * tt * (elbY - axisY)
-            const m = Math.hypot(dirx, diry) || 1; dirx /= m; diry /= m
-          } else {
-            // DİK İNİŞ — kesit X'te yayılı, porta doğru FUNNEL ile daralır; porta yaklaşınca söner (jet devralır → bağlantılı)
-            const d = clamp01((exFrac - fPhase[i]) / (exFrac - vFrac))
-            px = exOx + off * 0.7 * (1 - d)
-            py = elbY + (exOy - elbY) * d
-            dirx = 0; diry = 1; fade = 1 - d * 0.85
-          }
-          const a = (0.26 + 0.5 * sig.valve) * (0.5 + 0.5 * prof) * aK * fade
-          const len = (6 + 13 * sig.valve) * (0.72 + 0.5 * prof)
-          ctx.strokeStyle = cS(a); ctx.lineWidth = 1.2 + 1.4 * prof
-          ctx.beginPath(); ctx.moveTo(px - dirx * len, py - diry * len); ctx.lineTo(px, py); ctx.stroke()
+          // GÖRÜNMEZ recycle: port ağzına varıp yutulduysa (opaklık zaten 0) sessizce sağ uca taşı (i%41 ofset → tek hatta dizilmez)
+          if (fPhase[i] <= exFrac - 0.01) { fPhase[i] = 1 - ((i % 41) * 0.0006); continue }
+          let s = (fPhase[i] - exFrac) / span                // 1 = sağ uç (doğum) .. 0 = port ağzı (drain)
+          if (s < 0) s = 0; else if (s > 1) s = 1
+          const e = 1 - s, drop = e * e                      // YUMUŞAK iniş (quadratic; sert/kübik dalış yok → "saçma" gitti)
+          const laneSq = 0.30 + 0.70 * s                     // funnel: portta dar (0.30), uzakta tam genişlik (1.0)
+          const px = fPhase[i] * W
+          const py = axisY + (exOy - axisY) * drop + lane * pr * laneSq   // forward ile AYNI pr (kesit tutarlı) + curl YOK = TEMİZ
+          // OPAKLIK MASKESİ — iki uçta yumuşak (sert doğum/ölüm + teleport YOK)
+          const bornFade = sstep(e / 0.12)                   // sağ uçta (s→1) 0'dan aç → yumuşak doğum
+          const drainFade = sstep(s / 0.12)                  // delik içinde (s→0) 0'a sön → görünmeden yutuluş
+          const a = (0.16 + 0.55 * sig.valve) * (0.5 + 0.5 * prof) * aK * bornFade * drainFade
+          if (a <= 0.012) continue
+          // akış izi: forward gibi YATAY-ağırlıklı kısa iz (porta yakın hafif eğim) + çift-segment taper (soluk kuyruk + parlak baş)
+          const len = (7 + 12 * sig.valve) * (0.72 + 0.5 * prof)
+          let tx = -span, ty = (exOy - axisY) * 2 * e / span  // sola + porta yakın aşağı (drop türevi ∝ e)
+          const m = Math.sqrt(tx * tx + ty * ty) || 1; tx /= m; ty /= m
+          const lw = 1.0 + 1.3 * prof
+          ctx.strokeStyle = cS(a * 0.4); ctx.lineWidth = lw
+          ctx.beginPath(); ctx.moveTo(px - tx * len, py - ty * len); ctx.lineTo(px, py); ctx.stroke()
+          ctx.strokeStyle = cS(a); ctx.lineWidth = lw
+          ctx.beginPath(); ctx.moveTo(px - tx * len * 0.42, py - ty * len * 0.42); ctx.lineTo(px, py); ctx.stroke()
           continue
         }
         // NORMAL ileri akış — hız=lane profili (per-molekül rastgele hız YOK) → AYNI lane = AYNI hız → karışma İMKANSIZ
@@ -618,35 +615,60 @@ export function DeviceFlowChart({
       }
       ctx.globalCompositeOperation = 'source-over'
 
-      // 7) VALF EGZOZU — valf kapanınca ÇIKIŞ basıncı siyah parçadan atılan HAVA jeti (izolasyonda).
-      //   "Duman" DEĞİL (Mehmet Abi): HAVA gibi belir→söner. Biraz SAĞA eğilimli, DAHA BÜYÜK, ve akış BÜKÜMÜ düzgün/bağlantılı:
-      //   tüm partiküller AYNI parabolik yörüngede (sabit sağa sürüklenme + yerçekimi) → uzun bindirmeli izler sürekli eğri kurar.
+      // 7) VALF EGZOZU — GERÇEK ROUND-JET: valf kapanınca çıkış basıncı port ağzından (exOx,exOy) AŞAĞI fışkırır. Ağızda DAR parlak
+      //   çekirdek (potential core); mesafeyle koni AÇILIR (radyal dışa-itme + curl entrainment); hız mesafeyle SÖNER (~core/(core+d));
+      //   yumuşak yuvarlaklar additif 'lighter' ile belir→söner ("yaşayan hava"). Renk cS (SMC mavisi). Şiddet ∝ sig.exhaust.
+      //   (Eski aşağı "puf çizgisi" duşu KALDIRILDI — Mehmet Abi "egzozdan çıkış çok kötü". Sıfır kare-başı tahsis: pX..pLife havuzu + _cv.)
       ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over'
-      ctx.lineCap = 'round'
-      for (let i = 0; i < PUFF_COUNT; i++) {
-        pLife[i] -= dt / (0.55 + Math.random() * 0.35)   // biraz daha uzun ömür → jet uzanır (büyük)
-        if (pLife[i] <= 0) {
-          if (sig.exhaust > 0.08) {
-            const sp = (210 + Math.random() * 150) * (0.6 + sig.exhaust)
-            pX[i] = exOx + (Math.random() - 0.5) * Math.max(2, dh * 0.012)  // dar ağız → tutarlı kolon
-            pY[i] = exOy
-            pVx[i] = (Math.random() - 0.5) * 96 // SİMETRİK aşağı yelpaze (Mehmet Abi: çıkış optimize) — sağ-sol dengeli koni; her partikül kendi parabolünde
-            pVy[i] = sp * (0.78 + 0.4 * Math.random())
-            pLife[i] = 1
-          } else continue
+      const exA = sig.exhaust
+      if (exA > 0.02) {
+        const coreLen = Math.max(8, dh * 0.018)            // potential core (parlak çekirdek) uzunluğu
+        const coreR = Math.max(3, dh * 0.012)              // ağız çekirdek yarıçapı
+        const SPREAD = 0.21                                // tan(~12°) yarı-koni açılımı
+        // (A) AĞIZ ÇEKİRDEK PARILTISI — gradient YOK; 2 ucuz arc (geniş sönük hale + dar parlak), hafif nabız
+        const cg = (0.10 + 0.42 * exA) * (0.85 + 0.15 * Math.sin(now * 0.02))
+        ctx.fillStyle = cS(cg * 0.5)
+        ctx.beginPath(); ctx.arc(exOx, exOy, coreR * 2.6, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = cS(Math.min(0.9, cg * 1.4))
+        ctx.beginPath(); ctx.arc(exOx, exOy, coreR, 0, Math.PI * 2); ctx.fill()
+        // (B) JET PARTİKÜLLERİ — çekirdek dar/hızlı → mesafeyle koni açılır, hız söner, boyut büyür
+        for (let i = 0; i < PUFF_COUNT; i++) {
+          pLife[i] -= dt / (0.5 + Math.random() * 0.45)    // kısa ömür → belir/söner (jet uzanır)
+          if (pLife[i] <= 0) {
+            if (exA > 0.06) {
+              const sp = (150 + Math.random() * 120) * (0.55 + exA)            // ağız hızı ∝ şiddet
+              pX[i] = exOx + (Math.random() - 0.5) * coreR * 1.2               // DAR ağız → parlak çekirdek
+              pY[i] = exOy + coreR * 0.3
+              pVx[i] = (Math.random() - 0.5) * 22                              // ağızda küçük yanal (koni sonra açılır)
+              pVy[i] = sp * (0.8 + 0.35 * Math.random())                       // AŞAĞI fışkırma
+              pLife[i] = 1
+            } else continue
+          }
+          const dist = pY[i] - exOy > 0 ? pY[i] - exOy : 0                     // ağızdan aşağı mesafe
+          const spread = dist / Math.max(1, dh)
+          // TURBULANS: divergence-free curl (alloc yok) → koni içinde girdap ("yaşayan hava")
+          sampleCurl(pX[i] * 0.02, pY[i] * 0.02, now * 0.0012, _cv)
+          const turb = (120 + 240 * spread) * exA                             // mesafeyle daha çalkantılı (entrainment)
+          // KONİ AÇILIMI: curl yanal + merkezden radyal dışa-itme (öz-benzer ~12° koni)
+          pVx[i] += (_cv[0] * turb + (pX[i] - exOx) * SPREAD * 28) * dt
+          pVx[i] *= 0.985
+          // HIZ SÖNÜMÜ (~core/(core+d)) + hafif sürüklenme/yerçekimi
+          const decay = coreLen / (coreLen + dist)
+          pVy[i] = pVy[i] * (0.985 - 0.05 * spread) + 70 * dt
+          pX[i] += pVx[i] * dt; pY[i] += pVy[i] * dt
+          const l = pLife[i] > 0 ? pLife[i] : 0
+          const born = l > 0.85 ? (1 - l) * 6.67 : 1                          // doğumda 0'dan aç
+          const die = l < 0.5 ? l * 2 : 1                                     // ölürken 0'a in
+          const core = dist < coreLen ? 1 : decay                            // çekirdekte parlak, sonra 1/d söner
+          const a = born * die * (0.12 + 0.55 * exA) * core
+          if (a <= 0.012) continue
+          const r = coreR * (0.5 + 1.6 * (1 - l) + 1.2 * spread)             // mesafe/yaşla BÜYÜR (koni şişmesi)
+          // YAĞ-GİBİ yuvarlak: 2 ucuz fill (geniş sönük hale + dar parlak çekirdek), createRadialGradient YOK
+          ctx.fillStyle = cS(a * 0.45)
+          ctx.beginPath(); ctx.arc(pX[i], pY[i], r, 0, Math.PI * 2); ctx.fill()
+          ctx.fillStyle = cS(Math.min(0.9, a * 1.5))
+          ctx.beginPath(); ctx.arc(pX[i], pY[i], r * 0.45, 0, Math.PI * 2); ctx.fill()
         }
-        // BÜKÜM: yatay yavaş sürüklenir + yerçekimi aşağı bükülür → düzgün parabol (partiküller aynı eğride → bağlantılı)
-        pVx[i] *= 0.992
-        pVy[i] = pVy[i] * 0.992 + 88 * dt
-        pX[i] += pVx[i] * dt; pY[i] += pVy[i] * dt
-        const l = Math.max(0, pLife[i])
-        const a = (l < 0.85 ? l : (1 - l) * 6.7) * 0.46 * sig.exhaust   // belir → söner (hava gibi)
-        if (a <= 0.01) continue
-        const spd = Math.hypot(pVx[i], pVy[i]) || 1
-        const vlen = Math.min(34, spd * dt * 2.4 + 6)   // DAHA BÜYÜK iz (uzun → bindirir → sürekli akış)
-        const ux = pVx[i] / spd, uy = pVy[i] / spd
-        ctx.strokeStyle = `rgba(206,226,255,${a})`; ctx.lineWidth = 1.7
-        ctx.beginPath(); ctx.moveTo(pX[i] - ux * vlen, pY[i] - uy * vlen); ctx.lineTo(pX[i], pY[i]); ctx.stroke()
       }
       ctx.globalCompositeOperation = 'source-over'
 
