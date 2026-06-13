@@ -13,6 +13,14 @@ const KEY = 'ams_lang_v1'
 
 // Anahtar = TURKCE metin. (tr icin sozluk gerekmez.)
 const EN: Record<string, string> = {
+  // Japonya-hazırlık i18n denetimi (workflow): görünür ama çevrilmemiş stringler → EN
+  'Bey': '',
+  'Kayıt': 'Record',
+  'Elle ayarlı regülatör': 'Manually adjusted regulator',
+  'SMC AMS — Hava Yönetim Sistemi': 'SMC AMS — Air Management System',
+  'SMC AMS — Hava Yönetim Sistemi (ürünün tamamı, gerçek fabrika ortamı)': 'SMC AMS — Air Management System (the complete product, real factory environment)',
+  'SMC Hava Yönetim Sistemi — ürünün tamamı, gerçek fabrika ortamı': 'SMC Air Management System — the complete product, real factory environment',
+  'SMC AMS — komple ünite (resmi SMC CAD, yüksek çözünürlük)': 'SMC AMS — complete unit (official SMC CAD, high resolution)',
   // Hata ekranı (ErrorBoundary)
   'Görüntü bir an duraksadı': 'Display paused for a moment',
   'Görüntü yüklenemedi': 'Display could not load',
@@ -486,6 +494,14 @@ const EN: Record<string, string> = {
 }
 
 const JA: Record<string, string> = {
+  // Japonya-hazırlık i18n denetimi (workflow): görünür ama çevrilmemiş stringler → JA
+  'Bey': '様',
+  'Kayıt': '記録',
+  'Elle ayarlı regülatör': '手動調整式レギュレータ',
+  'SMC AMS — Hava Yönetim Sistemi': 'SMC AMS — エア・マネジメント・システム',
+  'SMC AMS — Hava Yönetim Sistemi (ürünün tamamı, gerçek fabrika ortamı)': 'SMC AMS — エア・マネジメント・システム（製品全体、実際の工場環境）',
+  'SMC Hava Yönetim Sistemi — ürünün tamamı, gerçek fabrika ortamı': 'SMC エア・マネジメント・システム — 製品全体、実際の工場環境',
+  'SMC AMS — komple ünite (resmi SMC CAD, yüksek çözünürlük)': 'SMC AMS — コンプリートユニット（SMC公式CAD、高解像度）',
   // Hata ekranı (ErrorBoundary)
   'Görüntü bir an duraksadı': '表示が一瞬停止しました',
   'Görüntü yüklenemedi': '表示を読み込めませんでした',

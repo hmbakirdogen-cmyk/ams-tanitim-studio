@@ -20,7 +20,7 @@ export function ProductBadge() {
         {/* Giris sayfasiyla AYNI gorsel; kucuk karede urunu ortalayan object-cover (net/belirgin) */}
         <img
           src={asset('products/ams-diagram.jpg')}
-          alt={`${PRODUCT.brand} ${PRODUCT.name} — ${model.code}`}
+          alt={`${PRODUCT.brand} ${t(PRODUCT.name)} — ${model.code}`}
           className="h-full w-full object-cover"
           style={{ objectPosition: 'center' }}
           loading="lazy"

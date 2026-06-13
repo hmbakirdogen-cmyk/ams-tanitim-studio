@@ -156,7 +156,7 @@ export class ErrorBoundary extends Component<Props, State> {
             onClick={() => this.setState((s) => ({ showDetail: !s.showDetail }))}
             className="mt-3 block w-full text-xs text-white/40 transition hover:text-white/70"
           >
-            {this.state.showDetail ? 'Teknik detayı gizle' : 'Teknik detay'}
+            {this.state.showDetail ? t('Teknik detayı gizle') : t('Teknik detay')}
           </button>
           {this.state.showDetail && (
             <pre className="mt-2 max-h-40 overflow-auto rounded-lg bg-black/40 p-3 text-left text-[11px] leading-relaxed text-rose-200/80">

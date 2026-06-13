@@ -38,7 +38,7 @@ export function DemoWelcome({ onEnter }: { onEnter: () => void }) {
             </span>
             <img
               src={asset('products/ams-diagram.jpg')}
-              alt="SMC AMS — Hava Yönetim Sistemi"
+              alt={t('SMC AMS — Hava Yönetim Sistemi')}
               className="absolute inset-0 h-full w-full object-cover"
               style={{ transform: 'scale(1.16)', objectPosition: 'center 38%' }}
               loading="lazy"

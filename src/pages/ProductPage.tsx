@@ -97,7 +97,7 @@ export function ProductPage() {
           <div className="relative w-full overflow-hidden rounded-2xl border border-[var(--hair)] bg-[#070e1c]" style={{ aspectRatio: '1380 / 660', transform: 'translateZ(10px)' }}>
             <img
               src={asset('products/ams-diagram.jpg')}
-              alt="SMC Hava Yönetim Sistemi — ürünün tamamı, gerçek fabrika ortamı"
+              alt={t('SMC Hava Yönetim Sistemi — ürünün tamamı, gerçek fabrika ortamı')}
               className="absolute inset-0 h-full w-full object-cover"
               loading="lazy"
             />
@@ -159,7 +159,7 @@ export function ProductPage() {
         <Reveal>
           <Tilt3D className="glass mb-4 grid grid-cols-1 items-center gap-5 overflow-hidden rounded-2xl p-5 lg:grid-cols-[1.15fr_1fr]" max={4}>
             <div className="overflow-hidden rounded-xl border border-[var(--hair)]" style={{ background: 'radial-gradient(115% 100% at 50% 26%, #173a63 0%, #0b1e37 58%, #06101e 100%)' }}>
-              <img src={asset('products/ams-system-hd.png')} alt="SMC AMS — komple ünite (resmi SMC CAD, yüksek çözünürlük)" className="mx-auto max-h-[300px] w-full object-contain p-4" loading="lazy" />
+              <img src={asset('products/ams-system-hd.png')} alt={t('SMC AMS — komple ünite (resmi SMC CAD, yüksek çözünürlük)')} className="mx-auto max-h-[300px] w-full object-contain p-4" loading="lazy" />
             </div>
             <div style={{ transform: 'translateZ(14px)' }}>
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--smc-bright)]">{t('Komple Ünite')} · {model.code}</div>
@@ -183,12 +183,12 @@ export function ProductPage() {
                     {c.imgB ? (
                       <div className="flex items-stretch justify-center gap-1 p-3">
                         <div className="flex flex-1 flex-col items-center justify-end">
-                          <img src={asset(c.img)} alt="Elektro-pnömatik regülatör" className="h-28 w-auto object-contain" loading="lazy" />
+                          <img src={asset(c.img)} alt={t('Elektro-pnömatik regülatör')} className="h-28 w-auto object-contain" loading="lazy" />
                           <span className="mt-1 text-[10px] font-semibold text-sky-200/80">{t('Elektro-pnömatik')}</span>
                         </div>
                         <div className="mx-1 w-px self-stretch bg-white/15" />
                         <div className="flex flex-1 flex-col items-center justify-end">
-                          <img src={asset(c.imgB)} alt="Elle ayarlı regülatör" className="h-28 w-auto object-contain" loading="lazy" />
+                          <img src={asset(c.imgB)} alt={t('Elle ayarlı regülatör')} className="h-28 w-auto object-contain" loading="lazy" />
                           <span className="mt-1 text-[10px] font-semibold text-sky-200/80">{t('Elle ayar')}</span>
                         </div>
                       </div>

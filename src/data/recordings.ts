@@ -6,6 +6,7 @@
  */
 import type { Reading } from './types'
 import { toLocalInputValue } from '@/lib/datetime'
+import { t } from '@/i18n' // yedek kayıt adı çevrilsin (Japonya: 'Kayıt' → 'Record'/'記録')
 
 /*
  * NE+NEDEN: Saha/musteri is bilgisi. Mehmet Abi: "SMC calisani sahaya/musteriye gidince ISLETME bilgilerini yazip
@@ -64,7 +65,7 @@ export function saveRecording(name: string, points: Reading[], createdAt: number
   if (customer?.note?.trim()) cust.note = customer.note.trim()
   const rec: Recording = {
     id: `rec-${createdAt}-${Math.random().toString(36).slice(2, 6)}`,
-    name: name.trim() || (cust.company || 'Kayıt'),
+    name: name.trim() || (cust.company || t('Kayıt')),
     createdAt,
     startedAt: startedAt ?? createdAt - last, // verilmezse sureden geriye hesapla
     ...(Object.keys(cust).length ? { customer: cust } : {}),

@@ -122,7 +122,7 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
             >
               <Avatar user={user} size={38} />
               <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-white">{user.firstName} Bey</div>
+                <div className="truncate text-sm font-semibold text-white">{`${user.firstName} ${t('Bey')}`.trim()}</div>
                 <div className="truncate text-[11px] text-[var(--ink-soft)]">
                   {user.title ?? t(user.role === 'admin' ? 'Yönetici' : 'Personel')}
                 </div>

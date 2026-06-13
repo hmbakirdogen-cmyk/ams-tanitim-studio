@@ -147,7 +147,7 @@ export function FeedbackDrawer({ onClose, sayfa }: { onClose: () => void; sayfa:
                       </span>
                       <span className="num text-[10.5px] text-[var(--ink-soft)]">{formatTarih(g.tarih)}</span>
                     </div>
-                    <div className="mt-1.5 text-[10.5px] text-[var(--ink-soft)]">{g.sayfa}</div>
+                    <div className="mt-1.5 text-[10.5px] text-[var(--ink-soft)]">{t(g.sayfa)}</div>
                     <div className="mt-1 whitespace-pre-wrap text-[13px] text-white">{g.mesaj}</div>
                   </div>
                 )

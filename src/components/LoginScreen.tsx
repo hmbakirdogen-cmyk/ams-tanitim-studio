@@ -73,7 +73,7 @@ export function LoginScreen({ auth }: { auth: Auth }) {
           <span className="absolute left-3 top-3 z-10 rounded-md px-2.5 py-1 text-[11px] font-bold text-white" style={{ background: '#0072CE', boxShadow: '0 4px 14px -4px rgba(0,114,206,0.9)' }}>SMC · AMS {t('Hava Yönetim Sistemi')}</span>
           <img
             src={asset('products/ams-diagram.jpg')}
-            alt="SMC AMS — Hava Yönetim Sistemi (ürünün tamamı, gerçek fabrika ortamı)"
+            alt={t('SMC AMS — Hava Yönetim Sistemi (ürünün tamamı, gerçek fabrika ortamı)')}
             /* Mehmet Abi: "biraz ürüne doğru zoom-in (arka plan bozulmadan)". scale + object-position merkez-üst:
                object-cover + overflow-hidden taşanı kırpar -> ürün büyür, arka plan/cözünürlük bozulmaz (saf görüntüleme). */
             className="absolute inset-0 h-full w-full object-cover"
@@ -120,7 +120,7 @@ export function LoginScreen({ auth }: { auth: Auth }) {
                   >
                     <Avatar user={u} size={84} />
                     <div className="min-w-0">
-                      <div className="text-[15px] font-semibold leading-tight text-white">{u.firstName} Bey</div>
+                      <div className="text-[15px] font-semibold leading-tight text-white">{`${u.firstName} ${t('Bey')}`.trim()}</div>
                       {u.title && <div className="mt-1 line-clamp-2 text-[11px] leading-snug text-[var(--ink-soft)]">{u.title}</div>}
                     </div>
                     <span
@@ -152,7 +152,7 @@ export function LoginScreen({ auth }: { auth: Auth }) {
               </button>
               <div className="mb-4 flex flex-col items-center gap-2">
                 <Avatar user={sel} size={72} />
-                <div className="text-lg font-semibold text-white">{t('Hoş geldiniz')}, {sel.firstName} Bey</div>
+                <div className="text-lg font-semibold text-white">{t('Hoş geldiniz')}, {`${sel.firstName} ${t('Bey')}`.trim()}</div>
                 <div className="text-xs text-[var(--ink-soft)]">{t('Şifrenizi girin')}</div>
               </div>
               <motion.div
