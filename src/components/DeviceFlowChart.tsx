@@ -49,7 +49,7 @@ const FB_AXIS = 0.19, FB_PIPE = 0.06, FB_IN = 0.03, FB_OUT = 0.95  // image #1 (
 //   Mehmet Abi: "overlay ölçüleri gerçek ekranla TAM örtüşsün" → değerler artık ekranın TAM içinde (eski kutu sağdan tuşlara taşıyordu).
 const FB_DISPLAYS = [{ x: 0.4304, y: 0.1742, w: 0.1414, h: 0.0842 }]  // image #1: üst-orta dijital monitör LCD (gerçek camla BİREBİR — foto-ölçüm; Mehmet Abi onayladı)
 // PDF'e gore modul bolgeleri (tum-foto x/y orani)
-const REG_FRAC: [number, number] = [0.155, 0.305] // standby/oransal regülatör — regüle hücresi (Mehmet Abi: biraz genişletildi)
+const REG_FRAC: [number, number] = [0.13, 0.30] // oransal regülatör GÖVDE hücresi — Mehmet abi kırmızı çizgilerle gövde başlangıç/bitiş eksenini verdi → animasyon (molekül/orifis/halka) GÖVDEYE ORTALI (orifis chokeF·0.52 ≈ gövde merkezi)
 const REG_DISP: [number, number, number, number] = [0.211, 0.4467, 0.0624, 0.0233] // regülatör KIRMIZI dijital LCD — BİREBİR foto-ölçüm (tools/_regscreen.py: ışın-tarama, siyah cam kenarı) [x,y,w,h]
 const VALVE_CX = 0.74                            // tahliye valfi merkezi (image #1: sağ modül)
 const EXHAUST_CX = 0.775, EXHAUST_CY = 0.39      // egzoz/dönüş/halka EKSENİ = valf düşey ekseni (mavi düğme). Mehmet abi: 0.785 çıkış eksenini kötüleştirdi → 0.775 (sevdiği eksen); hava bu eksende AŞAĞI atılır
