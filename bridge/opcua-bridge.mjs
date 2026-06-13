@@ -116,6 +116,16 @@ const DEFAULT_NODE_IDS = {
   valveMode: 'ns=2;s=AMS.ValveMode',
 }
 
+// OLCEK (KALIBRASYON): cihaz HAM tamsayi doner -> ekranla BIREBIR tutmasi icin olcekle.
+// SAHA KANITI (fuar, AMS30B/PF3W): cihaz ekrani sicaklik "286" = 28.6°C (x10) ; basinc ham 514 = 0.514 MPa (max 1.0 MPa'ya uyar).
+// Env ile EZILEBILIR (OPCUA_SCALE_*), yeniden paketlemeden saha ince ayari icin. Debi/nem saha dogrulamasiyla netlesir.
+const SCALE = {
+  flow: Number(process.env.OPCUA_SCALE_FLOW ?? 1),            // l/dak (ham, 10-1000 araliginda gercekci)
+  pressure: Number(process.env.OPCUA_SCALE_PRESSURE ?? 0.001), // ham (kPa/mMPa) -> MPa : 514 -> 0.514
+  temperature: Number(process.env.OPCUA_SCALE_TEMP ?? 0.1),    // ham x10 -> °C : 286 -> 28.6
+  humidity: Number(process.env.OPCUA_SCALE_HUMIDITY ?? 1),     // % (ham)
+}
+
 // Dugum ISIMDEN tahmin desenleri (TR+EN). Cihazin browseName/displayName'i bunlara uyarsa o olcume atanir.
 const HINT_PATTERNS = {
   flow: /(flow|debi|ak[ıi][şs]|t[üu]ket|m3|nm3|sm3)/i,
@@ -418,7 +428,8 @@ export function handleAppConnection(socket) {
           const good = (r) => !r?.statusCode || r.statusCode.isGood?.() !== false
           const bad = ['flow', 'pressure', 'temperature', 'humidity'].filter((_, i) => !good(res[i]))
           const num = (r) => { const n = Number(r?.value?.value); return Number.isFinite(n) ? n : 0 }
-          const out = { flow: num(res[0]), pressure: num(res[1]), temperature: num(res[2]), humidity: num(res[3]) }
+          // KALIBRASYON: ham deger * SCALE -> cihaz ekraniyla birebir (286->28.6°C, 514->0.514 MPa). Bkz SCALE.
+          const out = { flow: num(res[0]) * SCALE.flow, pressure: num(res[1]) * SCALE.pressure, temperature: num(res[2]) * SCALE.temperature, humidity: num(res[3]) * SCALE.humidity }
           if (res[4]?.value?.value != null) { const m = Number(res[4].value.value); out.mode = m === 2 ? 'isolation' : m === 1 ? 'standby' : 'normal' }
           if (bad.length) out.warning = `Okunamayan dugum(ler): ${bad.join(', ')} (nodeId/StatusCode kontrol edin)`
           send(out)
