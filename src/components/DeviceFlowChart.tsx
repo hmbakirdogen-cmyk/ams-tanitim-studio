@@ -55,6 +55,10 @@ const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (imag
 //   Mehmet Abi: "bağlantı/ayak konumu ürüne göre değişebilir" → birebir hizalama şart değil; konum gözle ayarlanabilir (tunable).
 const REG_SWAP_X: [number, number] = [0.118, 0.330]  // overlay yatay bant (regülatör gövdesi, REG_FRAC'a yakın)
 const REG_SWAP_Y: [number, number] = [0.345, 0.860]  // overlay dikey bant (temel regülatörü kapla + AR çizim alanı)
+// GÜVENLİK BAYRAĞI: regülatör overlay'i DOĞRULANMADAN (Mehmet abi gözüyle konum + ekran kanıtı) AÇILMAZ.
+//   false iken program BİLİNEN-İYİ hâlinde (temel foto + orijinal LCD/LED) → bozuk/yarım görüntü ASLA gösterilmez.
+//   Konum REG_SWAP_X/Y birlikte ayarlanıp gözle doğrulanınca true yapılacak.
+const REG_SWAP_ENABLED = false
 
 const FLOW_COUNT = 280       // akan molekül sayısı — Mehmet Abi: daha zengin akış (224→280); GÖRÜNEN sayı debiyle ölçeklenir (flowN)
 const FLOW_LANES = 14        // paralel laminar şerit; aynı şeritteki moleküller AYNI hızda → asla karışmaz
@@ -390,7 +394,7 @@ export function DeviceFlowChart({
 
       // 1b) REGÜLATÖR KOMPONENT (model.type): Tip B (elle-ayar) → temel (IO-Link) regülatörü kapat + AR görselini bindir.
       //   Tip A → DOKUNMA (temel foto zaten oransal). getActiveModel() canlı okunur → Ürün Ayarları'nda model değişince anında yansır.
-      if (getActiveModel().type === 'B' && regB && regB.complete && regB.naturalWidth) {
+      if (REG_SWAP_ENABLED && getActiveModel().type === 'B' && regB && regB.complete && regB.naturalWidth) {
         const rx0 = dx + dw * REG_SWAP_X[0], ry0 = dy + dh * REG_SWAP_Y[0]
         const rbw = dw * (REG_SWAP_X[1] - REG_SWAP_X[0]), rbh = dh * (REG_SWAP_Y[1] - REG_SWAP_Y[0])
         ctx.clearRect(rx0, ry0, rbw, rbh)  // temel regülatörü sil → arkadaki ambient sahne görünür (temiz zemin)
@@ -646,7 +650,7 @@ export function DeviceFlowChart({
       // 8) CİHAZ LED'i — REGÜLATÖR güç/durum LED'i (valf LED'i kaldırıldı): devredeyse (standby) yeşil yanıp söner.
       // SADECE REGÜLATÖR LED'i (Mehmet Abi: valf LED'i kaldırıldı). KONUM SABİT (LED_REG); ÇOK KÜÇÜK + gerçekçi, YANIP SÖNER.
       //   Devredeyken (standby/iso) yeşil nabız, boştayken sönük.
-      if (getActiveModel().type !== 'B') { // Tip B = analog regülatör (dijital güç LED'i yok)
+      if (!(REG_SWAP_ENABLED && getActiveModel().type === 'B')) { // overlay aktif + Tip B değilse orijinal güç LED'i gösterilir
         const lx = dx + dw * LED_REG[0], ly = dy + dh * LED_REG[1]
         const rr0 = Math.max(0.9, dh * 0.0055)                  // çok küçük dot (gerçek LED ölçeği)
         const regBlink = (now % 1150) < 820 ? 1 : 0.06          // ~0.87Hz yanıp sönme (açık ~0.82s / kapalı ~0.33s)
@@ -753,7 +757,7 @@ export function DeviceFlowChart({
 
       // 9b) REGÜLATÖR KIRMIZI dijital ekranı CANLI — orijinal yapı KORUNUR (foto çerçeve/etiketler kalır); statik ".200" gizlenip
       //   yerine CANLI basınç (MPa, kırmızı 7-seg, lider sıfırsız ".62" stili) yazılır. Mehmet Abi: "kendi göstergesi ama canlı".
-      if (getActiveModel().type !== 'B') { // Tip B = analog saat (kırmızı dijital LCD yok)
+      if (!(REG_SWAP_ENABLED && getActiveModel().type === 'B')) { // overlay aktif + Tip B değilse orijinal kırmızı LCD gösterilir
         const pPa = readoutRef.current.pressure
         if (pPa != null) {
           let pv = pPa.toFixed(2)             // regülatör ekranı: MPa, 2 hane (kendi çözünürlüğü)

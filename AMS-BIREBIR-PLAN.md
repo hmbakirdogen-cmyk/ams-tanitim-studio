@@ -76,6 +76,11 @@
 - Hedef: kullanıcının gözüne hitap + **her sensörün karakteristiğini** yansıt (debi→hız/yoğunluk, basınç→sıkışma, sıcaklık→ısı/renk, nem→damla/buğu) + **TÜM verilere TAM SENKRON** + **veri ŞİDDETİNE göre** otomatik ayrışma.
 - "En iyi araçlar/yazılımlar çekinmeden kullan" (Mehmet abi) → analiz: ileri Canvas 2D (curl-noise/flow-field) vs WebGL (regl/PixiJS/three points/GPU particles). Offline + 60fps.
 
+### ⬜ TAK-ÇALIŞTIR + TÜM AYARLAR OPTİMİZE (Mehmet abi: "bütün ama bütün ayarlar en optimize, tak çalıştır kıvamı")
+- Açan kişi (Japonya) HİÇ uğraşmadan, EN İYİ ayarlarla çalışsın: cihaz oto-bulunur / oto-node / cihaz yoksa zarif Demo (zaten var) · dil seçimi net · sıfır kurulum.
+- **Açılış HIZI:** build tek parça 1.48MB (gzip 426KB) → **kod-bölme** (vite manualChunks: react/antd/three/recharts/ag-grid ayrı) → şimşek açılış (PWA offline korunur). [perf audit kesinleştirecek]
+- Tüm varsayılanlar "en mantıklı" (model/economy/ekran/performans lite-eşiği) → out-of-the-box premium. Build SIFIR hata/uyarı hedefi (chunk uyarısı kod-bölmeyle de kapanır).
+
 ### ⬜ KÜTÜPHANE
 - Mehmet abi: "en iyi toolları çekinmeden kullan, **kütüphanemizi genişlet**." Kullanılan her elit araç/teknik → `Projeler/cephanelik/ARAÇLAR.md` (+ proje notu). Compound.
 

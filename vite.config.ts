@@ -51,6 +51,26 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // OPTIMIZE (Mehmet abi: "tak-çalıştır + en optimize"): tek 1.48MB parça yerine büyük kütüphaneleri AYRI parçalara böl
+    //   -> tarayıcı paralel indirir + önbellekler, ana uygulama parçası küçülür -> ŞİMŞEK açılış. PWA hepsini precache eder (offline korunur).
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) return 'vendor-react'
+          if (/[\\/]node_modules[\\/](antd|@ant-design|rc-[^\\/]+|@rc-component)[\\/]/.test(id)) return 'vendor-antd'
+          if (/[\\/]node_modules[\\/](three|@react-three|@react-spring|postprocessing|maath)[\\/]/.test(id)) return 'vendor-three'
+          if (/[\\/]node_modules[\\/](recharts|d3-[^\\/]+|victory[^\\/]*|internmap)[\\/]/.test(id)) return 'vendor-charts'
+          if (/[\\/]node_modules[\\/](ag-grid[^\\/]*)[\\/]/.test(id)) return 'vendor-grid'
+          if (/[\\/]node_modules[\\/](framer-motion|motion)[\\/]/.test(id)) return 'vendor-motion'
+          if (/[\\/]node_modules[\\/]exceljs[\\/]/.test(id)) return 'vendor-excel'
+          return 'vendor'
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
