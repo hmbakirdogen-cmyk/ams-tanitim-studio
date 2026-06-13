@@ -86,6 +86,25 @@
 
 ### ⬜ Devam (önceki birebir): A2 optimizasyon · A7 gerçek-LED · A8 hub LCD birebir (bar/x10²) · A9 reg LCD set-basınç · mobil QR/IP · paket yenile · merge/push
 
+## 3d) VARIANT + ANİMASYON ANALİZ SONUCU (workflow w1g4crbfp) — UYGULAMA PLANI
+> KARARLAR: (1) Canvas 2D'de KAL (WebGL fuar-PC bağlam-düşüşü riski; ~560 partikül 2D yeter). (2) Yeni `src/lib/flowField.ts` = analitik hız-alanı + curl-noise (sıfır kare-başı alloc). (3) Yeni `src/data/deviceVariants.ts` = dağınık konum sabitlerini TEK variant tablosuna topla.
+> KRİTİK BULGU: `ams-flow.png` KARMA — regülatör tarafı Tip A (IO-Link), hub tarafı Tip B (SF/BF + PROFINET PORT1/PORT2). "Base = Tip A" varsayımı hub'da YANLIŞ.
+> PARÇA KODU: AMS[boyut][A/B]-[diş+port][C/D]-[PROTOKOL]-[braket]. SA=Standalone/kablosuz (fieldbus YOK, A-coded tek konnektör) · PN=PROFINET (D-coded PORT1/PORT2 çift). TYPE A=ITV oransal(dijital LCD) / B=AR elle(analog saat). Protokol → hub LED etiketleri + konnektör.
+> ⚠️ NÜANS (Mehmet abi fuar fotosuyla TEYİT): "A=ST/SA" basit; ST aslında EtherCAT etiketi. SA-variant paneli SF/MS/ST + BF/NS/DIAG taşır. Yanlış donanım terimi yazma.
+
+### UYGULAMA SIRASI (riski düşük→yüksek; göz gerekenler işaretli)
+1. ⬜ **deviceVariants.ts omurga** (davranış-koruyan refaktor: literaller→tablo; görsel AYNI). risk orta · göz: hayır → build+karşılaştır.
+2. ⬜ **flowField.ts** (saf TS, kütüphanesiz, sıfır-alloc; görsel değiştirmez). risk düşük · göz: hayır.
+3. ⬜ **EGZOZ round-jet overhaul** (koni-açılım + mesafeyle hız düşüşü + curl türbülans + fiziksel sönüm + çift-geçiş; sig.pressure çarpanı; renk cS/cP+tempRGB). risk orta · **göz: EVET** (en çok şikâyet edilen → en görünür kazanım).
+3b. ⬜ **GERİ DÖNÜŞ sink modeli** (sahte dirsek/ışınlama SİL; valf-ağzı çekiş kuyusu + doğal girdap). risk yüksek · **göz: EVET**.
+4. ⬜ **İLERİ AKIŞ şiddet eğrisi** sertleştir + 4-sensör sentezi (debi→hız/sayı, basınç→çap/parlaklık, sıcaklık→renk, nem→doku). risk orta · **göz: EVET**.
+5. ⬜ **Çalışan analog saat** (Tip B): regulator-ar-hd.png üstüne prosedürel ibre, açı=pressure/1.0×270°, canlı lerp. risk yüksek · **göz: EVET**.
+6. ⬜ **HUB LED etiketleri** variant-bağlı (Tip A=ST/SA, B=SF/BF — fuar fotosuyla teyit) — opak kutu + canvas metin. risk orta · **göz: EVET**.
+7. ⬜ **KONNEKTÖR** variant-bağlı (A=tek IO-Link A-coded / B=PROFINET PORT1+PORT2 D-coded; satır 849-851 yorumu yanlış). risk orta · **göz: EVET**.
+8. ⬜ **HUB LCD birimi** bar/MPa (hub=bar ham÷100; regülatör=MPa). YALNIZ Mehmet abi onayıyla (deger×10 hatası riski). risk orta · **göz: EVET**.
+9. ⬜ **DOĞRULAMA**: tsc 0 + build 0 + Demo=Canlı aynı + A↔B anında + 60fps + lite/fuar-PC bozulmadı.
+> KORUNACAK: mevcut Float32Array havuz + fade-rect motion-blur + 'lighter' glow + GPU-reset dayanıklılık + Tip B reg overlay (şu an bayrak KAPALI, doğrulanınca aç). Mehmet abi'nin BEĞENDİĞİ ekran yapısı BOZULMAZ.
+
 ## 4) İLGİLİ DOSYALAR
 - `bridge/opcua-bridge.mjs` (köprü: bağlantı+ölçek+oto-node+durum+PKI) · `bridge/pki/` (.gitignore, kalıcı cert)
 - `src/components/DeviceFlowChart.tsx` (cihaz görseli — A2/A5-A9 burada) · `src/data/{types,liveSource,connection,metrics,model}.ts`
