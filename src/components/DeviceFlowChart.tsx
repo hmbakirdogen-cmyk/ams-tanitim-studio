@@ -536,7 +536,10 @@ export function DeviceFlowChart({
         const jit = (0.18 + 0.8 * local) * pinch                            // daha az çalkantı (rahat)
         const y = axisY + mLane[i] * pr * 0.86 * pinch + (Math.random() - 0.5) * jit
         const sz = (1.5 + 0.8 * local) + near * 0.35                         // orifiste hafif iri (squeeze yumuşatıldı)
-        const a = Math.min(0.92, (0.28 + 0.42 * local) + near * 0.12)        // orifiste hafif parlak (yumuşatıldı)
+        // Mehmet Abi: "molekül belli bir çizgide belirip belli bir çizgide yok olmasın — hepsi aynı hava içinde cereyan ediyor" →
+        //   uçlarda YUMUŞAK belir/sön (opaklık rampası): giriş ucu (u→0) + çıkış ucu (u→1) fade → sert doğum/ölüm ÇİZGİSİ YOK, sürekli hava hissi.
+        const edgeFade = Math.min(1, u / 0.14) * Math.min(1, (1 - u) / 0.14)
+        const a = Math.min(0.92, (0.28 + 0.42 * local) + near * 0.12) * edgeFade
         // HIZLANMA İZİ (Mehmet Abi: regülatör animasyonunu geliştir) — orifis SONRASI hızlanan molekül arkasında kısa iz bırakır
         //   → venturi "fışkırma"sı belirginleşir (hız ∝ iz uzunluğu). Yalnız hızlananlarda (devredeyken çıkış tarafı).
         const spd = v / vBase
