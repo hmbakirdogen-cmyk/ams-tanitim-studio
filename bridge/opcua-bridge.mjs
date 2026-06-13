@@ -16,7 +16,7 @@
 import net from 'node:net'
 import os from 'node:os'
 import { WebSocketServer } from 'ws'
-import { OPCUAClient, AttributeIds, DataType, BrowseDirection, NodeClass, MessageSecurityMode, SecurityPolicy } from 'node-opcua'
+import { OPCUAClient, AttributeIds, DataType, BrowseDirection, NodeClass, MessageSecurityMode, SecurityPolicy, UserTokenType } from 'node-opcua'
 
 const WS_HOST = '0.0.0.0' // LAN ACIK (Mehmet Abi onayi): ayni Wi-Fi'daki telefon/tablet de PC'deki kopruye baglanip CANLI veri gorur + set ayari yapar. GUVENLIK: guvenilir saha agi varsayilir (ayni agdaki cihazlar cihaza yazabilir).
 const WS_PORT = 4841
@@ -224,12 +224,53 @@ export function handleAppConnection(socket) {
     stopped = false
     if (ids) nodeIds = { ...DEFAULT_NODE_IDS, ...ids } // EKRANDAN gelen node kimlikleri (uyarlanabilir)
     send({ type: 'status', connected: false })
-    // Guvenlik None + anonim: demo/saha cihazinda en uyumlu (Sign&Encrypt el-sikismasi takilmasin). Cihaz guvenlik
-    // isterse yine de baglanamaz ama None cogu yerel OPC UA sunucusunda CALISAN en genis yoldur.
-    client = OPCUAClient.create({ endpointMustExist: false, securityMode: MessageSecurityMode.None, securityPolicy: SecurityPolicy.None })
+    // GUVENLIK/KIMLIK DENEME ZINCIRI: None -> Sign&Encrypt -> Sign (hepsi anonim). Cihaz hangi guvenligi isterse o tutar.
+    //   Port 4843 GUVENLI endpoint olabilir -> None reddedilirse otomatik SIFRELI denenir. Her deneme 7sn timeout + maxRetry:1
+    //   -> sonsuz "Baglaniyor..." YOK; hicbiri olmazsa NET hata (son deneme mesaji) siyah pencerede + UI'da gorunur.
+    // TESHIS: cihazin GERCEK endpoint listesini al + logla (hangi guvenlik modlarini sunuyor? None VAR MI?). Siyah pencerede gorunur.
     try {
-      await client.connect(endpoint)
-      session = await client.createSession()
+      const probe = OPCUAClient.create({ endpointMustExist: false, connectionStrategy: { maxRetry: 0 } })
+      await withTimeout(probe.connect(endpoint), 5000, 'probe-timeout')
+      const eps = await withTimeout(probe.getEndpoints(), 5000, 'endpoints-timeout')
+      console.log(`[kopru] CIHAZ ENDPOINTLERI (${(eps || []).length}) -> hangi guvenlik var:`)
+      for (const e of eps || []) console.log('   -', MessageSecurityMode[e.securityMode], '|', (e.securityPolicyUri || '').split('#').pop(), '|', e.endpointUrl)
+      try { await probe.disconnect() } catch { /* yok */ }
+    } catch (e) { console.log('[kopru] endpoint listesi alinamadi:', e.message) }
+
+    // GUVENLIK/KIMLIK DENEME ZINCIRI: None+anonim -> Sign&Encrypt+admin/admin -> Sign&Encrypt+anonim -> Sign+admin.
+    //   (SMC EXA1 genelde SIFRELI + admin/admin ister - kendi kilavuzu. Demo icin EN HIZLISI cihazdan None+anonim acmaktir.)
+    const ADMIN = { type: UserTokenType.UserName, userName: process.env.OPCUA_USER || 'admin', password: process.env.OPCUA_PASS || 'admin' }
+    const SEC_ATTEMPTS = [
+      { name: 'None/anonim', mode: MessageSecurityMode.None, pol: SecurityPolicy.None, user: null },
+      { name: 'Sign&Encrypt/Basic256Sha256/admin', mode: MessageSecurityMode.SignAndEncrypt, pol: SecurityPolicy.Basic256Sha256, user: ADMIN },
+      { name: 'Sign&Encrypt/Basic256Sha256/anonim', mode: MessageSecurityMode.SignAndEncrypt, pol: SecurityPolicy.Basic256Sha256, user: null },
+      { name: 'Sign/Basic256Sha256/admin', mode: MessageSecurityMode.Sign, pol: SecurityPolicy.Basic256Sha256, user: ADMIN },
+    ]
+    let lastErr = ''
+    for (const a of SEC_ATTEMPTS) {
+      if (stopped) return
+      let c = null
+      try {
+        c = OPCUAClient.create({ endpointMustExist: false, securityMode: a.mode, securityPolicy: a.pol, connectionStrategy: { maxRetry: 1, initialDelay: 300, maxDelay: 1200 } })
+        // Sunucu sertifikasini OTOMATIK kabul et -> ilk-baglanti "rejected/trust" takilmasi olmasin (mumkun olan surumde).
+        try { if (c.clientCertificateManager) c.clientCertificateManager.automaticallyAcceptUnknownCertificate = true } catch { /* yok */ }
+        await withTimeout(c.connect(endpoint), 7000, 'connect-timeout')
+        const s = await withTimeout(a.user ? c.createSession(a.user) : c.createSession(), 7000, 'session-timeout')
+        client = c; session = s
+        console.log(`[kopru] BAGLANDI (${a.name}):`, endpoint)
+        break
+      } catch (e) {
+        lastErr = `${a.name}: ${e.message}`
+        console.error(`[kopru] deneme basarisiz [${a.name}]:`, e.message)
+        try { await c?.disconnect() } catch { /* yok */ }
+      }
+    }
+    if (!session) {
+      send({ type: 'status', connected: false, error: `baglanilamadi - None/Sign&Encrypt/Sign denendi. Son hata: ${lastErr}` })
+      await cleanup()
+      return
+    }
+    try {
       send({ type: 'status', connected: true })
       console.log('[kopru] cihaza baglandi:', endpoint, '| node:', nodeIds)
       // HIBRIT: cihazin MEVCUT ayarlarini bir kez OKU -> uygulamaya gonder (Urun Ayarlari o degerlerle devam etsin)
