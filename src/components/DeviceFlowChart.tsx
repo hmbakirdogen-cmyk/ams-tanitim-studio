@@ -521,13 +521,10 @@ export function DeviceFlowChart({
         ctx.beginPath(); ctx.arc(mx + dxm, my + dym, sz * 0.78, 0, Math.PI * 2); ctx.fill()
       }
       // AKIŞ: TÜM moleküllerin fazı ilerler (giriş→çıkış); orifis SONRASI devredeyken hızlanır → çıkış SEYREK. Çizilen sayı ∝ basınç.
-      const moleN = Math.round(MOLE_COUNT * (0.30 + 0.50 * sig.pressure)) // Mehmet Abi "daha net izlensin": her zaman okunur yoğunluk (taban ↑)
-      const vBase = 0.15 + 0.17 * p1                                       // Mehmet Abi "rahat izlensin": daha YAVAŞ → göz takip edebilir
+      const moleN = Math.round(MOLE_COUNT * (0.18 + 0.58 * sig.pressure)) // Mehmet Abi: biraz rahat (daha az/seyrek molekül)
+      const vBase = 0.2 + 0.24 * p1                                        // daha sakin akış hızı
       for (let i = 0; i < MOLE_COUNT; i++) {
-        // GERÇEK venturi (Bernoulli/süreklilik A·v=sabit): daralan kesitte molekül HIZLANIR → boğazda en hızlı.
-        //   conv = boğaza yakınlık (0..1). Orifis SONRASI devredeyken regüle çıkış hızı korunur (fışkırma).
-        const conv = 1 - Math.min(1, Math.abs(mU[i] - chokeF) / 0.42)
-        const v = vBase * (1 + 1.3 * conv + (mU[i] >= chokeF ? 1.6 * sig.reg : 0))
+        const v = vBase * (mU[i] < chokeF ? 1 : (1 + 2.6 * sig.reg)) // orifis sonrası HIZLI (devredeyken) → seyrekleşir
         let u = mU[i] + v * dt
         if (u >= 1) u -= 1
         mU[i] = u
@@ -536,10 +533,10 @@ export function DeviceFlowChart({
         const pinch = 0.30 + 0.70 * Math.min(1, Math.abs(u - chokeF) / 0.40) // VENTURI: orifiste kesit DAR (hourglass)
         const near = 1 - Math.min(1, Math.abs(u - chokeF) / 0.16)            // orifise yakınlık (squeeze vurgusu)
         const local = u < chokeF ? p1 : p2
-        const jit = (0.08 + 0.34 * local) * pinch                           // Mehmet Abi "rahat": çalkantı iyice azaltıldı → sakin, akışkan
+        const jit = (0.18 + 0.8 * local) * pinch                            // daha az çalkantı (rahat)
         const y = axisY + mLane[i] * pr * 0.86 * pinch + (Math.random() - 0.5) * jit
-        const sz = (2.2 + 1.1 * local) + near * 0.7                          // Mehmet Abi "net izlensin": molekül DAHA İRİ + boğazda belirgin
-        const a = Math.min(0.96, (0.44 + 0.44 * local) + near * 0.16)        // DAHA PARLAK/net (boğazda vurgulu)
+        const sz = (1.5 + 0.8 * local) + near * 0.35                         // orifiste hafif iri (squeeze yumuşatıldı)
+        const a = Math.min(0.92, (0.28 + 0.42 * local) + near * 0.12)        // orifiste hafif parlak (yumuşatıldı)
         // HIZLANMA İZİ (Mehmet Abi: regülatör animasyonunu geliştir) — orifis SONRASI hızlanan molekül arkasında kısa iz bırakır
         //   → venturi "fışkırma"sı belirginleşir (hız ∝ iz uzunluğu). Yalnız hızlananlarda (devredeyken çıkış tarafı).
         const spd = v / vBase
