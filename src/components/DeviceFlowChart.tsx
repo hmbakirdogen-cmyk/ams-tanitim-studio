@@ -862,7 +862,7 @@ export function DeviceFlowChart({
       if (!(getActiveModel().type === 'B' && DEVICE_B_GAUGE_ENABLED)) { // dijital LCD: Tip A daima + Tip B (saat KAPALI iken). Saat açıkken Tip B'de gizlenir.
         const pPa = readoutRef.current.pressure
         if (pPa != null) {
-          let pv = pPa.toFixed(2)             // regülatör ekranı: MPa, 2 hane (kendi çözünürlüğü)
+          let pv = pPa.toFixed(3)             // regülatör ekranı: MPa, 3 hane (gerçek E/P ekranı foto: ".287")
           if (pv.startsWith('0.')) pv = pv.slice(1)
           const gx = dx + dw * REG_DISP[0], gy = dy + dh * REG_DISP[1], gw = dw * REG_DISP[2], gh = dh * REG_DISP[3]
           // KÖŞE RADÜSÜ — debimetreyle AYNI optimizasyon (Mehmet Abi: "köşe radüsüne kadar uygula"): kırpma KALDIRILDI → oranlı,
@@ -874,21 +874,16 @@ export function DeviceFlowChart({
           // ince bezel — koyu kırmızımsı kenar (debimetredeki çerçeve mantığı; foto çerçevesini bozmadan ekran camı hissi)
           ctx.strokeStyle = 'rgba(120,40,46,0.45)'; ctx.lineWidth = 0.75
           if (gRnd) { ctx.beginPath(); ctx.roundRect(gx + 0.4, gy + 0.4, gw - 0.8, gh - 0.8, gRad); ctx.stroke() }
-          const fs = Math.max(7, Math.min(gh * 0.78, gw * 0.26))   // padding payı → rakam kenara değmez (debimetre gibi)
-          // Regülatör TERS monteli (Mehmet Abi) → rakamlar 180° döndürülür; DAHA KOYU kırmızı.
+          // FOTO-BİREBİR (Mehmet abi gerçek IO-Link E/P REGULATOR ekranı fotosu): rakamlar GERÇEK 7-SEGMENT LED —
+          //   düz monospace yazı yerine drawSevenSeg → fotodaki kırmızı dijitlerin segment hissi + lider-sıfırsız ".287" stili.
+          // RENK: VİŞNE kırmızısı (Mehmet abi: "kırmızı vişne renk yap") — derin/koyu kızıl, turuncuya/parlağa kaçmaz; glow kısık.
+          const segCol: RGB = [172, 26, 50]                          // vişne (deep cherry) — yeşil/mavi düşük, kızıl baskın
+          const segW1 = measureSevenSeg(pv, 1) || 1                  // birim-yükseklikte genişlik → ölçekli sığdırma (hangi değer olursa olsun taşmaz)
+          const segH = Math.min(gh * 0.74, (gw * 0.90) / segW1)     // hem dikey hem yatay sığar (en büyük okunur boy; padding korunur)
+          // YÖN: Mehmet abi "ters çevir" → 180° rotation KALDIRILDI (düz/upright). Ekran camına ortalı. (gözle DOĞRULANIR — screenshot)
           ctx.save()
           ctx.translate(gx + gw / 2, gy + gh / 2)
-          ctx.rotate(Math.PI)
-          ctx.font = `800 ${fs}px ui-monospace, Menlo, monospace`
-          ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-          // VİŞNE KIRMIZISI + SÖNÜK (Mehmet Abi): turuncu-kırmızıdan koyu, mora çalan kızıla; debimetreyle AYNI optimizasyon
-          //   (glow kısık: 0.4→0.16 + alfa 0.85→0.4 → çok ışık saçmaz). İki geçiş: yumuşak hale + keskin çekirdek (net okunur).
-          ctx.shadowColor = 'rgba(120,8,28,0.4)'; ctx.shadowBlur = fs * 0.16
-          ctx.fillStyle = 'rgba(150,18,42,0.55)'
-          ctx.fillText(pv, 0, 0)
-          ctx.shadowBlur = 0
-          ctx.fillStyle = 'rgb(158,20,46)'   // vişne kırmızısı çekirdek
-          ctx.fillText(pv, 0, 0)
+          drawSevenSeg(ctx, pv, -measureSevenSeg(pv, segH) / 2, -segH / 2, segH, segCol, { glow: 0.38 })
           ctx.restore()
         }
       }
