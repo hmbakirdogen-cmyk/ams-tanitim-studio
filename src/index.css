@@ -39,7 +39,7 @@
   --scene-light-op: 0;  /* gece: acik sahne gizli (cross-fade icin) */
   --aurora-op: 1;
   --vignette: rgba(1,2,6,0.8);
-  --grid-line: rgba(46,155,255,0.26);
+  --grid-line: rgba(46,155,255,0.34); /* Mehmet Abi "backround goremedim" -> 3D uzay izgarasi biraz daha hissedilir. Saf CSS (animasyonsuz) = RAM/GPU bedava. */
 }
 
 * { box-sizing: border-box; }

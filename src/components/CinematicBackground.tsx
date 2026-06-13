@@ -18,6 +18,21 @@ export function CinematicBackground() {
       <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% -10%, #08183a 0%, #050e1d 45%, #02030a 100%)', opacity: 'var(--scene-dark-op, 1)', transition: 'opacity 0.5s ease' }} />
       <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% -10%, #ffffff 0%, #e6eefa 45%, #cfe0f4 100%)', opacity: 'var(--scene-light-op, 0)', transition: 'opacity 0.5s ease' }} />
 
+      {/* Nokta-matris derinlik katmanı — ekranın ORTASINDA (panellerin arkasında) dümdüz koyu kalmasın; cam panellerin ARDINDAN
+          sızan ince teknik nokta dokusu = "uzayda yüzen pano" derinliği. Mehmet Abi: "nokta bile göremiyorum" → işte noktalar.
+          Saf CSS tekrarlı radyal nokta + merkeze yoğun maske; ANİMASYON YOK, statik tek katman → RAM/GPU bedava. Gündüz: söner. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: 'radial-gradient(rgba(130,200,255,0.38) 1.3px, transparent 1.8px)',
+          backgroundSize: '34px 34px',
+          maskImage: 'radial-gradient(135% 100% at 50% 40%, black 45%, transparent 92%)',
+          WebkitMaskImage: 'radial-gradient(135% 100% at 50% 40%, black 45%, transparent 92%)',
+          opacity: 'var(--aurora-op)',
+          transition: 'opacity 0.5s ease',
+        }}
+      />
+
       {/* Aurora isik 1 - SMC mavisi */}
       <div
         className={`${auroraAnim} absolute -top-1/4 left-1/2 h-[70vh] w-[70vw] -translate-x-1/2 rounded-full`}
@@ -55,6 +70,19 @@ export function CinematicBackground() {
           }}
         />
       </div>
+
+      {/* Ufuk parıltısı — 3D zeminin uzakta "ufukla buluştuğu" hat: en güçlü derinlik ipucu (göz "uzay/zemin geriye kaçıyor" der).
+          Mehmet Abi "Canlı Panel'de arka planı göremedim" → ızgaranın soluk kaldığı yerde tek bir sıcak-mavi parıltı bandı.
+          Saf CSS radyal gradyan, ANİMASYON YOK, statik → RAM/GPU bedava. Gündüz modunda aurora gibi söner (--aurora-op). */}
+      <div
+        className="absolute inset-x-0 bottom-[15vh] h-[16vh]"
+        style={{
+          background: 'radial-gradient(55% 100% at 50% 100%, rgba(46,155,255,0.16), transparent 72%)',
+          filter: 'blur(6px)',
+          opacity: 'var(--aurora-op)',
+          transition: 'opacity 0.5s ease',
+        }}
+      />
 
       {/* Vinyet - kenarlari yumusakca karartir (tema duyarli) */}
       <div
