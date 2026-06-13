@@ -52,7 +52,7 @@ const FB_DISPLAYS = [{ x: 0.4304, y: 0.1742, w: 0.1414, h: 0.0842 }]  // image #
 const REG_FRAC: [number, number] = [0.155, 0.305] // standby/oransal regülatör — regüle hücresi (Mehmet Abi: biraz genişletildi)
 const REG_DISP: [number, number, number, number] = [0.211, 0.4467, 0.0624, 0.0233] // regülatör KIRMIZI dijital LCD — BİREBİR foto-ölçüm (tools/_regscreen.py: ışın-tarama, siyah cam kenarı) [x,y,w,h]
 const VALVE_CX = 0.74                            // tahliye valfi merkezi (image #1: sağ modül)
-const EXHAUST_CX = 0.77, EXHAUST_CY = 0.39       // egzoz portu (Mehmet abi gözüyle: sağ+yukarı, "biraz yukarı", "çok azcık sola") → 0.77/0.39; hava AŞAĞI atılır
+const EXHAUST_CX = 0.775, EXHAUST_CY = 0.39      // egzoz portu (Mehmet abi gözüyle iteratif: sağ+yukarı, "çok azcık sola", "çok azıcık sağa") → 0.775/0.39; hava AŞAĞI atılır
 // PDF LED konumu (tum-foto orani): SADECE regülatör POWER LED'i (valf LED'i Mehmet Abi kararıyla KALDIRILDI).
 const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (image #1: ekranın ALTINDA, foto-ölçüm) — YEŞİL, devredeyken parlar
 // REGÜLATÖR KOMPONENT DEĞİŞİMİ (model.type): temel foto Tip A (IO-Link/oransal) → Tip A'da DOKUNULMAZ (risksiz).
@@ -467,7 +467,10 @@ export function DeviceFlowChart({
           if (a <= 0.012) continue
           // akış izi: forward gibi YATAY-ağırlıklı kısa iz (porta yakın hafif eğim) + çift-segment taper (soluk kuyruk + parlak baş)
           const len = (7 + 12 * sig.valve) * (0.72 + 0.5 * prof)
-          let tx = -span, ty = (exOy - axisY) * 2 * e / span  // sola + porta yakın aşağı (drop türevi ∝ e)
+          // TANJANT (px-TUTARLI): yatay hız = -span·W (px), dikey hız = (exOy−axisY)·2e (px). [Eski 'tx=−span' BİRİM HATASIYDI:
+          //   yatay~0 kalıp tüm izler DÜŞEY çıkıyordu → Mehmet abi "düşey çizgiler / valften yumuşak kıvrılmıyorlar".] Artık iz GERÇEK
+          //   eğriyi izler: uzakta ~yatay, porta yaklaşınca en fazla ~40° meyille valfin içinden YUMUŞAK kıvrılır (asla dik değil).
+          let tx = -span * W, ty = (exOy - axisY) * 2 * e
           const m = Math.sqrt(tx * tx + ty * ty) || 1; tx /= m; ty /= m
           const lw = 1.0 + 1.3 * prof
           ctx.strokeStyle = cS(a * 0.4); ctx.lineWidth = lw
@@ -625,12 +628,8 @@ export function DeviceFlowChart({
         const coreLen = Math.max(8, dh * 0.018)            // potential core (parlak çekirdek) uzunluğu
         const coreR = Math.max(3.5, dh * 0.014)            // ağız çekirdek yarıçapı (Mehmet abi: biraz büyüt)
         const SPREAD = 0.28                                // tan(~15.6°) yarı-koni açılımı (Mehmet abi: biraz genişlet)
-        // (A) AĞIZ ÇEKİRDEK PARILTISI — gradient YOK; 2 ucuz arc (geniş sönük hale + dar parlak), hafif nabız
-        const cg = (0.10 + 0.42 * exA) * (0.85 + 0.15 * Math.sin(now * 0.02))
-        ctx.fillStyle = cS(cg * 0.5)
-        ctx.beginPath(); ctx.arc(exOx, exOy, coreR * 2.6, 0, Math.PI * 2); ctx.fill()
-        ctx.fillStyle = cS(Math.min(0.9, cg * 1.4))
-        ctx.beginPath(); ctx.arc(exOx, exOy, coreR, 0, Math.PI * 2); ctx.fill()
+        // (A) AĞIZ ÇEKİRDEK PARILTISI KALDIRILDI (Mehmet abi: "egzozun çıktığı yerde nokta parlamasına gerek yok").
+        //     Ağızda sahte "nokta" lekesi YOK; jet sadece kendi akan partikülleriyle (B) belirir.
         // (B) JET PARTİKÜLLERİ — çekirdek dar/hızlı → mesafeyle koni açılır, hız söner, boyut büyür
         for (let i = 0; i < PUFF_COUNT; i++) {
           pLife[i] -= dt / (0.5 + Math.random() * 0.45)    // kısa ömür → belir/söner (jet uzanır)
