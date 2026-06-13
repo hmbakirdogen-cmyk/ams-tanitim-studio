@@ -262,8 +262,13 @@ async function browseHintsWithSession(session) {
       const label = ref.displayName?.text || ref.browseName?.name || ''
       if (ref.nodeClass === NodeClass.Variable) {
         found.push({ id: childId, label })
+        // TOPLAM (accumulated) debi AYRI yakalanir -> anlik 'flow' ile karismasin (cihazda Flow=anlik, AccumFlow=toplam)
+        if (!hints.totalFlow && /(accum|toplam|integr|topla|積算)/i.test(label) && /(flow|debi|ak[ıi][şs]|litre|liter|\bl\b)/i.test(label)) hints.totalFlow = childId
         for (const key of wantKeys) {
-          if (!hints[key] && HINT_PATTERNS[key].test(label)) hints[key] = childId
+          if (hints[key]) continue
+          // ANLIK 'flow' icin accumulated/total dugumleri DISLA -> yanlis (toplam) dugumu anlik saymayalim
+          if (key === 'flow' && /(accum|toplam|integr|topla|積算)/i.test(label)) continue
+          if (HINT_PATTERNS[key].test(label)) hints[key] = childId
         }
       } else if (ref.nodeClass === NodeClass.Object && !seen.has(childId)) {
         queue.push(childId)
@@ -384,26 +389,33 @@ export function handleAppConnection(socket) {
       // OTOMATIK DUGUM KESFI: saglanan dugumler (placeholder olabilir, or. AMS.FlowRate) okunmuyorsa, AYNI oturumla
       //   cihazi gezip (browse) GERCEK sensor dugumlerini bul + LOGLA (siyah pencerede gercek nodeId'ler gorunur) + KULLAN.
       //   Boylece kullanici elle nodeId girmeden canli veri akar. (Cihaz tek-oturumlu olabilir -> ikinci oturum ACMAYIZ.)
+      // Her baglantida cihazi BROWSE et -> sensor adaylarini DEGERIYLE logla (Flow=0, AccumFlow=70 gibi -> hangi dugum ne,
+      //   TEK BAKISTA belli) + GERCEK dugumleri kullan. Flow'da accumulated HARIClenir (anlik debi dogru); toplam ayri yakalanir.
+      //   (Stale/yanlis dugumu de duzeltsin diye 'okunuyor mu' kapisi YOK -> daima taze tespit.)
       try {
-        const testIds = [nodeIds.flow, nodeIds.pressure, nodeIds.temperature, nodeIds.humidity]
-        const test = await session.read(testIds.map((nodeId) => ({ nodeId, attributeId: AttributeIds.Value })))
-        const okCount = test.filter((r) => r?.statusCode?.isGood?.() === true && r?.value?.value != null).length
-        console.log(`[kopru] saglanan dugum testi: ${okCount}/4 okunuyor`)
-        if (okCount < 2) {
-          console.log('[kopru] saglanan dugumler okunmuyor -> cihaz BROWSE ediliyor (gercek dugumler araniyor)...')
-          const { hints, found } = await browseHintsWithSession(session)
-          console.log(`[kopru] cihazda ${found.length} degisken dugum bulundu.`)
-          console.log('[kopru] cihaz dugumleri (ilk 25):')
-          for (const f of found.slice(0, 25)) console.log(`   ${f.id}   (${f.label})`)
-          const merged = {}
-          for (const k of ['flow', 'pressure', 'temperature', 'humidity', 'mode']) if (hints[k]) merged[k] = hints[k]
-          if (Object.keys(merged).length) {
-            nodeIds = { ...nodeIds, ...merged }
-            console.log('[kopru] GERCEK olcum dugumleri OTOMATIK kullanilacak:', merged)
-            send({ type: 'nodeHints', hints: merged }) // app Kilavuz'u da guncellensin
-          } else {
-            console.log("[kopru] browse ile olcum dugumu eslesmedi -> cihaz web arayuzunden 'Export tag file' ile tam liste gerekebilir.")
-          }
+        const { hints, found } = await browseHintsWithSession(session)
+        console.log(`[kopru] cihazda ${found.length} degisken dugum bulundu.`)
+        const SENSORISH = /(flow|debi|ak[ıi][şs]|press|bas[ıi]n|bar|kpa|mpa|temp|s[ıi]cak|humid|nem|\brh\b|accum|toplam|integr|topla)/i
+        const cand = found.filter((f) => SENSORISH.test(f.label)).slice(0, 30)
+        if (cand.length) {
+          try {
+            const vals = await session.read(cand.map((c) => ({ nodeId: c.id, attributeId: AttributeIds.Value })))
+            console.log('[kopru] SENSOR ADAY dugumleri (isim = DEGER):')
+            cand.forEach((c, i) => console.log(`   ${c.label}  [${c.id}] = ${vals[i]?.value?.value}`))
+          } catch (e) { console.log('[kopru] aday deger okuma atlandi:', e.message) }
+        } else {
+          console.log('[kopru] cihaz dugumleri (ilk 20):')
+          for (const f of found.slice(0, 20)) console.log(`   ${f.id}  (${f.label})`)
+        }
+        const merged = {}
+        for (const k of ['flow', 'pressure', 'temperature', 'humidity', 'mode']) if (hints[k]) merged[k] = hints[k]
+        if (hints.totalFlow) console.log('[kopru] TOPLAM debi (accum) dugumu:', hints.totalFlow)
+        if (Object.keys(merged).length) {
+          nodeIds = { ...nodeIds, ...merged }
+          console.log('[kopru] GERCEK olcum dugumleri kullanilacak:', merged)
+          send({ type: 'nodeHints', hints: merged }) // app Kilavuz'u da guncellensin
+        } else {
+          console.log("[kopru] browse ile olcum dugumu eslesmedi -> cihaz web 'Export tag file' gerekebilir.")
         }
       } catch (e) { console.log('[kopru] otomatik dugum kesfi atlandi:', e.message) }
       // HIBRIT: cihazin MEVCUT ayarlarini bir kez OKU -> uygulamaya gonder (Urun Ayarlari o degerlerle devam etsin)
