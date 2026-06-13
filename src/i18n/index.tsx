@@ -939,7 +939,13 @@ const DICT: Record<Lang, Record<string, string>> = { tr: {}, en: EN, ja: JA }
 function load(): Lang {
   try {
     const v = localStorage.getItem(KEY) as Lang
-    return LANGS.includes(v) ? v : 'tr'
+    if (LANGS.includes(v)) return v // kullanıcı SEÇİMİ öncelikli + kalıcı (LangSwitcher localStorage'a yazar)
+    // Kayıt YOKSA tarayıcı diline göre OTOMATİK: Japonya/uluslararası izleyici ilk açılışta TÜRKÇE görmesin.
+    //   ja*→ja (ev sahibi), tr*→tr, diğer→en (uluslararası güvenli varsayılan). Kullanıcı yine 3 sekmeden değiştirir.
+    const n = (navigator.language || (navigator.languages && navigator.languages[0]) || '').toLowerCase()
+    if (n.startsWith('ja')) return 'ja'
+    if (n.startsWith('tr')) return 'tr'
+    return 'en'
   } catch {
     return 'tr'
   }
