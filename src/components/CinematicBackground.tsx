@@ -42,8 +42,8 @@ export function CinematicBackground() {
         }}
       />
 
-      {/* Perspektif izgara zemin - 3D derinlik referansi */}
-      <div className="absolute bottom-0 left-0 right-0 h-[42vh] [perspective:600px]">
+      {/* Perspektif izgara zemin - 3D derinlik referansi (Mehmet Abi: "Canli Panel'de arka plani goremedim" -> zemin yukari uzatildi + cizgi belirginlesti) */}
+      <div className="absolute bottom-0 left-0 right-0 h-[58vh] [perspective:620px]">
         <div
           className="absolute inset-x-[-20%] bottom-0 top-0 origin-bottom [transform:rotateX(72deg)]"
           style={{

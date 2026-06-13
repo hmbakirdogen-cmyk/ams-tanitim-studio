@@ -113,7 +113,9 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
     const colors = new Float32Array(count * 4)
     for (let p = 0; p < count; p++) {
       const ring = Math.floor(p / (RADIAL + 1)) // 0 = kuyruk(eski/sol) ... L-1 = bas(yeni/sag)
-      const a = 0.06 + 0.94 * Math.pow(ring / (L - 1), 1.0) // arkaya dogru UZUN, yumusak sonumlenen kuyruk izi
+      // Mehmet Abi "cizgiler gorunur+gercekci, her etiket kendi renginde": kuyruk tabani 0.06->0.22 + daha yumusak dususu (pow 1.0->0.85)
+      //   -> her sensorun renkli cizgisi TUM govde boyu okunur (yalniz bas degil). Bir kez hesaplanir (per-frame/RAM maliyeti YOK).
+      const a = 0.22 + 0.78 * Math.pow(ring / (L - 1), 0.85)
       colors[p * 4] = 1; colors[p * 4 + 1] = 1; colors[p * 4 + 2] = 1; colors[p * 4 + 3] = a
     }
     g.setAttribute('color', new THREE.BufferAttribute(colors, 4)) // RGBA -> three alpha'yi kullanir

@@ -39,7 +39,7 @@
   --scene-light-op: 0;  /* gece: acik sahne gizli (cross-fade icin) */
   --aurora-op: 1;
   --vignette: rgba(1,2,6,0.8);
-  --grid-line: rgba(46,155,255,0.16);
+  --grid-line: rgba(46,155,255,0.26);
 }
 
 * { box-sizing: border-box; }
