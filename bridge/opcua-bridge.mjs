@@ -367,11 +367,20 @@ export function handleAppConnection(socket) {
     }
 
     if (msg.type === 'connect' && msg.endpoint) {
-      // FOOLPROOF: kullanici sadece IP yazsa bile (or. "192.168.1.50") tam endpoint'e cevir; port yoksa :4840 ekle.
+      // NE: kullanici sadece IP yazsa bile (or. "192.168.1.5") tam endpoint'e cevir.
+      // NEDEN: SAHA KANITI (UaExpert) -> SMC EXA1'in GERCEK OPC UA portu 4843; eski kod cikplak IP'ye :4840 (IANA varsayilani)
+      //   ekliyordu -> 4840'ta kimse dinlemiyor -> ECONNREFUSED. Asil port 4843.
+      // NASIL: port yoksa ONCE 4843 (SMC kanitli), tutmazsa 4840 (varsayilan) dene; ilk basari (session) donguyu kirar.
       let ep = String(msg.endpoint).trim()
       if (!ep.startsWith('opc.tcp://')) ep = 'opc.tcp://' + ep.replace(/^opc\.tcp:\/\//, '')
       const after = ep.slice('opc.tcp://'.length)
-      if (after && !after.includes(':')) ep = ep + ':4840'
+      if (after && !after.includes(':')) {
+        for (const p of [4843, 4840]) {
+          await connectDevice(ep + ':' + p, msg.nodeIds)
+          if (session) break // baglandi -> diger portu deneme
+        }
+        return
+      }
       await connectDevice(ep, msg.nodeIds); return
     }
     // Yazma komutlari: session yoksa SESSIZCE yutma -> uygulamaya hata bildir
