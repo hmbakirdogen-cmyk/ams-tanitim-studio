@@ -1,17 +1,19 @@
 /*
  * NE      : Enerji/para/karbon tasarruf hesabi - akan debiyi (litre/dak) somut kazanca cevirir; varsayimlar DUZENLENEBILIR (Economy).
- * NEDEN   : Satis tezi + Mehmet Bey: "kullanici elektrik fiyatini girip tasarrufu ona gore hesaplasin".
- * NASIL   : Economy nesnesi (fiyat/saat/baseline/enerji/CO2). Fonksiyonlar eco parametresi alir (varsayilan DEFAULT_ECONOMY).
- * YAN ETKI: Katsayilar tek tip (Economy) altinda; economy.ts bunu localStorage'da saklar. metrics.ts BASELINE_FLOW'u kullanir.
+ * NEDEN   : Satis tezi + Mehmet Abi: "kullanici elektrik fiyatini girip tasarrufu ona gore hesaplasin". Para birimi (₺/¥) AYRI bir alan
+ *           DEGIL; gosterimde DILE bagli (JA->¥, diger->₺) — Mehmet abi: "jp olunca zaten yen, secici luzumsuz". Hesap birim-bagimsiz akar.
+ * NASIL   : Economy nesnesi fiyat/saat/baseline/enerji/CO2 tasir. Fonksiyonlar eco parametresi alir (varsayilan DEFAULT_ECONOMY);
+ *           para hesabi eco.pricePerKwh ile akar; gosterilen sembol format.ts'te aktif dilden gelir (kur cevrimi YOK).
+ * YAN ETKI: Kur cevrimi YAPMAZ; kullanici kWh fiyatini hangi birimde calisiyorsa o degerle girer. economy.ts bunu localStorage'da saklar.
  */
 export const BASELINE_FLOW = 1800 // litre/dakika - AMS olmadan normal hava tuketimi varsayimi
 export const ENERGY_KWH_PER_M3 = 0.11 // 1 m3 sikistirilmis hava ~ 0.11 kWh (7 bar civari)
-export const PRICE_TL_PER_KWH = 3.5 // sanayi elektrigi (TL/kWh) varsayim
+export const DEFAULT_PRICE_PER_KWH = 3.5 // varsayilan kWh fiyati; gercek rakami kullanici girer
 export const CO2_KG_PER_KWH = 0.42 // TR sebeke ortalama (kg CO2/kWh) varsayim
 export const OP_HOURS_PER_YEAR = 16 * 300 // 16 saat/gun x 300 gun varsayim
 
 export interface Economy {
-  priceTL: number // elektrik fiyati (TL/kWh)
+  pricePerKwh: number // elektrik fiyati (aktif para birimi / kWh)
   opHoursPerYear: number // yillik calisma suresi (saat)
   baselineFlow: number // normal hava tuketimi (litre/dakika)
   energyKwhPerM3: number // enerji katsayisi (kWh/m3)
@@ -19,7 +21,7 @@ export interface Economy {
 }
 
 export const DEFAULT_ECONOMY: Economy = {
-  priceTL: PRICE_TL_PER_KWH,
+  pricePerKwh: DEFAULT_PRICE_PER_KWH,
   opHoursPerYear: OP_HOURS_PER_YEAR,
   baselineFlow: BASELINE_FLOW,
   energyKwhPerM3: ENERGY_KWH_PER_M3,
@@ -30,7 +32,7 @@ export interface Savings {
   liters: number
   m3: number
   kwh: number
-  tl: number
+  money: number
   co2: number
 }
 
@@ -38,7 +40,7 @@ export interface Savings {
 export function litersToSavings(liters: number, eco: Economy = DEFAULT_ECONOMY): Savings {
   const m3 = liters / 1000
   const kwh = m3 * eco.energyKwhPerM3
-  return { liters, m3, kwh, tl: kwh * eco.priceTL, co2: kwh * eco.co2PerKwh }
+  return { liters, m3, kwh, money: kwh * eco.pricePerKwh, co2: kwh * eco.co2PerKwh }
 }
 
 // Bir tick'te biriken tasarruf (litre): baseline altindaki her litre/dak, gecen sureyle (saniye) carpilir

@@ -112,7 +112,7 @@ const EN: Record<string, string> = {
   // Tasarruf Analizi
   'AMS ile yıllık tahmini enerji, para ve karbon kazancı': 'Estimated annual energy, money and carbon gains with AMS',
   'Yıllık Tahmini Tasarruf': 'Estimated Annual Savings',
-  '₺/kWh elektrik fiyatı ve': '₺/kWh electricity price and',
+  'elektrik fiyatı ve': 'electricity price and',
   'saat/yıl çalışma varsayımıyla': 'h/year operating time assumed',
   'Anlık Tasarruf': 'Live Saving',
   'Kısılan Hava': 'Air Reduced',
@@ -593,7 +593,7 @@ const JA: Record<string, string> = {
   // Tasarruf Analizi
   'AMS ile yıllık tahmini enerji, para ve karbon kazancı': 'AMSによる年間の推定エネルギー・コスト・CO₂削減',
   'Yıllık Tahmini Tasarruf': '年間推定省エネ',
-  '₺/kWh elektrik fiyatı ve': '₺/kWh の電気料金と',
+  'elektrik fiyatı ve': 'の電気料金と',
   'saat/yıl çalışma varsayımıyla': '時間/年 の稼働を想定',
   'Anlık Tasarruf': '現在の省エネ',
   'Kısılan Hava': '削減エア',

@@ -18,7 +18,7 @@ import { litersToSavings, tickLitersSaved } from '@/lib/savings'
 import { pointsToCSV, download } from '@/data/recordings'
 import { fmtDateTime, fmtClock } from '@/lib/datetime'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
-import { fmtInt, fmt1, fmtCompact, fmtTLCompact, localeOf, fmtPct } from '@/lib/format'
+import { fmtInt, fmt1, fmtCompact, fmtMoneyCompact, pricePerKwhLabel, localeOf, fmtPct } from '@/lib/format'
 import { PRODUCT } from '@/data/product'
 import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
@@ -168,13 +168,13 @@ export function ReportView({
             {/* Tasarruf (one cikan) */}
             <div className="mt-5 flex items-center gap-2 text-sm font-bold text-slate-900"><PiggyBank size={16} className="text-[#1f9d57]" /> {t('Bu Aralıktaki Tasarruf')}</div>
             <div className="mt-2 grid grid-cols-2 gap-3 md:grid-cols-4">
-              <Kpi label="Para" value={fmtTLCompact(sv.tl)} unit="" color="#1f9d57" />
+              <Kpi label="Para" value={fmtMoneyCompact(sv.money)} unit="" color="#1f9d57" />
               <Kpi label="Enerji" value={fmtCompact(sv.kwh)} unit="kWh" color="#0072CE" />
               <Kpi label="Karbon" value={fmtCompact(sv.co2)} unit="kg CO₂" color="#36a0c8" />
               <Kpi label="Kısılan Hava" value={fmtCompact(sv.liters)} unit="litre" color="#c77700" />
             </div>
             <div className="mt-1.5 text-[11px] text-slate-400">
-              {fmt1(economy.priceTL)} {t('₺/kWh elektrik fiyatı ve')} {fmtInt(economy.baselineFlow)} {t('l/dak normal tüketim varsayımıyla.')}
+              {fmt1(economy.pricePerKwh)} {pricePerKwhLabel()} {t('elektrik fiyatı ve')} {fmtInt(economy.baselineFlow)} {t('l/dak normal tüketim varsayımıyla.')}
             </div>
 
             {/* Mod dagilimi */}

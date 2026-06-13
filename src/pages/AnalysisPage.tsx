@@ -17,7 +17,7 @@ import { useEconomy } from '@/data/economy'
 import { useConnection } from '@/data/connection'
 import { queryHistory, historyExtent } from '@/data/history'
 import { litersToSavings, tickLitersSaved } from '@/lib/savings'
-import { fmtInt, fmt1, fmtCompact, fmtTLCompact, localeOf, fmtPct } from '@/lib/format'
+import { fmtInt, fmt1, fmtCompact, fmtMoneyCompact, localeOf, fmtPct } from '@/lib/format'
 import { sound } from '@/lib/sound'
 import { useLang } from '@/i18n'
 import type { Reading } from '@/data/types'
@@ -203,7 +203,7 @@ export function AnalysisPage({ data }: { data: LiveState }) {
               {/* KAYNAK ETIKETI (#6): bu kart CANLI oturum gunlugunden (data.log) hesaplanir; "Tarihsel rapor"daki tasarruf
                   ise kalici DAKIKALIK gecmisten gelir -> ayni donem icin sayilar farkli olabilir. Kullanici karistirmasin diye baslik kaynagi belirtir. */}
               <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><PiggyBank size={16} className="text-[var(--c-saving)]" /> {t('Tasarruf (canlı oturum)')}</div>
-              <div className="num mt-2 text-3xl font-bold text-[var(--c-saving)]">{fmtTLCompact(sv.tl)}</div>
+              <div className="num mt-2 text-3xl font-bold text-[var(--c-saving)]">{fmtMoneyCompact(sv.money)}</div>
               <div className="num mt-1 text-sm text-[var(--ink-soft)]">{fmtCompact(sv.kwh)} kWh · {fmtCompact(sv.co2)} kg CO₂</div>
             </Tilt3D>
           </div>

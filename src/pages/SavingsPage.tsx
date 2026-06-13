@@ -1,7 +1,9 @@
 /*
- * NE      : Tasarruf Analizi - yillik TL projeksiyonu + anlik %/kisilan hava/yillik kWh/CO2 + DUZENLENEBILIR hesap ayarlari.
- * NEDEN   : Mehmet Bey: "kullanici elektrik fiyatini (ve gereken verileri) girip tasarrufu ona gore hesaplasin".
- * NASIL   : useEconomy ile ayarlar (kalici); annualProjection/savingPercent bu degerlerle; her alanin yaninda birimi (KATI).
+ * NE      : Tasarruf Analizi - yillik para projeksiyonu + anlik %/kisilan hava/yillik kWh/CO2 + DUZENLENEBILIR hesap ayarlari.
+ * NEDEN   : Mehmet Abi: "kullanici elektrik fiyatini (ve gereken verileri) girip tasarrufu ona gore hesaplasin". Japonya sevkiyatinda
+ *           para birimi TL'ye kilitli gorunmesin; gosterim DILE bagli (JA->¥, diger->₺) — ayri secici YOK, kur cevrimi de YOK (Mehmet abi).
+ * NASIL   : useEconomy ile ayarlar (kalici); annualProjection/savingPercent bu degerlerle; para sembolu format.ts'te aktif DILDEN gelir.
+ *           Kur cevrimi yok -> birim degisince sadece etiket/hesap birimi degisir, fiyat sayisi kullanici tarafindan girilir.
  * YAN ETKI: Degisiklik aninda tum rakamlara yansir + localStorage'a yazilir. "Varsayilana don" sifirlar.
  */
 import { PageHeader } from '@/components/PageHeader'
@@ -9,7 +11,7 @@ import { Tilt3D } from '@/components/Tilt3D'
 import { useSmoothNumber } from '@/hooks/useSmoothNumber'
 import { annualProjection, savingPercent } from '@/lib/savings'
 import { useEconomy } from '@/data/economy'
-import { fmtInt, fmt1, fmtTLCompact, fmtCompact, fmtPct } from '@/lib/format'
+import { fmtInt, fmt1, fmtMoneyCompact, fmtCompact, fmtPct, pricePerKwhLabel } from '@/lib/format'
 import { Percent, Wind, Zap, Cloud, RotateCcw, SlidersHorizontal, type LucideIcon } from 'lucide-react'
 import { useLang } from '@/i18n'
 import type { LiveState } from '@/hooks/useLiveReadings'
@@ -56,7 +58,7 @@ export function SavingsPage({ data }: { data: LiveState }) {
   const annual = annualProjection(savedFlow, economy)
   const pct = savingPercent(flow, economy.baselineFlow)
 
-  const tl = useSmoothNumber(annual.tl, 0.08)
+  const money = useSmoothNumber(annual.money, 0.08)
   const kwh = useSmoothNumber(annual.kwh, 0.08)
   const co2 = useSmoothNumber(annual.co2, 0.08)
   const p = useSmoothNumber(pct, 0.1)
@@ -76,10 +78,10 @@ export function SavingsPage({ data }: { data: LiveState }) {
           className="num mt-1 text-7xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
           style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)', transform: 'translateZ(28px)' }}
         >
-          {fmtTLCompact(tl)}
+          {fmtMoneyCompact(money)}
         </div>
         <div className="mt-2 text-sm text-[var(--ink-soft)]">
-          {fmt1(economy.priceTL)} {t('₺/kWh elektrik fiyatı ve')} {fmtInt(economy.opHoursPerYear)} {t('saat/yıl çalışma varsayımıyla')}
+          {fmt1(economy.pricePerKwh)} {pricePerKwhLabel()} {t('elektrik fiyatı ve')} {fmtInt(economy.opHoursPerYear)} {t('saat/yıl çalışma varsayımıyla')}
         </div>
       </Tilt3D>
 
@@ -103,7 +105,7 @@ export function SavingsPage({ data }: { data: LiveState }) {
           </button>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <EcoField label="Elektrik Fiyatı" unit="₺ / kWh" value={economy.priceTL} step={0.1} onChange={(v) => update({ priceTL: v })} />
+          <EcoField label="Elektrik Fiyatı" unit={pricePerKwhLabel()} value={economy.pricePerKwh} step={0.1} onChange={(v) => update({ pricePerKwh: v })} />
           <EcoField label="Çalışma Süresi" unit="saat / yıl" value={economy.opHoursPerYear} step={100} onChange={(v) => update({ opHoursPerYear: v })} />
           <EcoField label="Normal Hava Tüketimi" unit="l/dak" value={economy.baselineFlow} step={50} onChange={(v) => update({ baselineFlow: v })} />
           <EcoField label="Enerji Katsayısı" unit="kWh / m³" value={economy.energyKwhPerM3} step={0.01} onChange={(v) => update({ energyKwhPerM3: v })} />
