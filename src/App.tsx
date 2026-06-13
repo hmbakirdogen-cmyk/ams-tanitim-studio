@@ -28,7 +28,7 @@ import { useTheme } from './hooks/useTheme'
 import { isMobileDevice } from './lib/device'
 import { sound } from './lib/sound'
 import { useLang } from './i18n'
-import { DEMO_OPEN, MOBILE_BLOCKED } from './config'
+import { DEMO_OPEN, MOBILE_BLOCKED, SHOWCASE_MODE } from './config'
 import { DemoWelcome } from './components/DemoWelcome'
 import { FeedbackFab } from './components/FeedbackFab'
 import type { User } from './auth/users'
@@ -139,8 +139,8 @@ export default function App() {
             </AnimatePresence>
           </main>
 
-          {/* GERI BILDIRIM (Teklif programindaki gibi): sag-alt sabit buton -> cekmece. Tum sayfalardan erisilir. */}
-          <FeedbackFab page={page} />
+          {/* GERI BILDIRIM (Teklif programindaki gibi): sag-alt sabit buton -> cekmece. SHOWCASE/vitrin modunda (Japonya HQ) GIZLI. */}
+          {!SHOWCASE_MODE && <FeedbackFab page={page} />}
 
           {!DEMO_OPEN && (
             <AnimatePresence>

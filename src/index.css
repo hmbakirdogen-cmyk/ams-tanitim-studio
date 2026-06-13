@@ -50,7 +50,9 @@ html, body, #root {
 }
 
 body {
-  font-family: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Latin = Inter; Japonca/CJK glifleri sistem JP fontuna düşer (tofu önleme, Japonya'ya hazır) — gömülü font YOK, bundle şişmez.
+     Kapsam: macOS (Hiragino), Windows (Yu Gothic/Meiryo/MS PGothic), Linux/Android (Noto Sans CJK JP). */
+  font-family: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Yu Gothic UI', 'Meiryo', 'Noto Sans JP', 'Noto Sans CJK JP', 'MS PGothic', sans-serif;
   color: var(--ink);
   background: var(--bg-0);
   -webkit-font-smoothing: antialiased;

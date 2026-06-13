@@ -14,3 +14,10 @@ export const DEMO_OPEN: boolean = true
  * Not: mobilde CANLI cihaz yok (connection.ts mobil=demo kilidi); telefon yalniz demo izler.
  */
 export const MOBILE_BLOCKED: boolean = false
+
+/*
+ * SHOWCASE / VİTRİN modu: SMC Japonya HQ sunumu gibi "vitrin" ortamlarda beta/test öğelerini gizle.
+ * true -> "Hata Bildir / Report a Bug" FAB render EDİLMEZ (HQ önünde profesyonel görünüm; beta hissi yok). Kod SİLİNMEZ.
+ * İç kullanım/test için false yapılınca geri bildirim FAB'ı AYNEN geri gelir.
+ */
+export const SHOWCASE_MODE: boolean = true
