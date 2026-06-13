@@ -50,6 +50,11 @@ const VALVE_CX = 0.74                            // tahliye valfi merkezi (image
 const EXHAUST_CX = 0.76, EXHAUST_CY = 0.335      // egzoz = valf orta-ekseninin BİRAZ SAĞINDAKİ siyah parça (Mehmet Abi); hava AŞAĞI atılır
 // PDF LED konumu (tum-foto orani): SADECE regülatör POWER LED'i (valf LED'i Mehmet Abi kararıyla KALDIRILDI).
 const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (image #1: ekranın ALTINDA, foto-ölçüm) — YEŞİL, devredeyken parlar
+// REGÜLATÖR KOMPONENT DEĞİŞİMİ (model.type): temel foto Tip A (IO-Link/oransal) → Tip A'da DOKUNULMAZ (risksiz).
+//   Tip B (elle-ayar/AR) seçilince: regülatör bölgesi temizlenip AR görseli (knob+analog saat) BİNDİRİLİR + dijital LCD/LED gizlenir.
+//   Mehmet Abi: "bağlantı/ayak konumu ürüne göre değişebilir" → birebir hizalama şart değil; konum gözle ayarlanabilir (tunable).
+const REG_SWAP_X: [number, number] = [0.118, 0.330]  // overlay yatay bant (regülatör gövdesi, REG_FRAC'a yakın)
+const REG_SWAP_Y: [number, number] = [0.345, 0.860]  // overlay dikey bant (temel regülatörü kapla + AR çizim alanı)
 
 const FLOW_COUNT = 280       // akan molekül sayısı — Mehmet Abi: daha zengin akış (224→280); GÖRÜNEN sayı debiyle ölçeklenir (flowN)
 const FLOW_LANES = 14        // paralel laminar şerit; aynı şeritteki moleküller AYNI hızda → asla karışmaz
@@ -158,6 +163,7 @@ export function DeviceFlowChart({
     let img: HTMLImageElement | null = null
     let deviceCanvas: HTMLCanvasElement | null = null
     let devAR = 1
+    let regB: HTMLImageElement | null = null // Tip B (elle-ayar) regülatör görseli — yüklenince, model B ise bindirilir
     const meas = { axis: FB_AXIS, pipe: FB_PIPE, inX: FB_IN, outX: FB_OUT }
     // Dijital ekran dikdortgenleri (tum-foto orani 0..1) — SABIT foto-olcum (otomatik tespit kaldirildi → const)
     const displays: { x: number; y: number; w: number; h: number }[] = FB_DISPLAYS
@@ -236,6 +242,9 @@ export function DeviceFlowChart({
      im.src = asset('products/ams-flow.png')   // ÖN-TEMİZ şeffaf PNG (tools/clean-image.py)
     }
     loadDevice()
+    // Tip B (elle-ayar) regülatör görselini yükle (şeffaf AR PNG). Tip A temel fotoda zaten var → yalnız B'de bindirilir.
+    const loadRegB = () => { const r = new Image(); r.onload = () => { regB = r }; r.src = asset('products/regulator-ar-hd.png') }
+    loadRegB()
 
     const sig = { flow: 0, pressure: 0, temp: 0, hum: 0, exhaust: 0, reg: 0, valve: 0 }
 
@@ -269,7 +278,7 @@ export function DeviceFlowChart({
     const ro = new ResizeObserver(resize); ro.observe(wrap)
     // 2D canvas GPU-reset dayanikligi: context geri gelince fotoyu YENIDEN isle (urun kaybolmasin → manuel refresh GEREKMEZ)
     const onCtxLost = (e: Event) => { e.preventDefault() }
-    const onCtxRestored = () => { loadDevice() }
+    const onCtxRestored = () => { loadDevice(); loadRegB() }
     canvas.addEventListener('contextlost', onCtxLost)
     canvas.addEventListener('contextrestored', onCtxRestored)
 
@@ -377,6 +386,17 @@ export function DeviceFlowChart({
         ctx.globalAlpha = 1
         const srcH = Math.round(deviceCanvas.height * CABLE_CROP)
         ctx.drawImage(deviceCanvas, 0, 0, deviceCanvas.width, srcH, dx, dy, dw, dh * CABLE_CROP)
+      }
+
+      // 1b) REGÜLATÖR KOMPONENT (model.type): Tip B (elle-ayar) → temel (IO-Link) regülatörü kapat + AR görselini bindir.
+      //   Tip A → DOKUNMA (temel foto zaten oransal). getActiveModel() canlı okunur → Ürün Ayarları'nda model değişince anında yansır.
+      if (getActiveModel().type === 'B' && regB && regB.complete && regB.naturalWidth) {
+        const rx0 = dx + dw * REG_SWAP_X[0], ry0 = dy + dh * REG_SWAP_Y[0]
+        const rbw = dw * (REG_SWAP_X[1] - REG_SWAP_X[0]), rbh = dh * (REG_SWAP_Y[1] - REG_SWAP_Y[0])
+        ctx.clearRect(rx0, ry0, rbw, rbh)  // temel regülatörü sil → arkadaki ambient sahne görünür (temiz zemin)
+        const s = Math.min(rbw / regB.naturalWidth, rbh / regB.naturalHeight)  // contain-fit (en-boy korunur, ezme yok)
+        const iw = regB.naturalWidth * s, ih = regB.naturalHeight * s
+        ctx.drawImage(regB, rx0 + (rbw - iw) / 2, ry0, iw, ih)  // üst-ortalı (manifolddan aşağı sarkar)
       }
 
       // (KENAR-YUMUŞATMA gradyan şeritleri KALDIRILDI — Mehmet Abi: "dikey kalın çizgiler" olarak görünüyordu; ters tepen düzeltmeydi.)
@@ -626,7 +646,7 @@ export function DeviceFlowChart({
       // 8) CİHAZ LED'i — REGÜLATÖR güç/durum LED'i (valf LED'i kaldırıldı): devredeyse (standby) yeşil yanıp söner.
       // SADECE REGÜLATÖR LED'i (Mehmet Abi: valf LED'i kaldırıldı). KONUM SABİT (LED_REG); ÇOK KÜÇÜK + gerçekçi, YANIP SÖNER.
       //   Devredeyken (standby/iso) yeşil nabız, boştayken sönük.
-      {
+      if (getActiveModel().type !== 'B') { // Tip B = analog regülatör (dijital güç LED'i yok)
         const lx = dx + dw * LED_REG[0], ly = dy + dh * LED_REG[1]
         const rr0 = Math.max(0.9, dh * 0.0055)                  // çok küçük dot (gerçek LED ölçeği)
         const regBlink = (now % 1150) < 820 ? 1 : 0.06          // ~0.87Hz yanıp sönme (açık ~0.82s / kapalı ~0.33s)
@@ -733,7 +753,7 @@ export function DeviceFlowChart({
 
       // 9b) REGÜLATÖR KIRMIZI dijital ekranı CANLI — orijinal yapı KORUNUR (foto çerçeve/etiketler kalır); statik ".200" gizlenip
       //   yerine CANLI basınç (MPa, kırmızı 7-seg, lider sıfırsız ".62" stili) yazılır. Mehmet Abi: "kendi göstergesi ama canlı".
-      {
+      if (getActiveModel().type !== 'B') { // Tip B = analog saat (kırmızı dijital LCD yok)
         const pPa = readoutRef.current.pressure
         if (pPa != null) {
           let pv = pPa.toFixed(2)             // regülatör ekranı: MPa, 2 hane (kendi çözünürlüğü)
