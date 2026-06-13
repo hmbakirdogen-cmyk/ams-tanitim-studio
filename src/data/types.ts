@@ -28,14 +28,27 @@ export const MODE_COLOR: Record<Mode, string> = {
   isolation: '#FFB04D',
 }
 
+// Cihazin GERCEK durum bayraklari (OPC UA BOOL etiketlerinden; LED'leri birebir surmek icin).
+// Hepsi OPSIYONEL: cihaz/etiket gondermezse undefined -> DeviceFlowChart eski (mod-turetimli) davranisa duser.
+export interface DeviceStatus {
+  standby?: boolean       // AMS30_Standby — tasarruf modu aktif
+  forcedStandby?: boolean // AMS30_ForcedStandBy — zorlanmis standby
+  valveOpen?: boolean     // AMS30_VP_DV_NO — kesme valfi durumu
+  doOut?: boolean         // AMS30_PF34_DOout — dijital cikis (alarm/esik)
+  operation?: boolean     // calisiyor/devrede
+}
+
 // Cihazdan (veya demodan) gelen tek bir anlik olcum
 export interface Reading {
   t: number            // baslangictan beri gecen sure (ms)
-  flow: number         // Hava tuketimi / Debi (litre/dakika)
+  flow: number         // Hava tuketimi / Debi (litre/dakika) — ANLIK
   pressure: number     // Basinc (MPa)
   temperature: number  // Sicaklik (Celsius)
   humidity: number     // Nem (%)
   mode: Mode           // o anki calisma modu
+  // OPSIYONEL (yalniz canli cihaz gonderince; demo/eski cihaz -> undefined, eski davranis korunur):
+  totalFlow?: number   // TOPLAM debi / totalizer (L) — cihazin AccumFlow degeri (hub alt-sag ekran)
+  status?: DeviceStatus // gercek durum bayraklari (LED'ler birebir)
 }
 
 // Veri kaynagi sozlesmesi - demo ya da canli cihaz ayni arayuzu doldurur

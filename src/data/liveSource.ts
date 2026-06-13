@@ -83,6 +83,9 @@ export class LiveDataSource implements DataSource {
           temperature: num(d.temperature),
           humidity: num(d.humidity),
           mode: (d.mode as Mode) ?? deriveMode(flow, pressure),
+          // OPSIYONEL gercek-cihaz alanlari (yoksa Reading'e KOYMA -> DeviceFlowChart eski/demo davranisina duser):
+          ...(Number.isFinite(Number(d.totalFlow)) ? { totalFlow: Number(d.totalFlow) } : {}),
+          ...(d.status && typeof d.status === 'object' ? { status: d.status as Reading['status'] } : {}),
         }
         this.setStatus('connected')
         this.cb?.(reading)

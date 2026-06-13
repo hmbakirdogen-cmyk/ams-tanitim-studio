@@ -114,6 +114,13 @@ const DEFAULT_NODE_IDS = {
   standbyThreshold: 'ns=2;s=AMS.StandbyThreshold',
   autoIsolationSec: 'ns=2;s=AMS.AutoIsolationSec',
   valveMode: 'ns=2;s=AMS.ValveMode',
+  // TOPLAM debi (totalizer) + GERCEK DURUM BOOL'lari (LED'leri birebir surmek icin) — cihazda yoksa okuma atlanir -> demo'ya duser.
+  //   Gercek isimler cihaz Tag listesinden; browse zaten gercegini bulur (placeholder ns=2 elle netlesir).
+  accumFlow: 'ns=2;s=AMS30_PF34_AccumFlow',
+  standby: 'ns=2;s=AMS30_Standby',
+  forcedStandby: 'ns=2;s=AMS30_ForcedStandBy',
+  vpDvNo: 'ns=2;s=AMS30_VP_DV_NO',
+  doOut: 'ns=2;s=AMS30_PF34_DOout',
 }
 
 // OLCEK (KALIBRASYON): cihaz HAM tamsayi doner -> ekranla BIREBIR tutmasi icin olcekle.
@@ -124,6 +131,7 @@ const SCALE = {
   pressure: Number(process.env.OPCUA_SCALE_PRESSURE ?? 0.001), // ham (kPa/mMPa) -> MPa : 514 -> 0.514
   temperature: Number(process.env.OPCUA_SCALE_TEMP ?? 0.1),    // ham x10 -> °C : 286 -> 28.6
   humidity: Number(process.env.OPCUA_SCALE_HUMIDITY ?? 1),     // % (ham)
+  accumFlow: Number(process.env.OPCUA_SCALE_ACCUM ?? 1),       // toplam debi (L) — gerekirse x10² gibi env ile ayarlanir
 }
 
 // Dugum ISIMDEN tahmin desenleri (TR+EN). Cihazin browseName/displayName'i bunlara uyarsa o olcume atanir.
@@ -409,7 +417,7 @@ export function handleAppConnection(socket) {
         }
         const merged = {}
         for (const k of ['flow', 'pressure', 'temperature', 'humidity', 'mode']) if (hints[k]) merged[k] = hints[k]
-        if (hints.totalFlow) console.log('[kopru] TOPLAM debi (accum) dugumu:', hints.totalFlow)
+        if (hints.totalFlow) { merged.accumFlow = hints.totalFlow; console.log('[kopru] TOPLAM debi (accum) dugumu:', hints.totalFlow) }
         if (Object.keys(merged).length) {
           nodeIds = { ...nodeIds, ...merged }
           console.log('[kopru] GERCEK olcum dugumleri kullanilacak:', merged)
@@ -434,15 +442,24 @@ export function handleAppConnection(socket) {
       const readOnce = async () => {
         if (stopped || !session) return
         try {
-          const order = [nodeIds.flow, nodeIds.pressure, nodeIds.temperature, nodeIds.humidity, nodeIds.mode]
+          // Olcumler (0-4) + TOPLAM debi (5) + GERCEK DURUM BOOL'lari (6-9). Eksik dugum SONA -> mevcut indeksler kaymaz.
+          const order = [nodeIds.flow, nodeIds.pressure, nodeIds.temperature, nodeIds.humidity, nodeIds.mode,
+            nodeIds.accumFlow, nodeIds.standby, nodeIds.forcedStandby, nodeIds.vpDvNo, nodeIds.doOut]
           const res = await session.read(order.map((nodeId) => ({ nodeId, attributeId: AttributeIds.Value })))
           // StatusCode kontrolu: Bad/Uncertain dugumu uyari olarak bildir (sessizce 0'a dusurup "kesinti" sanmayalim)
           const good = (r) => !r?.statusCode || r.statusCode.isGood?.() !== false
           const bad = ['flow', 'pressure', 'temperature', 'humidity'].filter((_, i) => !good(res[i]))
           const num = (r) => { const n = Number(r?.value?.value); return Number.isFinite(n) ? n : 0 }
+          // BOOL durum: dugum yok/Bad -> undefined (app demo'ya duser); var -> !!deger
+          const boolOf = (r) => { if (!good(r) || r?.value?.value == null) return undefined; return !!r.value.value }
           // KALIBRASYON: ham deger * SCALE -> cihaz ekraniyla birebir (286->28.6°C, 514->0.514 MPa). Bkz SCALE.
           const out = { flow: num(res[0]) * SCALE.flow, pressure: num(res[1]) * SCALE.pressure, temperature: num(res[2]) * SCALE.temperature, humidity: num(res[3]) * SCALE.humidity }
           if (res[4]?.value?.value != null) { const m = Number(res[4].value.value); out.mode = m === 2 ? 'isolation' : m === 1 ? 'standby' : 'normal' }
+          // TOPLAM debi (totalizer) — cihazin AccumFlow degeri (varsa) -> hub alt-sag ekran birebir
+          if (good(res[5]) && res[5]?.value?.value != null) out.totalFlow = num(res[5]) * SCALE.accumFlow
+          // GERCEK durum bayraklari (LED'leri birebir surmek icin) — hicbiri yoksa GONDERME (app demo/mod-turetimli davranisa duser)
+          const status = { standby: boolOf(res[6]), forcedStandby: boolOf(res[7]), valveOpen: boolOf(res[8]), doOut: boolOf(res[9]) }
+          if (Object.values(status).some((v) => v !== undefined)) out.status = status
           if (bad.length) out.warning = `Okunamayan dugum(ler): ${bad.join(', ')} (nodeId/StatusCode kontrol edin)`
           send(out)
           errStreak = 0
