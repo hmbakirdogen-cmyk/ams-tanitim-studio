@@ -16,3 +16,6 @@ bridge/geri-bildirimler.json
 # Otomatik guncelleyici calisma artiklari (paket icinde olusur)
 bridge/app-next/
 bridge/app-update.zip
+
+# OPC UA kalici istemci sertifikasi (her makinede uretilir)
+bridge/pki/

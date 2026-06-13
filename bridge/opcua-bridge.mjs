@@ -15,8 +15,10 @@
  */
 import net from 'node:net'
 import os from 'node:os'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { WebSocketServer } from 'ws'
-import { OPCUAClient, AttributeIds, DataType, BrowseDirection, NodeClass, MessageSecurityMode, SecurityPolicy, UserTokenType } from 'node-opcua'
+import { OPCUAClient, OPCUACertificateManager, AttributeIds, DataType, BrowseDirection, NodeClass, MessageSecurityMode, SecurityPolicy, UserTokenType } from 'node-opcua'
 
 const WS_HOST = '0.0.0.0' // LAN ACIK (Mehmet Abi onayi): ayni Wi-Fi'daki telefon/tablet de PC'deki kopruye baglanip CANLI veri gorur + set ayari yapar. GUVENLIK: guvenilir saha agi varsayilir (ayni agdaki cihazlar cihaza yazabilir).
 const WS_PORT = 4841
@@ -48,6 +50,57 @@ function parseEndpoint(raw) {
     if (pm) port = pm[1]
   }
   return { host, port }
+}
+
+// ---------------------------------------------------------------------------
+// KALICI ISTEMCI KIMLIGI (PKI) + TANI YARDIMCILARI  [cok-acili analiz bulgusu]
+// NEDEN: node-opcua her acilista GECICI sertifika uretirse, cihaz (SMC EXA1) bir kez guvendigi istemci
+//   sertifikasini sonraki acilista taniyamaz -> tekrar reddeder ('premature disconnection'/'collect certificate').
+//   UaExpert SABIT cert tutar. Cozum: TEK kalici cert yoneticisi (bridge/pki) + SABIT applicationUri -> her
+//   acilista AYNI kimlik -> cihaza BIR KEZ tanitilinca KALICI guven. (automaticallyAccept yalniz SUNUCU cert'ini kabul eder.)
+const __dir = path.dirname(fileURLToPath(import.meta.url))
+const PKI = path.join(__dir, 'pki')
+const APP_NAME = 'AMS-Studio'
+const APP_URI = 'urn:AMS-Studio:Client'
+const certificateManager = new OPCUACertificateManager({ rootFolder: PKI, automaticallyAcceptUnknownCertificate: true })
+let pkiReady = null
+async function ensurePki() {
+  if (!pkiReady) {
+    pkiReady = certificateManager.initialize()
+      .then(() => console.log('[kopru][pki] kalici istemci sertifikasi hazir:', PKI))
+      .catch((e) => { console.error('[kopru][pki] HATA (klasor yazilabilir mi?):', e.message); pkiReady = null; throw e })
+  }
+  return pkiReady
+}
+// Ortak istemci kimligi -> TUM OPCUAClient.create cagrilarina yayilir (sabit cert + sabit URI)
+const CLIENT_ID = { applicationName: APP_NAME, applicationUri: APP_URI, clientCertificateManager: certificateManager }
+
+// Istemci olaylarini logla (sessiz dusus yerine NEDEN gorunsun)
+function attachDiagLogs(c, label) {
+  for (const ev of ['backoff', 'connection_failed', 'connection_lost', 'start_reconnection', 'timed_out_request', 'abort']) {
+    try { c.on(ev, (...a) => console.log(`[kopru][${label}][${ev}]`, a?.[0]?.message ?? a?.[0] ?? '')) } catch { /* yok */ }
+  }
+}
+// Cihazin SUNDUGU endpoint'leri TEK SATIRDA dok (guvenlik + kullanici-token + cert var/yok) -> gercek sebep gorunur
+function logEndpoints(label, eps) {
+  for (const e of eps || []) {
+    const toks = (e.userIdentityTokens || []).map((t) => `${UserTokenType[t.tokenType] ?? t.tokenType}@${(t.securityPolicyUri || e.securityPolicyUri || '').split('#').pop() || 'None'}`).join(', ')
+    const cert = e.serverCertificate ? e.serverCertificate.length + 'B' : 'YOK'
+    console.log(`[kopru][${label}] EP ${MessageSecurityMode[e.securityMode]} | ${(e.securityPolicyUri || '').split('#').pop()} | level=${e.securityLevel} | cert:${cert} | tokens:[${toks}] | ${e.endpointUrl}`)
+  }
+}
+// Hatayi Turkce NEDEN'e cevir (sonraki denemede sebep TEK BAKISTA belli olsun)
+function teshis(stage, err) {
+  const m = String(err?.message ?? err)
+  const sc = err?.statusCode?.toString?.() || ''
+  let neden = 'bilinmeyen'
+  if (/ECONNREFUSED/i.test(m)) neden = 'yanlis port/IP veya sunucu kapali'
+  else if (/BadIdentityToken|user token policy|BadUserAccessDenied/i.test(m + sc)) neden = 'KULLANICI/SIFRE: cihaz None endpointinde UserName-i farkli istiyor (policy yok ya da sifre yanlis) — yukaridaki endpoint tokens listesine bak'
+  else if (/BadSecurityChecksFailed|BadCertificate/i.test(m + sc)) neden = 'SERTIFIKA: cihaz istemci sertifikasina guvenmiyor -> cihaz trust-list-ine BIR KEZ ekle'
+  else if (/BadMaxConnectionsReached|BadTooManySessions|BadSession|premature disconnection|ECONNRESET/i.test(m + sc)) neden = 'cihaz kanali ERKEN kapatti -> ya BASKA PROGRAM oturumu tutuyor (UaExpert/atvise vb. HEPSINI kapat) ya da sertifika reddi'
+  else if (/findEndpoint|collect.*certificate/i.test(m)) neden = 'sifreli endpoint denendi, sunucu sertifikasi toplanamadi (cihaz None-only olabilir)'
+  else if (/timeout/i.test(m)) neden = 'cihaz zamaninda cevap vermedi (ag/yavas gateway ya da baska oturum tutuyor)'
+  console.error(`[kopru][${stage}] HATA: ${m}${sc ? ' | status=' + sc : ''}\n          -> NEDEN: ${neden}`)
 }
 
 const DEFAULT_NODE_IDS = {
@@ -175,12 +228,20 @@ async function discoverDevices({ onProgress } = {}) {
  * ObjectsFolder'dan baslayarak sinirli (visited<=500) BFS; degisken (Variable) dugumlerin adi HINT_PATTERNS'a uyarsa atar.
  * Tahmin -> UI Kilavuzu'na onerilir (kullanici onaylar/duzeltir). Bulamazsa {} doner; var olan elle giris korunur.
  */
-async function browseNodeHints(endpoint, timeoutMs = 9000) {
-  const client = OPCUAClient.create({ endpointMustExist: false, securityMode: MessageSecurityMode.None, securityPolicy: SecurityPolicy.None, connectionStrategy: { maxRetry: 0 } })
+async function browseNodeHints(endpoint, timeoutMs = 12000) {
+  try { await ensurePki() } catch { /* pki yoksa varsayilanla dene */ }
+  const client = OPCUAClient.create({ ...CLIENT_ID, endpointMustExist: false, securityMode: MessageSecurityMode.None, securityPolicy: SecurityPolicy.None, connectionStrategy: { maxRetry: 0 } })
   const hints = {}
   try {
     await withTimeout(client.connect(endpoint), timeoutMs, 'connect-timeout')
-    const session = await withTimeout(client.createSession(), timeoutMs, 'session-timeout')
+    // ADMIN-once (cihaz anonimi reddedebilir; connectDevice de admin kullaniyor) -> tutmazsa anonim'e dus
+    let session
+    try {
+      session = await withTimeout(client.createSession({ type: UserTokenType.UserName, userName: process.env.OPCUA_USER || 'admin', password: process.env.OPCUA_PASS || 'admin' }), timeoutMs, 'session-timeout')
+    } catch (e1) {
+      console.error('[kopru] browse admin oturum acilamadi, anonim deneniyor:', e1.message)
+      session = await withTimeout(client.createSession(), timeoutMs, 'session-timeout')
+    }
     const queue = ['ns=0;i=85'] // ObjectsFolder
     const seen = new Set()
     let visited = 0
@@ -245,24 +306,26 @@ export function handleAppConnection(socket) {
     stopped = false
     if (ids) nodeIds = { ...DEFAULT_NODE_IDS, ...ids } // EKRANDAN gelen node kimlikleri (uyarlanabilir)
     send({ type: 'status', connected: false })
-    // GUVENLIK/KIMLIK DENEME ZINCIRI: None -> Sign&Encrypt -> Sign (hepsi anonim). Cihaz hangi guvenligi isterse o tutar.
-    //   Port 4843 GUVENLI endpoint olabilir -> None reddedilirse otomatik SIFRELI denenir. Her deneme 7sn timeout + maxRetry:1
-    //   -> sonsuz "Baglaniyor..." YOK; hicbiri olmazsa NET hata (son deneme mesaji) siyah pencerede + UI'da gorunur.
-    // TESHIS: cihazin GERCEK endpoint listesini al + logla (hangi guvenlik modlarini sunuyor? None VAR MI?). Siyah pencerede gorunur.
+    // KALICI ISTEMCI KIMLIGI hazir olsun (tum client'lar ayni sabit sertifikayi kullanir -> cihaz guveni kalici)
+    try { await ensurePki() } catch { /* pki kurulamadi -> yine de varsayilanla dene */ }
+    // TANI: cihazin GERCEK endpoint listesini al + DETAYLI logla (guvenlik modu + KULLANICI-TOKEN'lari + cert var/yok).
+    //   Gercek kok-sebep cogu zaman None endpoint'inin userIdentityTokens'inde gizli -> burada TEK BAKISTA gorunur.
     try {
-      const probe = OPCUAClient.create({ endpointMustExist: false, connectionStrategy: { maxRetry: 0 } })
-      await withTimeout(probe.connect(endpoint), 5000, 'probe-timeout')
-      const eps = await withTimeout(probe.getEndpoints(), 5000, 'endpoints-timeout')
-      console.log(`[kopru] CIHAZ ENDPOINTLERI (${(eps || []).length}) -> hangi guvenlik var:`)
-      for (const e of eps || []) console.log('   -', MessageSecurityMode[e.securityMode], '|', (e.securityPolicyUri || '').split('#').pop(), '|', e.endpointUrl)
+      const probe = OPCUAClient.create({ ...CLIENT_ID, endpointMustExist: false, securityMode: MessageSecurityMode.None, securityPolicy: SecurityPolicy.None, connectionStrategy: { maxRetry: 0 } })
+      attachDiagLogs(probe, 'probe')
+      await withTimeout(probe.connect(endpoint), 12000, 'probe-timeout')
+      const eps = await withTimeout(probe.getEndpoints(), 12000, 'endpoints-timeout')
+      console.log(`[kopru] CIHAZ ENDPOINTLERI (${(eps || []).length}):`)
+      logEndpoints('probe', eps)
       try { await probe.disconnect() } catch { /* yok */ }
-    } catch (e) { console.log('[kopru] endpoint listesi alinamadi:', e.message) }
+    } catch (e) { teshis('probe', e) }
 
     // NE: OPC UA guvenlik/kimlik deneme zinciri (sirayla dener, ilk tutani kullanir).
     // NEDEN: Sahada UaExpert ile KANITLANDI -> cihazin (SMC EXA1) calisan kapisi: Security Policy=None,
-    //   Message Security Mode=None, AMA kimlik ANONIM DEGIL -> Username='admin' (sifre cihaz web sifresi 'admin').
-    //   Eski kod None'da yalniz anonim deniyordu; cihaz anonimi reddedince None hic acilamiyordu. ASIL EKSIK: None+admin.
-    // NASIL: None+admin/admin EN BASTA (kanitli yol) -> None+admin/(bos sifre) -> None+anonim -> sifreli yedekler.
+    //   Message Security Mode=None, kimlik Username='admin'. Cihaz pratikte None-only (Security Level 0).
+    // NASIL: None+admin/admin (kanitli yol) -> None+admin/(bos sifre) -> None+anonim. SIFRELI denemeler cihaz None-only
+    //   oldugu icin VARSAYILAN KAPALI (yalniz ~20sn gurultu + yaniltici 'certificate' hatasi uretip gercek None hatasini
+    //   maskeliyorlardi). Gerekirse OPCUA_TRY_ENCRYPTED=1 ile en sona eklenir.
     // YAN ETKI: yok; basarisiz deneme temizlenip sonrakine gecilir, ilk basari donguyu kirar.
     const ADMIN = { type: UserTokenType.UserName, userName: process.env.OPCUA_USER || 'admin', password: process.env.OPCUA_PASS || 'admin' }
     const ADMIN_BOSSIFRE = { type: UserTokenType.UserName, userName: process.env.OPCUA_USER || 'admin', password: '' }
@@ -270,31 +333,35 @@ export function handleAppConnection(socket) {
       { name: 'None/admin', mode: MessageSecurityMode.None, pol: SecurityPolicy.None, user: ADMIN },
       { name: 'None/admin-bossifre', mode: MessageSecurityMode.None, pol: SecurityPolicy.None, user: ADMIN_BOSSIFRE },
       { name: 'None/anonim', mode: MessageSecurityMode.None, pol: SecurityPolicy.None, user: null },
-      { name: 'Sign&Encrypt/Basic256Sha256/admin', mode: MessageSecurityMode.SignAndEncrypt, pol: SecurityPolicy.Basic256Sha256, user: ADMIN },
-      { name: 'Sign&Encrypt/Basic256Sha256/anonim', mode: MessageSecurityMode.SignAndEncrypt, pol: SecurityPolicy.Basic256Sha256, user: null },
-      { name: 'Sign/Basic256Sha256/admin', mode: MessageSecurityMode.Sign, pol: SecurityPolicy.Basic256Sha256, user: ADMIN },
     ]
+    if (process.env.OPCUA_TRY_ENCRYPTED === '1') {
+      SEC_ATTEMPTS.push(
+        { name: 'Sign&Encrypt/Basic256Sha256/admin', mode: MessageSecurityMode.SignAndEncrypt, pol: SecurityPolicy.Basic256Sha256, user: ADMIN },
+        { name: 'Sign/Basic256Sha256/admin', mode: MessageSecurityMode.Sign, pol: SecurityPolicy.Basic256Sha256, user: ADMIN },
+      )
+    }
     let lastErr = ''
     for (const a of SEC_ATTEMPTS) {
       if (stopped) return
       let c = null
       try {
-        c = OPCUAClient.create({ endpointMustExist: false, securityMode: a.mode, securityPolicy: a.pol, connectionStrategy: { maxRetry: 1, initialDelay: 300, maxDelay: 1200 } })
-        // Sunucu sertifikasini OTOMATIK kabul et -> ilk-baglanti "rejected/trust" takilmasi olmasin (mumkun olan surumde).
-        try { if (c.clientCertificateManager) c.clientCertificateManager.automaticallyAcceptUnknownCertificate = true } catch { /* yok */ }
-        await withTimeout(c.connect(endpoint), 7000, 'connect-timeout')
-        const s = await withTimeout(a.user ? c.createSession(a.user) : c.createSession(), 7000, 'session-timeout')
+        // KALICI cert (CLIENT_ID) + 12sn timeout (yavas endustriyel gateway) + 60sn session/token omru
+        c = OPCUAClient.create({ ...CLIENT_ID, endpointMustExist: false, securityMode: a.mode, securityPolicy: a.pol, connectionStrategy: { maxRetry: 1, initialDelay: 500, maxDelay: 2000 }, defaultSecureTokenLifetime: 60000, requestedSessionTimeout: 60000 })
+        attachDiagLogs(c, a.name)
+        await withTimeout(c.connect(endpoint), 12000, 'connect-timeout')
+        const s = await withTimeout(a.user ? c.createSession(a.user) : c.createSession(), 12000, 'session-timeout')
         client = c; session = s
         console.log(`[kopru] BAGLANDI (${a.name}):`, endpoint)
         break
       } catch (e) {
-        lastErr = `${a.name}: ${e.message}`
-        console.error(`[kopru] deneme basarisiz [${a.name}]:`, e.message)
+        if (a.mode === MessageSecurityMode.None) lastErr = `${a.name}: ${e.message}` // UI mesaji yalniz None hatasi (sifreli gurultu sizmasin)
+        teshis(a.name, e)
         try { await c?.disconnect() } catch { /* yok */ }
+        await new Promise((r) => setTimeout(r, 400)) // gateway soketi serbest biraksin (ardisik deneme cakismasin)
       }
     }
     if (!session) {
-      send({ type: 'status', connected: false, error: `baglanilamadi - None/Sign&Encrypt/Sign denendi. Son hata: ${lastErr}` })
+      send({ type: 'status', connected: false, error: `baglanilamadi (None denendi). Son hata: ${lastErr || '—'}` })
       await cleanup()
       return
     }
