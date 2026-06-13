@@ -60,9 +60,11 @@ const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (imag
 //   Mehmet Abi: "bağlantı/ayak konumu ürüne göre değişebilir" → birebir hizalama şart değil; konum gözle ayarlanabilir (tunable).
 // TİP B (elle-ayar AR regülatör) — Mehmet abi tarifi: ITV'yi GÖVDESİYLE kaldır → AR'yi bağlantı-aparatı ölçeğinde bindir → montaj BİRLİKTE.
 //   Tüm konum/ölçek tek yerde (kolay ince ayar; hepsi cihaz-oranı dw/dh).
-const REG_B_CX = 0.205   // AR merkez X (cihaz-oranı)
-const REG_B_TOP = 0.350  // AR üst kenar Y (manifolddan asılır)
-const REG_B_W = 0.33     // AR genişliği / cihaz genişliği — BAĞLANTI-APARATI ölçeği (Mehmet abi ile büyütülüp küçültülür)
+const REG_B_MASK_X: [number, number] = [0.12, 0.30]   // ITV'yi KOMPLE örten plaka (yatay) — gövde tonu, koyu delik YOK
+const REG_B_MASK_Y: [number, number] = [0.395, 0.615] // ITV'yi KOMPLE örten plaka (dikey; manifold köprüsünün altı)
+const REG_B_CX = 0.225   // AR merkez X (cihaz-oranı) — ITV gövde merkezine hizalı
+const REG_B_TOP = 0.370  // AR üst kenar Y (topuz manifoldun hemen altından başlar)
+const REG_B_W = 0.42     // AR genişliği / cihaz genişliği — BRAKET ölçeği (Mehmet abi ile büyütülüp küçültülür)
 // GÜVENLİK BAYRAĞI: regülatör overlay'i DOĞRULANMADAN (Mehmet abi gözüyle konum + ekran kanıtı) AÇILMAZ.
 //   false iken program BİLİNEN-İYİ hâlinde (temel foto + orijinal LCD/LED) → bozuk/yarım görüntü ASLA gösterilmez.
 //   Konum REG_SWAP_X/Y birlikte ayarlanıp gözle doğrulanınca true yapılacak.
@@ -460,11 +462,21 @@ export function DeviceFlowChart({
       // 1b) REGÜLATÖR KOMPONENT (model.type): Tip A → DOKUNMA (temel foto zaten oransal/ITV). getActiveModel() canlı okunur.
       //   Tip B (elle-ayar) — Mehmet abi tarifi: (a) oransal ITV regülatörü GÖVDESİYLE kaldır (temizle) →
       //   (b) AR (elle-ayar) regülatörü BAĞLANTI-APARATI ölçeğinde (REG_B_W) bindir → AR orantılı büyür. Montaj birlikte ince ayar.
-      if (REG_SWAP_ENABLED && getActiveModel().type === 'B' && regB && regB.complete && regB.naturalWidth) {
-        // ITV'yi DELİK AÇMADAN yok et: clearRect KOYU AMBIENT'i sızdırıyordu (Mehmet abi: "ams resmiyle dark arka plan geldi") →
-        //   bunun yerine BÜYÜTÜLMÜŞ AR'yi (aparat ölçeği) ITV'nin ÜSTÜNE OPAK kapatırız. Delik yok = koyu zemin yok.
-        const iw = dw * REG_B_W, ih = iw * (regB.naturalHeight / regB.naturalWidth)
-        ctx.drawImage(regB, dx + dw * REG_B_CX - iw / 2, dy + dh * REG_B_TOP, iw, ih)
+      if (REG_SWAP_ENABLED && getActiveModel().type === 'B') {
+        // (a) ITV'yi KOMPLE kaldır: gövde bölgesini cihaz-GÖVDE TONUNDA opak plakayla ört. (clearRect KOYU ambient sızdırıyordu —
+        //     Mehmet abi "dark arka plan geldi" → plaka AÇIK/gövde-rengi: delik YOK, ITV %100 gizli; AR'nin örtmediği ince kenar modül yüzeyi gibi.)
+        const mx = dx + dw * REG_B_MASK_X[0], my = dy + dh * REG_B_MASK_Y[0]
+        const mw = dw * (REG_B_MASK_X[1] - REG_B_MASK_X[0]), mh = dh * (REG_B_MASK_Y[1] - REG_B_MASK_Y[0])
+        const mg = ctx.createLinearGradient(0, my, 0, my + mh)
+        mg.addColorStop(0, 'rgb(237,238,236)'); mg.addColorStop(1, 'rgb(208,210,208)')
+        ctx.fillStyle = mg
+        const mrad = Math.min(mw, mh) * 0.12
+        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(mx, my, mw, mh, mrad); ctx.fill() } else ctx.fillRect(mx, my, mw, mh)
+        // (b) AR (elle-ayar) regülatörü plakanın üstüne bindir — BAĞLANTI/braket ölçeğinde (REG_B_W); montaj birlikte ince ayar.
+        if (regB && regB.complete && regB.naturalWidth) {
+          const iw = dw * REG_B_W, ih = iw * (regB.naturalHeight / regB.naturalWidth)
+          ctx.drawImage(regB, dx + dw * REG_B_CX - iw / 2, dy + dh * REG_B_TOP, iw, ih)
+        }
       }
 
       // (KENAR-YUMUŞATMA gradyan şeritleri KALDIRILDI — Mehmet Abi: "dikey kalın çizgiler" olarak görünüyordu; ters tepen düzeltmeydi.)
