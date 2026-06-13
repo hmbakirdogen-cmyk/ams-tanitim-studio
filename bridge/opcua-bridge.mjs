@@ -16,7 +16,7 @@
 import net from 'node:net'
 import os from 'node:os'
 import { WebSocketServer } from 'ws'
-import { OPCUAClient, AttributeIds, DataType, BrowseDirection, NodeClass } from 'node-opcua'
+import { OPCUAClient, AttributeIds, DataType, BrowseDirection, NodeClass, MessageSecurityMode, SecurityPolicy } from 'node-opcua'
 
 const WS_HOST = '0.0.0.0' // LAN ACIK (Mehmet Abi onayi): ayni Wi-Fi'daki telefon/tablet de PC'deki kopruye baglanip CANLI veri gorur + set ayari yapar. GUVENLIK: guvenilir saha agi varsayilir (ayni agdaki cihazlar cihaza yazabilir).
 const WS_PORT = 4841
@@ -25,7 +25,9 @@ const MAX_ERR = 4 // ardisik okuma hatasi tavani -> yeniden baglan (gecici tek h
 
 // Kesifte denenecek OPC UA portlari. 4840 = IANA varsayilani (cogu cihaz). Digerleri yaygin (guvenli/uretici varyantlari).
 // Gercek AMS portu netlesince burayi tek porta indirmek taramayi hizlandirir.
-const OPCUA_PORTS = [4840, 4843, 48010, 53530]
+// GENIS port listesi: cihazin OPC UA portu standart 4840 olmayabilir (Mehmet Abi sahada ":5..." gordu).
+// 5xxx + yaygin uretici portlari eklendi -> "Cihazi Otomatik Bul" non-standart portu da yakalar.
+const OPCUA_PORTS = [4840, 4843, 4855, 48010, 48020, 49320, 51210, 53530, 62541, 5000, 5001, 50000]
 
 const DEFAULT_NODE_IDS = {
   flow: 'ns=2;s=AMS.FlowRate',
@@ -90,7 +92,7 @@ function localSubnets() {
 
 // Bir endpoint GERCEKTEN OPC UA sunucusu mu? Baglan + getEndpoints -> sunucu adini dondur (degilse null).
 async function getEndpointsSafe(endpoint, timeoutMs = 2500) {
-  const client = OPCUAClient.create({ endpointMustExist: false, connectionStrategy: { maxRetry: 0 } })
+  const client = OPCUAClient.create({ endpointMustExist: false, securityMode: MessageSecurityMode.None, securityPolicy: SecurityPolicy.None, connectionStrategy: { maxRetry: 0 } })
   try {
     await withTimeout(client.connect(endpoint), timeoutMs, 'connect-timeout')
     const eps = await withTimeout(client.getEndpoints(), timeoutMs, 'endpoints-timeout')
@@ -153,7 +155,7 @@ async function discoverDevices({ onProgress } = {}) {
  * Tahmin -> UI Kilavuzu'na onerilir (kullanici onaylar/duzeltir). Bulamazsa {} doner; var olan elle giris korunur.
  */
 async function browseNodeHints(endpoint, timeoutMs = 9000) {
-  const client = OPCUAClient.create({ endpointMustExist: false, connectionStrategy: { maxRetry: 0 } })
+  const client = OPCUAClient.create({ endpointMustExist: false, securityMode: MessageSecurityMode.None, securityPolicy: SecurityPolicy.None, connectionStrategy: { maxRetry: 0 } })
   const hints = {}
   try {
     await withTimeout(client.connect(endpoint), timeoutMs, 'connect-timeout')
@@ -222,7 +224,9 @@ export function handleAppConnection(socket) {
     stopped = false
     if (ids) nodeIds = { ...DEFAULT_NODE_IDS, ...ids } // EKRANDAN gelen node kimlikleri (uyarlanabilir)
     send({ type: 'status', connected: false })
-    client = OPCUAClient.create({ endpointMustExist: false })
+    // Guvenlik None + anonim: demo/saha cihazinda en uyumlu (Sign&Encrypt el-sikismasi takilmasin). Cihaz guvenlik
+    // isterse yine de baglanamaz ama None cogu yerel OPC UA sunucusunda CALISAN en genis yoldur.
+    client = OPCUAClient.create({ endpointMustExist: false, securityMode: MessageSecurityMode.None, securityPolicy: SecurityPolicy.None })
     try {
       await client.connect(endpoint)
       session = await client.createSession()
@@ -314,7 +318,14 @@ export function handleAppConnection(socket) {
       return
     }
 
-    if (msg.type === 'connect' && msg.endpoint) { await connectDevice(msg.endpoint, msg.nodeIds); return }
+    if (msg.type === 'connect' && msg.endpoint) {
+      // FOOLPROOF: kullanici sadece IP yazsa bile (or. "192.168.1.50") tam endpoint'e cevir; port yoksa :4840 ekle.
+      let ep = String(msg.endpoint).trim()
+      if (!ep.startsWith('opc.tcp://')) ep = 'opc.tcp://' + ep.replace(/^opc\.tcp:\/\//, '')
+      const after = ep.slice('opc.tcp://'.length)
+      if (after && !after.includes(':')) ep = ep + ':4840'
+      await connectDevice(ep, msg.nodeIds); return
+    }
     // Yazma komutlari: session yoksa SESSIZCE yutma -> uygulamaya hata bildir
     if (msg.type === 'setMode' || msg.type === 'setSettings') {
       if (!session) { send({ type: 'status', error: 'cihaz bagli degil, komut uygulanamadi' }); return }
