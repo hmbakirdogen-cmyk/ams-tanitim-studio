@@ -878,12 +878,15 @@ export function DeviceFlowChart({
           //   düz monospace yazı yerine drawSevenSeg → fotodaki kırmızı dijitlerin segment hissi + lider-sıfırsız ".287" stili.
           // RENK: VİŞNE kırmızısı (Mehmet abi: "kırmızı vişne renk yap") — derin/koyu kızıl, turuncuya/parlağa kaçmaz; glow kısık.
           const segCol: RGB = [172, 26, 50]                          // vişne (deep cherry) — yeşil/mavi düşük, kızıl baskın
-          const segW1 = measureSevenSeg(pv, 1) || 1                  // birim-yükseklikte genişlik → ölçekli sığdırma (hangi değer olursa olsun taşmaz)
-          const segH = Math.min(gh * 0.74, (gw * 0.90) / segW1)     // hem dikey hem yatay sığar (en büyük okunur boy; padding korunur)
+          // ÜRÜN-ŞEKLİ (Mehmet abi: "ürüne göre şeklini ayarla"): gerçek E/P regülatör dijiti hub'ınkinden GENİŞ/DOLGUN → ekranı
+          //   daha çok doldurur. Bu metrik SADECE regülatöre geçer; debimetre LCD'si (override'sız) BİT BİT AYNI kalır.
+          const segM = { digitW: 0.54, dotW: 0.30, gap: 0.10, thick: 0.15 }
+          const segW1 = measureSevenSeg(pv, 1, segM) || 1           // birim-yükseklikte genişlik → ölçekli sığdırma (hangi değer olursa taşmaz)
+          const segH = Math.min(gh * 0.80, (gw * 0.92) / segW1)     // hem dikey hem yatay sığar (en büyük okunur boy; ekranı dolu doldurur)
           // YÖN: Mehmet abi "ters çevir" → 180° rotation KALDIRILDI (düz/upright). Ekran camına ortalı. (gözle DOĞRULANIR — screenshot)
           ctx.save()
           ctx.translate(gx + gw / 2, gy + gh / 2)
-          drawSevenSeg(ctx, pv, -measureSevenSeg(pv, segH) / 2, -segH / 2, segH, segCol, { glow: 0.38 })
+          drawSevenSeg(ctx, pv, -measureSevenSeg(pv, segH, segM) / 2, -segH / 2, segH, segCol, { glow: 0.38, ...segM })
           ctx.restore()
         }
       }

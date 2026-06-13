@@ -33,13 +33,24 @@ const DOT_W = 0.20 // '.' icin dar cell
 const GAP = 0.09 // karakterler arasi bosluk / yukseklik (dar — gercek foto)
 const THICK = 0.12 // segment kalinligi / yukseklik
 
-/** Bir string'in toplam genisligi (px) — sag-yasli hizalama icin onceden olculur. */
-export function measureSevenSeg(text: string, h: number): number {
+// SEKIL OVERRIDE (Mehmet abi: "urune gore seklini ayarla"): cizici varsayilanlari HUB foto-olcumudur (dar/uzun). Bazi ekranlar
+//   (or. E/P regulator) GERCEK urunde daha GENIS/DOLGUN dijit tasir → cagri basina digitW/dotW/gap/thick override edilir; hub
+//   override'siz kalir (degismez). Tum oranlar yukseklige gore (h) normalize.
+export interface SegMetrics {
+  digitW?: number
+  dotW?: number
+  gap?: number
+  thick?: number
+}
+
+/** Bir string'in toplam genisligi (px) — sag-yasli hizalama icin onceden olculur. m ile sekil override edilebilir. */
+export function measureSevenSeg(text: string, h: number, m: SegMetrics = {}): number {
+  const dw = m.digitW ?? DIGIT_W, ow = m.dotW ?? DOT_W, gp = m.gap ?? GAP
   let w = 0
   for (const ch of text) {
-    w += (ch === '.' || ch === ' ' ? DOT_W : DIGIT_W) * h + GAP * h
+    w += (ch === '.' || ch === ' ' ? ow : dw) * h + gp * h
   }
-  return Math.max(0, w - GAP * h)
+  return Math.max(0, w - gp * h)
 }
 
 // Yatay segment (altigen) — sol uc (x0), merkez y (yc), uzunluk L, kalinlik t
@@ -68,10 +79,10 @@ function vSeg(ctx: CanvasRenderingContext2D, xc: number, y0: number, L: number, 
 
 // Tek rakami (x,y top-left) cell'e altigen segmentlerle PATH'e ekler (fill cagiran yapar).
 // GERCEK SMC 7-seg gibi: segmentler TAM-ACIKLIKLI uzun bar (kose boslugu kucuk) → keskin/okunakli (blob DEGIL).
-function addDigit(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, w: number, h: number) {
+function addDigit(ctx: CanvasRenderingContext2D, ch: string, x: number, y: number, w: number, h: number, thick: number = THICK) {
   const segs = SEG[ch]
   if (!segs) return
-  const t = h * THICK
+  const t = h * thick
   const g = t * 0.18           // segment ucu bosluk (koselerde birbirine degmesin)
   const xl = x + t / 2         // sol dikey segment merkez x
   const xr = x + w - t / 2     // sag dikey segment merkez x
@@ -90,9 +101,10 @@ function addDigit(ctx: CanvasRenderingContext2D, ch: string, x: number, y: numbe
   if (segs.includes('c')) vSeg(ctx, xr, vLy, vL, t)
 }
 
-interface SevenSegOpts {
+interface SevenSegOpts extends SegMetrics {
   glow?: number // 0..1 LED hâle yogunlugu (0 = kapali)
   align?: 'left' | 'right'
+  // digitW/dotW/gap/thick (SegMetrics): cagri basina sekil override (hub override'siz → degismez; regulator kendi urun-seklini alir)
 }
 
 /**
@@ -108,7 +120,9 @@ export function drawSevenSeg(
   color: RGB,
   opts: SevenSegOpts = {},
 ) {
-  const total = measureSevenSeg(text, h)
+  // SEKIL: override yoksa HUB foto-olcum varsayilanlari (debimetre LCD'si degismez); regulator kendi genis/dolgun degerlerini gecer
+  const dw = opts.digitW ?? DIGIT_W, ow = opts.dotW ?? DOT_W, gp = opts.gap ?? GAP, th = opts.thick ?? THICK
+  const total = measureSevenSeg(text, h, { digitW: dw, dotW: ow, gap: gp })
   let cx = opts.align === 'right' ? x - total : x
   const [r, g, b] = color
 
@@ -116,15 +130,15 @@ export function drawSevenSeg(
   ctx.beginPath()
   for (const ch of text) {
     const isNarrow = ch === '.' || ch === ' '
-    const w = (isNarrow ? DOT_W : DIGIT_W) * h
+    const w = (isNarrow ? ow : dw) * h
     if (ch === '.') {
-      const t = h * THICK
+      const t = h * th
       ctx.moveTo(cx + w * 0.5, y + h - t * 0.7)
       ctx.arc(cx + w * 0.5, y + h - t * 0.7, t * 0.62, 0, Math.PI * 2)
     } else if (ch !== ' ') {
-      addDigit(ctx, ch, cx, y, w, h)
+      addDigit(ctx, ch, cx, y, w, h, th)
     }
-    cx += w + GAP * h
+    cx += w + gp * h
   }
 
   // Yumusak LED hâlesi (istege bagli) + keskin cekirdek — gercek LED parlaklik hissi
