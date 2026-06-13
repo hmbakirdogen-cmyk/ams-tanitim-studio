@@ -29,6 +29,27 @@ const MAX_ERR = 4 // ardisik okuma hatasi tavani -> yeniden baglan (gecici tek h
 // 5xxx + yaygin uretici portlari eklendi -> "Cihazi Otomatik Bul" non-standart portu da yakalar.
 const OPCUA_PORTS = [4840, 4843, 4855, 48010, 48020, 49320, 51210, 53530, 62541, 5000, 5001, 50000]
 
+// NE: Kullanici/uygulamadan gelen adresi KURSUNGECIRMEZ sekilde IP + PORT'a ayristirir.
+// NEDEN: Sahada (siyah pencere) adres BOZUK geldi -> "opc.tcp://192.168.1.5/4843:4840" (iki nokta yerine '/' + yanlis
+//   ikinci port). node-opcua bu bozuk URL'de host=192.168.1.5'e baglanip findEndpoint'te "premature disconnection"
+//   veriyordu. Sebep node-opcua DEGIL, adres ayristirma. Cozum: scheme/slash ne olursa olsun IP'yi ve ILK porto desenle cek.
+// NASIL: scheme + bastaki/sondaki slash temizle -> IPv4 yakala -> IP'den SONRAKI ilk 3-5 haneli sayi = port.
+// YAN ETKI: yok; saf okuma. "192.168.1.5", "192.168.1.5:4843", "192.168.1.5/4843", "opc.tcp://192.168.1.5:4843/",
+//   hatta "192.168.1.5/4843:4840" -> hepsi dogru host+port'a iner.
+function parseEndpoint(raw) {
+  let s = String(raw || '').trim()
+  s = s.replace(/^opc\.tcp:\/\//i, '').replace(/^\/+/, '').replace(/\/+$/, '')
+  const ipm = s.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/)
+  const host = ipm ? ipm[1] : (s.split(/[/:\s]/)[0] || '')
+  let port = null
+  if (host) {
+    const rest = s.slice(s.indexOf(host) + host.length) // host'tan SONRASI (IP'nin kendi sayilari porta karismaz)
+    const pm = rest.match(/(\d{3,5})/)
+    if (pm) port = pm[1]
+  }
+  return { host, port }
+}
+
 const DEFAULT_NODE_IDS = {
   flow: 'ns=2;s=AMS.FlowRate',
   pressure: 'ns=2;s=AMS.Pressure',
@@ -367,21 +388,23 @@ export function handleAppConnection(socket) {
     }
 
     if (msg.type === 'connect' && msg.endpoint) {
-      // NE: kullanici sadece IP yazsa bile (or. "192.168.1.5") tam endpoint'e cevir.
-      // NEDEN: SAHA KANITI (UaExpert) -> SMC EXA1'in GERCEK OPC UA portu 4843; eski kod cikplak IP'ye :4840 (IANA varsayilani)
-      //   ekliyordu -> 4840'ta kimse dinlemiyor -> ECONNREFUSED. Asil port 4843.
-      // NASIL: port yoksa ONCE 4843 (SMC kanitli), tutmazsa 4840 (varsayilan) dene; ilk basari (session) donguyu kirar.
-      let ep = String(msg.endpoint).trim()
-      if (!ep.startsWith('opc.tcp://')) ep = 'opc.tcp://' + ep.replace(/^opc\.tcp:\/\//, '')
-      const after = ep.slice('opc.tcp://'.length)
-      if (after && !after.includes(':')) {
-        for (const p of [4843, 4840]) {
-          await connectDevice(ep + ':' + p, msg.nodeIds)
-          if (session) break // baglandi -> diger portu deneme
-        }
-        return
+      // NE: gelen adresi KURSUNGECIRMEZ ayristir (parseEndpoint) -> temiz opc.tcp://IP:PORT kur.
+      // NEDEN: Saha kaniti -> adres "192.168.1.5/4843:4840" gibi BOZUK geliyordu (slash + yanlis 2. port) ->
+      //   node-opcua findEndpoint "premature disconnection". Artik host+port DESENle cekiliyor, bozulma onleniyor.
+      // NASIL: port varsa ONCE o, yedek diger SMC portu; port yoksa 4843 (SMC kanitli) -> 4840. Ilk basari donguyu kirar.
+      //   HAM -> TEMIZ donusumu LOGLANIR (bir daha kor kalmayalim, siyah pencerede net gorunsun).
+      const { host, port } = parseEndpoint(msg.endpoint)
+      console.log(`[kopru] ADRES NORMALIZE: ham="${msg.endpoint}" -> host=${host || '(BOS)'} port=${port || '(yok->4843/4840)'}`)
+      if (!host) { send({ type: 'status', connected: false, error: `adres okunamadi: "${msg.endpoint}" (IP bulunamadi)` }); return }
+      const ports = port ? [port, port === '4843' ? '4840' : '4843'] : ['4843', '4840']
+      for (const p of ports) {
+        if (stopped && session) break
+        const ep = `opc.tcp://${host}:${p}`
+        console.log(`[kopru] baglanma denemesi -> ${ep}`)
+        await connectDevice(ep, msg.nodeIds)
+        if (session) break // baglandi -> diger portu deneme
       }
-      await connectDevice(ep, msg.nodeIds); return
+      return
     }
     // Yazma komutlari: session yoksa SESSIZCE yutma -> uygulamaya hata bildir
     if (msg.type === 'setMode' || msg.type === 'setSettings') {
