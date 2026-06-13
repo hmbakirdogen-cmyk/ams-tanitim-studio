@@ -228,10 +228,44 @@ async function discoverDevices({ onProgress } = {}) {
  * ObjectsFolder'dan baslayarak sinirli (visited<=500) BFS; degisken (Variable) dugumlerin adi HINT_PATTERNS'a uyarsa atar.
  * Tahmin -> UI Kilavuzu'na onerilir (kullanici onaylar/duzeltir). Bulamazsa {} doner; var olan elle giris korunur.
  */
+// MEVCUT bir session uzerinde browse yapar (yeni baglanti/oturum ACMAZ) -> connectDevice baglandiktan sonra
+// AYNI oturumla cihazi gezip gercek sensor dugumlerini bulur (cihazi ikinci oturumla yormaz). hints + tumVariables doner.
+async function browseHintsWithSession(session) {
+  const hints = {}
+  const found = [] // bulunan TUM degisken dugumler (log icin: gercek nodeId'ler gorunsun)
+  const queue = ['ns=0;i=85'] // ObjectsFolder
+  const seen = new Set()
+  let visited = 0
+  const wantKeys = Object.keys(HINT_PATTERNS)
+  while (queue.length && visited < 800) {
+    const nodeId = queue.shift()
+    if (seen.has(nodeId)) continue
+    seen.add(nodeId); visited++
+    let refs
+    try {
+      const b = await session.browse({ nodeId, referenceTypeId: 'HierarchicalReferences', includeSubtypes: true, browseDirection: BrowseDirection.Forward, resultMask: 63 })
+      refs = b?.references || []
+    } catch { continue }
+    for (const ref of refs) {
+      const childId = ref.nodeId?.toString?.()
+      if (!childId) continue
+      const label = ref.displayName?.text || ref.browseName?.name || ''
+      if (ref.nodeClass === NodeClass.Variable) {
+        found.push({ id: childId, label })
+        for (const key of wantKeys) {
+          if (!hints[key] && HINT_PATTERNS[key].test(label)) hints[key] = childId
+        }
+      } else if (ref.nodeClass === NodeClass.Object && !seen.has(childId)) {
+        queue.push(childId)
+      }
+    }
+  }
+  return { hints, found }
+}
+
 async function browseNodeHints(endpoint, timeoutMs = 12000) {
   try { await ensurePki() } catch { /* pki yoksa varsayilanla dene */ }
   const client = OPCUAClient.create({ ...CLIENT_ID, endpointMustExist: false, securityMode: MessageSecurityMode.None, securityPolicy: SecurityPolicy.None, connectionStrategy: { maxRetry: 0 } })
-  const hints = {}
   try {
     await withTimeout(client.connect(endpoint), timeoutMs, 'connect-timeout')
     // ADMIN-once (cihaz anonimi reddedebilir; connectDevice de admin kullaniyor) -> tutmazsa anonim'e dus
@@ -242,45 +276,14 @@ async function browseNodeHints(endpoint, timeoutMs = 12000) {
       console.error('[kopru] browse admin oturum acilamadi, anonim deneniyor:', e1.message)
       session = await withTimeout(client.createSession(), timeoutMs, 'session-timeout')
     }
-    const queue = ['ns=0;i=85'] // ObjectsFolder
-    const seen = new Set()
-    let visited = 0
-    const wantKeys = Object.keys(HINT_PATTERNS)
-    while (queue.length && visited < 500) {
-      if (wantKeys.every((k) => hints[k])) break // hepsi bulundu -> erken cik
-      const nodeId = queue.shift()
-      if (seen.has(nodeId)) continue
-      seen.add(nodeId); visited++
-      let refs
-      try {
-        const b = await session.browse({
-          nodeId,
-          referenceTypeId: 'HierarchicalReferences',
-          includeSubtypes: true,
-          browseDirection: BrowseDirection.Forward,
-          resultMask: 63,
-        })
-        refs = b?.references || []
-      } catch { continue }
-      for (const ref of refs) {
-        const childId = ref.nodeId?.toString?.()
-        if (!childId) continue
-        const label = ref.displayName?.text || ref.browseName?.name || ''
-        if (ref.nodeClass === NodeClass.Variable) {
-          for (const key of wantKeys) {
-            if (!hints[key] && HINT_PATTERNS[key].test(label)) hints[key] = childId
-          }
-        } else if (ref.nodeClass === NodeClass.Object && !seen.has(childId)) {
-          queue.push(childId)
-        }
-      }
-    }
-    try { await session.close() } catch {}
+    const { hints } = await browseHintsWithSession(session)
+    try { await session.close() } catch { /* yok */ }
     return hints
-  } catch {
-    return hints
+  } catch (e) {
+    console.error('[kopru] browse hatasi:', e.message)
+    return {}
   } finally {
-    try { await client.disconnect() } catch {}
+    try { await client.disconnect() } catch { /* yok */ }
   }
 }
 
@@ -368,6 +371,31 @@ export function handleAppConnection(socket) {
     try {
       send({ type: 'status', connected: true })
       console.log('[kopru] cihaza baglandi:', endpoint, '| node:', nodeIds)
+      // OTOMATIK DUGUM KESFI: saglanan dugumler (placeholder olabilir, or. AMS.FlowRate) okunmuyorsa, AYNI oturumla
+      //   cihazi gezip (browse) GERCEK sensor dugumlerini bul + LOGLA (siyah pencerede gercek nodeId'ler gorunur) + KULLAN.
+      //   Boylece kullanici elle nodeId girmeden canli veri akar. (Cihaz tek-oturumlu olabilir -> ikinci oturum ACMAYIZ.)
+      try {
+        const testIds = [nodeIds.flow, nodeIds.pressure, nodeIds.temperature, nodeIds.humidity]
+        const test = await session.read(testIds.map((nodeId) => ({ nodeId, attributeId: AttributeIds.Value })))
+        const okCount = test.filter((r) => r?.statusCode?.isGood?.() === true && r?.value?.value != null).length
+        console.log(`[kopru] saglanan dugum testi: ${okCount}/4 okunuyor`)
+        if (okCount < 2) {
+          console.log('[kopru] saglanan dugumler okunmuyor -> cihaz BROWSE ediliyor (gercek dugumler araniyor)...')
+          const { hints, found } = await browseHintsWithSession(session)
+          console.log(`[kopru] cihazda ${found.length} degisken dugum bulundu.`)
+          console.log('[kopru] cihaz dugumleri (ilk 25):')
+          for (const f of found.slice(0, 25)) console.log(`   ${f.id}   (${f.label})`)
+          const merged = {}
+          for (const k of ['flow', 'pressure', 'temperature', 'humidity', 'mode']) if (hints[k]) merged[k] = hints[k]
+          if (Object.keys(merged).length) {
+            nodeIds = { ...nodeIds, ...merged }
+            console.log('[kopru] GERCEK olcum dugumleri OTOMATIK kullanilacak:', merged)
+            send({ type: 'nodeHints', hints: merged }) // app Kilavuz'u da guncellensin
+          } else {
+            console.log("[kopru] browse ile olcum dugumu eslesmedi -> cihaz web arayuzunden 'Export tag file' ile tam liste gerekebilir.")
+          }
+        }
+      } catch (e) { console.log('[kopru] otomatik dugum kesfi atlandi:', e.message) }
       // HIBRIT: cihazin MEVCUT ayarlarini bir kez OKU -> uygulamaya gonder (Urun Ayarlari o degerlerle devam etsin)
       try {
         const sids = [nodeIds.standbyPressure, nodeIds.standbyThreshold, nodeIds.autoIsolationSec, nodeIds.valveMode]
