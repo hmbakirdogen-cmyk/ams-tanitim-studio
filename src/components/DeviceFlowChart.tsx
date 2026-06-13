@@ -52,7 +52,7 @@ const FB_DISPLAYS = [{ x: 0.4304, y: 0.1742, w: 0.1414, h: 0.0842 }]  // image #
 const REG_FRAC: [number, number] = [0.155, 0.305] // standby/oransal regülatör — regüle hücresi (Mehmet Abi: biraz genişletildi)
 const REG_DISP: [number, number, number, number] = [0.211, 0.4467, 0.0624, 0.0233] // regülatör KIRMIZI dijital LCD — BİREBİR foto-ölçüm (tools/_regscreen.py: ışın-tarama, siyah cam kenarı) [x,y,w,h]
 const VALVE_CX = 0.74                            // tahliye valfi merkezi (image #1: sağ modül)
-const EXHAUST_CX = 0.775, EXHAUST_CY = 0.39      // egzoz portu (Mehmet abi gözüyle iteratif: sağ+yukarı, "çok azcık sola", "çok azıcık sağa") → 0.775/0.39; hava AŞAĞI atılır
+const EXHAUST_CX = 0.775, EXHAUST_CY = 0.39      // egzoz/dönüş/halka EKSENİ = valf düşey ekseni (mavi düğme). Mehmet abi: 0.785 çıkış eksenini kötüleştirdi → 0.775 (sevdiği eksen); hava bu eksende AŞAĞI atılır
 // PDF LED konumu (tum-foto orani): SADECE regülatör POWER LED'i (valf LED'i Mehmet Abi kararıyla KALDIRILDI).
 const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (image #1: ekranın ALTINDA, foto-ölçüm) — YEŞİL, devredeyken parlar
 // REGÜLATÖR KOMPONENT DEĞİŞİMİ (model.type): temel foto Tip A (IO-Link/oransal) → Tip A'da DOKUNULMAZ (risksiz).
@@ -443,50 +443,61 @@ export function DeviceFlowChart({
         const lane = fLane[i]
         const prof = 1 - 0.5 * lane * lane   // parabolik laminar hız: merkez hızlı, cidar yavaş (hız YALNIZCA lane'e bağlı)
         const x0 = fPhase[i] * W
-        // GERİ AKIŞ (izolasyon) = EMME DELİĞİ (sink): valf sağındaki trapped hava sağ uçtan (s=1) porta (s=0) TEMİZ LAMİNAR sola akar;
-        //   porta yaklaşınca kesit funnel ile daralıp YUMUŞAK aşağı bükülür + opaklık delik içinde 0'a söner (görünmeden yutulur).
-        //   Recycle yalnız yutulunca + birth-maskesi → SAHTE DİRSEK/IŞINLAMA YOK. (Mehmet abi "geri dönüş saçmaladı" → curl jitter
-        //   KALDIRILDI, dalış yumuşatıldı (quadratic), kesit forward ile EŞİTLENDİ → temiz/okunur laminar drain; sıfır alloc.)
+        // GERİ AKIŞ (izolasyon) — Mehmet abi: "hava valfin biraz daha İÇİNE girip ordan DAR radüsle kıvrılmalı aşağıya".
+        //   (1) BORU İÇİ yatay geri-akış (boru dışına çıkmaz) → valf eksenine kadar; (2) valf ekseninde DAR yarıçaplı ÇEYREK-TUR
+        //   yatay→aşağı; (3) EKSEN boyunca DİK iniş egzoza (izler dikeyde KISA → düşey çizgi yok); son %28'de fade → jet devralır. Recycle gizli.
         if (sig.valve > 0.12 && x0 > valveCx) {
-          const exFrac = exOx / W                            // egzoz portu fazı (drain merkezi)
-          const span = Math.max(1e-3, 1 - exFrac)            // port → sağ uç bandı
-          const dec = (0.12 + 0.5 * sig.valve) * prof        // sağ→sol drain hızı (laminar; per-molekül rastgele YOK → karışmaz)
+          const R = pipeH * 0.85                              // ÇOK DAR dönüş yarıçapı (px) — hava TA EKSENE kadar gelip orada sıkıca döner (Mehmet abi)
+          const entryX = exOx + R                             // tur valf ekseninin hemen sağında (R küçük) → yatay akış eksene ULAŞIR, ordan döner
+          const exFrac = exOx / W
+          const vDrop = Math.max(0, (exOy - axisY) - R)       // tur sonrası EKSENDE dik iniş (egzoza kadar)
+          const vSpan = 0.05                                  // dik iniş fphase bandı (akış hızı)
+          const dec = (0.12 + 0.5 * sig.valve) * prof         // sağ→sol geri-akış hızı (laminar; per-molekül rastgele YOK → karışmaz)
           fPhase[i] -= dec * dt
-          // GÖRÜNMEZ recycle: port ağzına varıp yutulduysa (opaklık zaten 0) sessizce sağ uca taşı (i%41 ofset → tek hatta dizilmez)
-          if (fPhase[i] <= exFrac - 0.01) { fPhase[i] = 1 - ((i % 41) * 0.0006); continue }
-          let s = (fPhase[i] - exFrac) / span                // 1 = sağ uç (doğum) .. 0 = port ağzı (drain)
-          if (s < 0) s = 0; else if (s > 1) s = 1
-          const e = 1 - s, drop = e * e                      // YUMUŞAK iniş (quadratic; sert/kübik dalış yok → "saçma" gitti)
-          const laneSq = 0.30 + 0.70 * s                     // funnel: portta dar (0.30), uzakta tam genişlik (1.0)
-          const px = fPhase[i] * W
-          const py = axisY + (exOy - axisY) * drop + lane * pr * laneSq   // forward ile AYNI pr (kesit tutarlı) + curl YOK = TEMİZ
-          // OPAKLIK MASKESİ — iki uçta yumuşak (sert doğum/ölüm + teleport YOK)
-          const bornFade = sstep(e / 0.12)                   // sağ uçta (s→1) 0'dan aç → yumuşak doğum
-          const drainFade = sstep(s / 0.12)                  // delik içinde (s→0) 0'a sön → görünmeden yutuluş
+          const fp = fPhase[i]
+          if (fp <= exFrac - vSpan) { fPhase[i] = 1 - ((i % 41) * 0.0006); continue }  // egzoza indi → GÖRÜNMEZ recycle
+          const pxr = fp * W
+          let pxc: number, py: number, txu: number, tyu: number, cs: number, dnv: number
+          if (pxr >= entryX) {
+            pxc = pxr; py = axisY; txu = -1; tyu = 0; cs = 1; dnv = 0                   // (1) BORU İÇİ yatay
+          } else if (fp >= exFrac) {
+            let sn = (entryX - pxr) / R; if (sn > 1) sn = 1                             // (2) DAR çeyrek-tur (sin θ)
+            cs = Math.sqrt(1 - sn * sn)
+            pxc = pxr; py = axisY + R * (1 - cs); txu = -cs; tyu = sn; dnv = R * (1 - cs)
+          } else {
+            const vd = Math.min(1, (exFrac - fp) / vSpan)                               // (3) eksende DİK iniş (0→1)
+            pxc = exOx; py = axisY + R + vDrop * vd; txu = 0; tyu = 1; cs = 0; dnv = R + vDrop * vd
+          }
+          const off = lane * pr * cs                          // kesit (laminar şerit) — tur/inişte daralır
+          const dpx = pxc + off * tyu, dpy = py - off * txu   // perp = (tyu, −txu)
+          const bornFade = sstep((1 - fp) / 0.10)             // sağ uçta yumuşak doğum
+          const nearPort = dnv / Math.max(1, exOy - axisY)    // 0 boru .. 1 egzoz ağzı
+          const drainFade = 1 - sstep((nearPort - 0.72) / 0.28)  // son ~%28'de sön → egzoz jeti devralır (görünmez geçiş)
           const a = (0.16 + 0.55 * sig.valve) * (0.5 + 0.5 * prof) * aK * bornFade * drainFade
           if (a <= 0.012) continue
-          // akış izi: forward gibi YATAY-ağırlıklı kısa iz (porta yakın hafif eğim) + çift-segment taper (soluk kuyruk + parlak baş)
-          const len = (7 + 12 * sig.valve) * (0.72 + 0.5 * prof)
-          // TANJANT (px-TUTARLI): yatay hız = -span·W (px), dikey hız = (exOy−axisY)·2e (px). [Eski 'tx=−span' BİRİM HATASIYDI:
-          //   yatay~0 kalıp tüm izler DÜŞEY çıkıyordu → Mehmet abi "düşey çizgiler / valften yumuşak kıvrılmıyorlar".] Artık iz GERÇEK
-          //   eğriyi izler: uzakta ~yatay, porta yaklaşınca en fazla ~40° meyille valfin içinden YUMUŞAK kıvrılır (asla dik değil).
-          let tx = -span * W, ty = (exOy - axisY) * 2 * e
-          const m = Math.sqrt(tx * tx + ty * ty) || 1; tx /= m; ty /= m
+          const len = (7 + 12 * sig.valve) * (0.72 + 0.5 * prof) * (0.4 + 0.6 * cs)  // DİKEYde KISA iz (düşey çizgi olmasın)
           const lw = 1.0 + 1.3 * prof
-          ctx.strokeStyle = cS(a * 0.4); ctx.lineWidth = lw
-          ctx.beginPath(); ctx.moveTo(px - tx * len, py - ty * len); ctx.lineTo(px, py); ctx.stroke()
-          ctx.strokeStyle = cS(a); ctx.lineWidth = lw
-          ctx.beginPath(); ctx.moveTo(px - tx * len * 0.42, py - ty * len * 0.42); ctx.lineTo(px, py); ctx.stroke()
+          ctx.strokeStyle = cS(a * 0.4); ctx.lineWidth = lw   // soluk uzun kuyruk
+          ctx.beginPath(); ctx.moveTo(dpx - txu * len, dpy - tyu * len); ctx.lineTo(dpx, dpy); ctx.stroke()
+          ctx.strokeStyle = cS(a); ctx.lineWidth = lw         // parlak kısa baş
+          ctx.beginPath(); ctx.moveTo(dpx - txu * len * 0.42, dpy - tyu * len * 0.42); ctx.lineTo(dpx, dpy); ctx.stroke()
           continue
         }
         // NORMAL ileri akış — hız=lane profili (per-molekül rastgele hız YOK) → AYNI lane = AYNI hız → karışma İMKANSIZ
         fPhase[i] += (baseV * prof * 0.5 + 0.006) * dt
         if (fPhase[i] > 1) fPhase[i] -= 1
         const x = fPhase[i] * W
-        if (x > valveCx && sig.valve > 0.12) continue   // valf kapanınca çıkış tarafı ileri-akış almaz (yumuşak kesme)
+        // GELİŞ-GİDİŞ ÇARPIŞMA (Mehmet abi): valf kapalıyken supply havası valf YÜZÜNE çarpıp BİRİKİR → eski SERT kesme yerine
+        //   valf yüzüne yaklaşınca YUMUŞAK sönüm (yutulma/birikme hissi). Valfin SAĞI ileri-akış almaz (return devralır).
+        let collF = 1
+        if (sig.valve > 0.12) {
+          const vF = valveCx / W
+          if (fPhase[i] > vF) continue                   // valf sağı: ileri-akış geçmez
+          collF = sstep((vF - fPhase[i]) / 0.07)         // valf yüzünde yumuşak sön (çarpıp birikme)
+        }
         if (i >= flowN) continue                          // MİKTAR: debiye göre seyrelt (faz ilerledi ama bu zerre çizilmez → düşük debide ferah)
         const y = axisY + lane * pr                      // SABİT şerit (Y salınımı YOK → izler asla kesişmez)
-        const a = (0.12 + 0.55 * sig.flow) * (0.5 + 0.5 * prof) * aK   // merkez şerit daha parlak (tüp derinliği)
+        const a = (0.12 + 0.55 * sig.flow) * (0.5 + 0.5 * prof) * aK * collF   // çarpışma fade'i (valf yüzünde birikip söner)
         const len = (8 + Math.min(baseV, 0.85) * 22) * (0.72 + 0.5 * prof)   // hızlı akışta DAHA UZUN iz (akıcı "hücum" hissi)
         const lw = (1.0 + 1.3 * prof) * (0.62 + sig.flow * 0.7)        // merkez şerit daha kalın
         // ZARİF taper (kare-başı tahsis YOK): soluk uzun kuyruk + parlak kısa baş = molekül başı + hareket izi
@@ -494,6 +505,16 @@ export function DeviceFlowChart({
         ctx.beginPath(); ctx.moveTo(x - len, y); ctx.lineTo(x, y); ctx.stroke()
         ctx.strokeStyle = cS(a); ctx.lineWidth = lw
         ctx.beginPath(); ctx.moveTo(x - len * 0.42, y); ctx.lineTo(x, y); ctx.stroke()
+      }
+
+      // GELİŞ-GİDİŞ ÇARPIŞMA — valf YÜZÜNDE basınç birikme parıltısı (Mehmet abi: çarpışma animasyonu): supply havası kapalı valfe
+      //   çarpıp sıkışınca yumuşak NABIZ atan ışık (yoğunluk ∝ valf×debi). Döngü DIŞI → kare-başı tek gradient (RAM-bedava). Additif.
+      if (sig.valve > 0.12 && sig.flow > 0.05) {
+        const cg = (0.10 + 0.26 * sig.flow) * sig.valve * (0.82 + 0.18 * Math.sin(now * 0.006))
+        const cr = pipeH * (0.9 + 0.5 * sig.flow)
+        const g = ctx.createRadialGradient(valveCx, axisY, 0, valveCx, axisY, cr)
+        g.addColorStop(0, cS(cg)); g.addColorStop(1, cS(0))
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(valveCx, axisY, cr, 0, Math.PI * 2); ctx.fill()
       }
 
       // 4) REGÜLATÖR ORİFİS (venturi) — moleküller DAR hücrede GİRİŞ→ÇIKIŞ süzülür; orifiste kesit DARALIR (pinch) ve HIZLANIR.
@@ -567,19 +588,19 @@ export function DeviceFlowChart({
       //   TEAL ("Regülatör devrede" rengi), regüle hücresi merkezinde, sig.reg yoğunluğunda. Valfle AYNI drawEngage; farklı faz (sync olmasın).
       const regCx = (regX0 + regX1) / 2
       drawEngage(regCx, axisY, '54,224,200', sig.reg, pulse, markR)                          // regülatör halkası — devredeyken (standby) parlar
-      drawEngage(valveCx + dw * 0.045, valveCy, '255,150,40', sig.valve, pulse + 1.5, markR) // valf halkası biraz SAĞ (flow sınırı/egzoz dokunulmadan)
+      drawEngage(dx + dw * EXHAUST_CX, valveCy, '255,150,40', sig.valve, pulse + 1.5, markR) // valf halkası DÜŞEY EKSENİ = mavi düğme/egzoz ekseni (Mehmet abi: yanıp sönen daireyi de düğmeye baz al)
 
       // 6) NEM — havada SÜSPANSE su buharı/mikro-damlacık (NEM renginde): akışLA birlikte (sol→sağ) sürüklenir, boru kesitine
       //   YAYILIR, hafif salınır. Yoğunluk + tül ∝ nem. Kullanıcı "bu akışta nem var" diye NET anlar.
       //   (Eski: dipte kayan iri damlalar = cam üstü yağmur gibi saçmaydı; akıştaki nemi anlatmıyordu → kaldırıldı, Mehmet Abi.)
       ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over'
       if (sig.hum > 0.04) { // hafif NEM TÜLÜ — nemli hava hissi (yoğunluk ∝ nem)
-        const mistA = (dark ? 0.04 : 0.075) + 0.10 * sig.hum
+        const mistA = (dark ? 0.025 : 0.05) + 0.06 * sig.hum               // nem tülü DAHA HAFİF (hava baskın — Mehmet abi "havadan çok nem varmış gibi")
         const mg = ctx.createLinearGradient(0, top, 0, bot)
         mg.addColorStop(0, cH(0)); mg.addColorStop(0.5, cH(mistA)); mg.addColorStop(1, cH(0))
         ctx.fillStyle = mg; ctx.fillRect(0, top, W, pipeH)
       }
-      const humN = Math.round((0.06 + 0.94 * sig.hum) * DROPLET_MAX) // kuru havada birkaç zerre, nemli havada yoğun
+      const humN = Math.round((0.03 + 0.42 * sig.hum) * DROPLET_MAX) // Mehmet abi "havadan çok nem varmış gibi" → nem AZINLIK (hava baskın): sayı belirgin kısıldı
       const humDrift = (0.05 + 0.95 * sig.flow) * 0.5 + 0.03          // akışLA sürüklenir (durağanken hafif süzülür)
       // GERİ AKIŞ (izolasyon): nem de HAVA gibi davranır — valf SAĞINDAKİ nem valfe/egzoza doğru GERİ akar, egzoz ağzında
       //   aşağı süzülüp söner (havayla birlikte çıkar) ve sağ uca recycle olur; valf SOLUNDAKİ ileri nem valfi geçmez.
@@ -611,7 +632,7 @@ export function DeviceFlowChart({
           y = axisY + (dLane[i] * 2 - 1) * pr * 0.8 + bob                // boru KESİTİNE yayıl (dipte değil)
         }
         const r = 0.85 + dR[i] * 0.4                                       // KÜÇÜK buhar zerresi
-        const a = (0.16 + 0.4 * sig.hum) * aK * fade
+        const a = (0.09 + 0.26 * sig.hum) * aK * fade                       // nem zerresi DAHA SÖNÜK (hava baskın kalsın — Mehmet abi)
         // küçük + DÜŞÜK alfa hale (karışmaz) + CRISP parlak çekirdek (her zerre AYRI okunur → yoğun ama net)
         ctx.fillStyle = cH(a * 0.3); ctx.beginPath(); ctx.arc(x, y, r * 1.5, 0, Math.PI * 2); ctx.fill()
         ctx.fillStyle = cH(Math.min(1, a * 1.7)); ctx.beginPath(); ctx.arc(x, y, r * 0.55, 0, Math.PI * 2); ctx.fill()
