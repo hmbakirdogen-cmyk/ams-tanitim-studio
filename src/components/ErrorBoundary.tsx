@@ -13,6 +13,7 @@
  */
 import { Component, Fragment, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw, Loader2 } from 'lucide-react'
+import { t } from '@/i18n' // reaktif-olmayan ceviri (class component; hata ekrani acilisteki dilde gosterilir)
 
 type Variant = 'fullscreen' | 'inline'
 
@@ -107,24 +108,22 @@ export class ErrorBoundary extends Component<Props, State> {
               {recovering ? <Loader2 size={20} className="animate-spin" /> : <AlertTriangle size={20} />}
             </div>
             <p className="text-sm font-semibold text-white">
-              {recovering
-                ? `${this.props.label ?? 'Görüntü'} bir an duraksadı`
-                : `${this.props.label ?? 'Görüntü'} yüklenemedi`}
+              {recovering ? t('Görüntü bir an duraksadı') : t('Görüntü yüklenemedi')}
             </p>
             <p className="mt-1 text-xs text-white/55">
-              {recovering ? 'Kendi kendine yenileniyor — veriler akmaya devam ediyor.' : 'Birkaç deneme düzeltmedi.'}
+              {recovering ? t('Kendi kendine yenileniyor — veriler akmaya devam ediyor.') : t('Birkaç deneme düzeltmedi.')}
             </p>
             <button
               onClick={this.manualReset}
               className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-[#0072CE] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#0086f0]"
             >
-              <RefreshCw size={14} /> {recovering ? 'Şimdi yükle' : 'Yeniden yükle'}
+              <RefreshCw size={14} /> {recovering ? t('Şimdi yükle') : t('Yeniden yükle')}
             </button>
             <button
               onClick={() => this.setState((s) => ({ showDetail: !s.showDetail }))}
               className="mt-2 block w-full text-[11px] text-white/35 transition hover:text-white/70"
             >
-              {this.state.showDetail ? 'Teknik detayı gizle' : 'Teknik detay'}
+              {this.state.showDetail ? t('Teknik detayı gizle') : t('Teknik detay')}
             </button>
             {this.state.showDetail && (
               <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-black/40 p-2.5 text-left text-[10.5px] leading-relaxed text-rose-200/80">
@@ -143,15 +142,15 @@ export class ErrorBoundary extends Component<Props, State> {
           <div className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-[#0072CE]/15 text-[#7cc0ff]">
             <AlertTriangle size={26} />
           </div>
-          <h2 className="text-lg font-semibold text-white">Beklenmedik bir durum oldu</h2>
+          <h2 className="text-lg font-semibold text-white">{t('Beklenmedik bir durum oldu')}</h2>
           <p className="mt-2 text-sm text-white/60">
-            Uygulama küçük bir aksaklık yaşadı. Bilgileriniz yerinde — kaldığınız yerden devam edebilirsiniz.
+            {t('Uygulama küçük bir aksaklık yaşadı. Bilgileriniz yerinde — kaldığınız yerden devam edebilirsiniz.')}
           </p>
           <button
             onClick={this.manualReset}
             className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#0072CE] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0086f0]"
           >
-            <RefreshCw size={16} /> Tekrar Dene
+            <RefreshCw size={16} /> {t('Tekrar Dene')}
           </button>
           <button
             onClick={() => this.setState((s) => ({ showDetail: !s.showDetail }))}

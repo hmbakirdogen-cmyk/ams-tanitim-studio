@@ -13,6 +13,18 @@ const KEY = 'ams_lang_v1'
 
 // Anahtar = TURKCE metin. (tr icin sozluk gerekmez.)
 const EN: Record<string, string> = {
+  // Hata ekranı (ErrorBoundary)
+  'Görüntü bir an duraksadı': 'Display paused for a moment',
+  'Görüntü yüklenemedi': 'Display could not load',
+  'Kendi kendine yenileniyor — veriler akmaya devam ediyor.': 'Recovering automatically — data keeps flowing.',
+  'Birkaç deneme düzeltmedi.': "A few attempts didn't resolve it.",
+  'Şimdi yükle': 'Load now',
+  'Yeniden yükle': 'Reload',
+  'Teknik detay': 'Technical details',
+  'Teknik detayı gizle': 'Hide technical details',
+  'Beklenmedik bir durum oldu': 'Something unexpected happened',
+  'Uygulama küçük bir aksaklık yaşadı. Bilgileriniz yerinde — kaldığınız yerden devam edebilirsiniz.': 'The app hit a small glitch. Your data is safe — continue right where you left off.',
+  'Tekrar Dene': 'Try Again',
   // Navigasyon
   'Canlı Panel': 'Live Panel',
   'Sensör Detayları': 'Sensor Details',
@@ -474,6 +486,18 @@ const EN: Record<string, string> = {
 }
 
 const JA: Record<string, string> = {
+  // Hata ekranı (ErrorBoundary)
+  'Görüntü bir an duraksadı': '表示が一瞬停止しました',
+  'Görüntü yüklenemedi': '表示を読み込めませんでした',
+  'Kendi kendine yenileniyor — veriler akmaya devam ediyor.': '自動的に復旧しています — データは流れ続けています。',
+  'Birkaç deneme düzeltmedi.': '数回の試行では復旧しませんでした。',
+  'Şimdi yükle': '今すぐ読み込む',
+  'Yeniden yükle': '再読み込み',
+  'Teknik detay': '技術的な詳細',
+  'Teknik detayı gizle': '技術的な詳細を隠す',
+  'Beklenmedik bir durum oldu': '予期しない問題が発生しました',
+  'Uygulama küçük bir aksaklık yaşadı. Bilgileriniz yerinde — kaldığınız yerden devam edebilirsiniz.': 'アプリで小さな不具合が発生しました。データは安全です — 中断したところから続行できます。',
+  'Tekrar Dene': 'もう一度試す',
   // Navigasyon
   'Canlı Panel': 'ライブパネル',
   'Sensör Detayları': 'センサー詳細',
