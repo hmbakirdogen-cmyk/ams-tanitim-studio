@@ -94,7 +94,7 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
   const tailCapRef = useRef<THREE.Mesh>(null) // kuyruk ucu yuvarlak kapak (soluk)
   const lightRef = useRef<THREE.PointLight>(null)
 
-  const tubeRadius = Math.max(0.04, m.width * 0.62) // daha ince boru (gercek tel/boru hissi)
+  const tubeRadius = Math.max(0.05, m.width * 0.82) // Mehmet Abi "goremiyorum" -> boru biraz kalin (her sensorun renkli cizgisi NET gorunur) ama hala gercek boru hissi. BIR KEZ kurulur (RAM maliyeti yok).
 
   const yRef = useRef<number[]>(new Array(L).fill(0.2))
   // useRef argümanı her render değerlendirilir ama yok sayılır → boş başlat; sampleRaw YALNIZ useMemo'da koşar (tik başına çift hesap önlenir).
@@ -113,9 +113,9 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
     const colors = new Float32Array(count * 4)
     for (let p = 0; p < count; p++) {
       const ring = Math.floor(p / (RADIAL + 1)) // 0 = kuyruk(eski/sol) ... L-1 = bas(yeni/sag)
-      // Mehmet Abi "cizgiler gorunur+gercekci, her etiket kendi renginde": kuyruk tabani 0.06->0.22 + daha yumusak dususu (pow 1.0->0.85)
-      //   -> her sensorun renkli cizgisi TUM govde boyu okunur (yalniz bas degil). Bir kez hesaplanir (per-frame/RAM maliyeti YOK).
-      const a = 0.22 + 0.78 * Math.pow(ring / (L - 1), 0.85)
+      // Mehmet Abi "halen goremiyorum -> her etiket kendi renginde gorunur+gercekci": kuyruk tabani 0.22->0.40 (cizgi TUM govde boyu NET okunur, yalniz bas degil)
+      //   + yumusak dusus (pow 0.85). RAM-SAFE: bir kez hesaplanir; per-frame tahsis/GPU pass YOK (tum arka planlar "ucuza-elit" ilkesi).
+      const a = 0.40 + 0.60 * Math.pow(ring / (L - 1), 0.85)
       colors[p * 4] = 1; colors[p * 4 + 1] = 1; colors[p * 4 + 2] = 1; colors[p * 4 + 3] = a
     }
     g.setAttribute('color', new THREE.BufferAttribute(colors, 4)) // RGBA -> three alpha'yi kullanir
@@ -204,7 +204,7 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
         <meshStandardMaterial
           color={m.color}
           emissive={m.color}
-          emissiveIntensity={0.5}
+          emissiveIntensity={0.82}
           metalness={0}
           roughness={0.18}
           envMapIntensity={0.85}
@@ -219,7 +219,7 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
       {/* Yuvarlak UC KAPAKLARI - boru uclari kesik/acik gorunmesin (yuvarlansin + kapansin) */}
       <mesh ref={headCapRef} frustumCulled={false}>
         <sphereGeometry args={[tubeRadius, 16, 16]} />
-        <meshStandardMaterial color={m.color} emissive={m.color} emissiveIntensity={0.5} metalness={0} roughness={0.18} envMapIntensity={0.85} transparent opacity={0.92} toneMapped={false} />
+        <meshStandardMaterial color={m.color} emissive={m.color} emissiveIntensity={0.82} metalness={0} roughness={0.18} envMapIntensity={0.85} transparent opacity={0.92} toneMapped={false} />
       </mesh>
       <mesh ref={tailCapRef} frustumCulled={false}>
         <sphereGeometry args={[tubeRadius, 12, 12]} />
