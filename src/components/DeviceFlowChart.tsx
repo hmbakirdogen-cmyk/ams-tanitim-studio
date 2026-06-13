@@ -64,6 +64,11 @@ const REG_SWAP_Y: [number, number] = [0.345, 0.860]  // overlay dikey bant (teme
 //   false iken program BİLİNEN-İYİ hâlinde (temel foto + orijinal LCD/LED) → bozuk/yarım görüntü ASLA gösterilmez.
 //   Konum REG_SWAP_X/Y birlikte ayarlanıp gözle doğrulanınca true yapılacak.
 const REG_SWAP_ENABLED = false
+// TİP B ANALOG SAAT GÜVENLİK BAYRAĞI: çalışan 270° saat HAZIR (drawAnalogGauge) ama temel foto Tip A olduğundan saat gövdeye oturmuyor
+//   ("havada" görünür — Mehmet abi "bu ne?"). false iken Tip B de orijinal dijital LCD'yi gösterir (BİLİNEN-İYİ; tuhaf görüntü YOK).
+//   Tip-B cihaz fotoğrafı gelince + konum (GAUGE_B_POS) Mehmet abi gözüyle doğrulanınca true yapılır.
+const DEVICE_B_GAUGE_ENABLED = false
+const GAUGE_B_POS: [number, number, number] = [0.242, 0.452, 0.052] // [x, y, r] device-oranı (Tip-B foto gelince ayarlanacak)
 
 const FLOW_COUNT = 280       // akan molekül sayısı — Mehmet Abi: daha zengin akış (224→280); GÖRÜNEN sayı debiyle ölçeklenir (flowN)
 const FLOW_LANES = 14        // paralel laminar şerit; aynı şeritteki moleküller AYNI hızda → asla karışmaz
@@ -106,6 +111,58 @@ function tempRGB(t: number): [number, number, number] {
 function hexRGB(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
   return [parseInt(h.slice(0, 2), 16) || 0, parseInt(h.slice(2, 4), 16) || 0, parseInt(h.slice(4, 6), 16) || 0]
+}
+
+// 270° SMC kare-gömme ANALOG BASINÇ SAATİ (Tip B regülatör — elle ayar): krem kadran + tik/rakam + CANLI iğne (basınçla).
+//   Yay alt-sol(0) → üstten → alt-sağ(dialMax), 270° (canvas saat yönü). v01 = basınç/dialMax (0..1). Kare bezel + cam parıltısı (premium).
+//   SAF çizim (foto-overlay değil) → kendi gövdesiyle bütün; kare-başı sabit çağrı (RAM-safe). Mehmet abi: "iğne canlı basınçla çalışsın".
+function drawAnalogGauge(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, v01: number, dialMax: number, accent: string): void {
+  v01 = v01 < 0 ? 0 : v01 > 1 ? 1 : v01
+  const A0 = Math.PI * 0.75, SWEEP = Math.PI * 1.5
+  const rr = (ctx as CanvasRenderingContext2D & { roundRect?: (x: number, y: number, w: number, h: number, r: number) => void }).roundRect
+  // 1) KARE BEZEL (gömme metalik gövde)
+  const sq = r * 1.32
+  ctx.fillStyle = '#0b0e13'
+  if (rr) { ctx.beginPath(); rr.call(ctx, cx - sq, cy - sq, sq * 2, sq * 2, r * 0.18); ctx.fill() } else ctx.fillRect(cx - sq, cy - sq, sq * 2, sq * 2)
+  ctx.lineWidth = Math.max(1, r * 0.05); ctx.strokeStyle = 'rgba(185,195,210,0.35)'
+  if (rr) { ctx.beginPath(); rr.call(ctx, cx - sq, cy - sq, sq * 2, sq * 2, r * 0.18); ctx.stroke() }
+  // 2) KADRAN yüzü (krem radyal)
+  const fg = ctx.createRadialGradient(cx, cy - r * 0.25, r * 0.1, cx, cy, r * 1.05)
+  fg.addColorStop(0, '#fcf8ee'); fg.addColorStop(0.7, '#efe9da'); fg.addColorStop(1, '#cfc8b6')
+  ctx.fillStyle = fg; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+  ctx.lineWidth = Math.max(1, r * 0.045); ctx.strokeStyle = '#20242b'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke()
+  // 3) KIRMIZI EMNİYET yayı (son ~%20)
+  ctx.lineWidth = r * 0.07; ctx.strokeStyle = 'rgba(206,40,40,0.85)'
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.86, A0 + SWEEP * 0.8, A0 + SWEEP); ctx.stroke()
+  // 4) TİKLER + RAKAMLAR (büyük 0.2 / küçük 0.1)
+  const steps = Math.max(2, Math.round(dialMax / 0.1))
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  for (let i = 0; i <= steps; i++) {
+    const f = i / steps, a = A0 + f * SWEEP, major = i % 2 === 0
+    const r1 = r * (major ? 0.72 : 0.81), r2 = r * 0.9
+    ctx.lineWidth = major ? Math.max(1, r * 0.055) : Math.max(0.6, r * 0.025); ctx.strokeStyle = '#191c21'
+    ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); ctx.stroke()
+    if (major) {
+      const val = f * dialMax, lbl = Number.isInteger(val) ? String(val) : val.toFixed(1)
+      ctx.fillStyle = '#191c21'; ctx.font = `700 ${Math.max(6, r * 0.19)}px ui-sans-serif, system-ui, sans-serif`
+      ctx.fillText(lbl, cx + Math.cos(a) * r * 0.56, cy + Math.sin(a) * r * 0.56)
+    }
+  }
+  // 5) "MPa"
+  ctx.fillStyle = '#5a6470'; ctx.font = `600 ${Math.max(5, r * 0.15)}px ui-sans-serif, system-ui, sans-serif`
+  ctx.fillText('MPa', cx, cy + r * 0.5)
+  // 6) İĞNE (canlı basınç) + merkez göbek
+  const a = A0 + v01 * SWEEP, nx = Math.cos(a), ny = Math.sin(a)
+  ctx.lineCap = 'round'
+  ctx.strokeStyle = '#b21f2a'; ctx.lineWidth = Math.max(1.4, r * 0.06)
+  ctx.beginPath(); ctx.moveTo(cx - nx * r * 0.14, cy - ny * r * 0.14); ctx.lineTo(cx + nx * r * 0.84, cy + ny * r * 0.84); ctx.stroke()
+  ctx.fillStyle = '#15181d'; ctx.beginPath(); ctx.arc(cx, cy, r * 0.1, 0, Math.PI * 2); ctx.fill()
+  ctx.fillStyle = accent; ctx.beginPath(); ctx.arc(cx, cy, r * 0.05, 0, Math.PI * 2); ctx.fill()
+  // 7) CAM parıltısı (üst yarım highlight)
+  const gl = ctx.createLinearGradient(cx, cy - r, cx, cy + r * 0.2)
+  gl.addColorStop(0, 'rgba(255,255,255,0.28)'); gl.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI, Math.PI * 2); ctx.fill()
+  ctx.lineCap = 'butt'
 }
 
 export function DeviceFlowChart({
@@ -802,7 +859,7 @@ export function DeviceFlowChart({
 
       // 9b) REGÜLATÖR KIRMIZI dijital ekranı CANLI — orijinal yapı KORUNUR (foto çerçeve/etiketler kalır); statik ".200" gizlenip
       //   yerine CANLI basınç (MPa, kırmızı 7-seg, lider sıfırsız ".62" stili) yazılır. Mehmet Abi: "kendi göstergesi ama canlı".
-      if (!(REG_SWAP_ENABLED && getActiveModel().type === 'B')) { // overlay aktif + Tip B değilse orijinal kırmızı LCD gösterilir
+      if (!(getActiveModel().type === 'B' && DEVICE_B_GAUGE_ENABLED)) { // dijital LCD: Tip A daima + Tip B (saat KAPALI iken). Saat açıkken Tip B'de gizlenir.
         const pPa = readoutRef.current.pressure
         if (pPa != null) {
           let pv = pPa.toFixed(2)             // regülatör ekranı: MPa, 2 hane (kendi çözünürlüğü)
@@ -834,6 +891,13 @@ export function DeviceFlowChart({
           ctx.fillText(pv, 0, 0)
           ctx.restore()
         }
+      }
+
+      // 9b-B) TİP B (elle-ayar regülatör) — dijital ekran yerine ÇALIŞAN ANALOG BASINÇ SAATİ: 270° SMC kare-gömme manometre,
+      //   İĞNE CANLI BASINÇLA (Mehmet abi referans görseli). Saat kendi gövdesiyle bütün (foto-overlay DEĞİL → temiz, kırık görüntü yok).
+      if (getActiveModel().type === 'B' && DEVICE_B_GAUGE_ENABLED) {
+        const gcx = dx + dw * GAUGE_B_POS[0], gcy = dy + dh * GAUGE_B_POS[1], gr = dw * GAUGE_B_POS[2]
+        drawAnalogGauge(ctx, gcx, gcy, gr, (readoutRef.current.pressure ?? 0) / 1.0, 1.0, pc ? `rgb(${pc[0]},${pc[1]},${pc[2]})` : '#36E0C8')
       }
 
       // 9c) DURUM LED'leri CANLI (Mehmet Abi: "üründeki tüm LED ekran/ışıklar gerçekte çalıştığı gibi olsun; gerçek görünümden şaşma"):

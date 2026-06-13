@@ -46,6 +46,13 @@ async function jget(path) {
   const cmd = (method, params = {}) => new Promise((res) => { const i = ++id; pend.set(i, res); ws.send(JSON.stringify({ id: i, method, params })) })
   await new Promise((r) => ws.addEventListener('open', r, { once: true }))
   await cmd('Page.enable'); await cmd('Runtime.enable')
+  // SHOT_MODEL (ops.): cihaz modelini zorla (Tip A/B variant testi). localStorage'a yaz + reload → model.ts yüklemede okur.
+  const MODEL = process.env.SHOT_MODEL || ''
+  if (MODEL) {
+    await sleep(1400)
+    await cmd('Runtime.evaluate', { expression: `localStorage.setItem('ams_model_v1', ${JSON.stringify(MODEL)})` })
+    await cmd('Page.reload'); await sleep(1700)
+  }
   await sleep(3800) // ilk render + IntroSplash gecisi
   if (CLICK) {
     const r = await cmd('Runtime.evaluate', { expression: `(()=>{const b=[...document.querySelectorAll('button')].find(x=>(x.textContent||'').toLowerCase().includes(${JSON.stringify(CLICK)}));if(b){b.click();return b.textContent.trim()}return 'YOK'})()`, returnByValue: true })
