@@ -66,7 +66,10 @@ export default defineConfig({
           if (/[\\/]node_modules[\\/](ag-grid[^\\/]*)[\\/]/.test(id)) return 'vendor-grid'
           if (/[\\/]node_modules[\\/](framer-motion|motion)[\\/]/.test(id)) return 'vendor-motion'
           if (/[\\/]node_modules[\\/]exceljs[\\/]/.test(id)) return 'vendor-excel'
-          return 'vendor'
+          // Geri kalan node_modules'i ZORLA tek 'vendor'da toplama → 'vendor-three ↔ vendor' DÖNGÜSÜ (circular chunk) çıkıyordu
+          //   (paketle-kopru build'ini durduruyordu). undefined bırak → Vite otomatik/döngüsüz böler; büyük kütüphaneler (react/three/
+          //   charts/grid/motion/excel) yukarıda AYRI kaldığı için optimizasyon korunur.
+          return undefined
         },
       },
     },
