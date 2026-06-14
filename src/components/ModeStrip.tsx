@@ -18,8 +18,9 @@ const ITEMS: { mode: Mode; icon: LucideIcon }[] = [
 
 export function ModeStrip({ active, onSelect }: { active: Mode; onSelect: (m: Mode) => void }) {
   const { t } = useLang()
+  // 2026-06-14: dar ekranda (sm altı) DİKEY → 3 mod butonu 2-satıra sarmaz/sıkışmaz (askeri nizam, ferah); sm+ yatay korunur.
   return (
-    <div className="glass flex gap-2 rounded-2xl p-2">
+    <div className="glass flex flex-col gap-2 rounded-2xl p-2 sm:flex-row">
       {ITEMS.map(({ mode, icon: Icon }) => {
         const on = active === mode
         const color = MODE_COLOR[mode]

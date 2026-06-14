@@ -2,7 +2,38 @@
 
 > Bu dosya, yeni Claude Code oturumunun "neredeyim" sorusuna ilk cevabıdır. **Güncel tut.**
 
-## ŞU AN NEREDEYIZ (2026-06-13 — JAPONYA TESLİM HAZIRLIĞI + AKIŞ OVERHAUL maratonu) ⭐⭐ EN GÜNCEL
+## ŞU AN NEREDEYIZ (2026-06-14 — TİP-B MONTAJ + SAAT + KOLAJ; Mehmet abi ile canlı) ⭐⭐⭐ EN GÜNCEL
+> **Bağlam:** Mehmet abi "AMS'yi HER YÖNÜYLE kusursuz tamamlayalım — Turgay Bey Japonya'ya gönderebilir" dedi. İş Konsey
+> penceresinde başladı; o pencere AMS geçmişini taşımadığı için Mehmet abi haklı olarak "gerçek CC değilsin / unutmuşsun"
+> dedi → AMS **kendi penceresine** taşındı. **Bu HANDOFF'u oku, Mehmet abi'yi TANIYARAK devam et (yabancı karşılama YOK).**
+
+**ÇÖZÜLDÜ (bu oturum, ekran kanıtlı):**
+- 🕐 **Tip-B "havada saat" çözüldü.** Kök sebep: AR görseli (`regulator-ar-hd.png`) ZATEN kendi ön manometresini içeriyor;
+  önceki (Konsey penceresi) oturum bunun ÜSTÜNE ayrı bir `drawAnalogGauge` daha çizmiş (`DEVICE_B_GAUGE_ENABLED=true`,
+  commitlenmemiş) → çift saat, biri havada. Mehmet abi'nin "3 ürün üst üste / bu ne?" dediği buydu. →
+  **`DEVICE_B_GAUGE_ENABLED=false`** (DeviceFlowChart.tsx ~75) + yorum; saat gitti, doğrulandı. typecheck 0. (commitlenmemiş)
+
+**MEHMET ABİ'NİN MONTAJ TARİFİ (KRİTİK — aynen uygula):**
+- *"B'yi A'nın üstüne GİYDİRME. Oransal regülatörü KOMPLE SÖK, yerine elle-ayar regülatörü (AR) ÖLÇEKLERİNİ ayarlayarak
+  MONTE ET."* = gerçek parça değişimi (bindirme değil).
+- AR = `regulator-ar-hd.png` (ürün özelliklerinde de var — Mehmet abi: "AR resmini sen bulup getirmiştin"); KENDİ ön
+  saatini (SMC manometre 0-1 MPa) içerir → ayrı saate gerek yok. Mehmet abi o saatin "güzel fotosu"nu verdi (kare bezel,
+  yeşil işaret, OPEN/COVER) ama diske düşmedi (panodan); `drawAnalogGauge` zaten birebir çizimi. Gerekirse Mehmet abi public/products'a sürükler.
+
+**MEHMET ABİ'NİN TEŞHİSİ (görsel kalite — çözülecek):**
+- `ams-system-hd.png` + canlı panel cihazı = KÖTÜ KOLAJ (katman üstüne katman, kesme hataları): sol regülatör+altındaki
+  "I/O Link T-REGULATOR" modül kesik/ayrı; beyaz braketler düzensiz üst üste; orta-alt Hub gövdeye saplanmış; sağ valf
+  konnektörü yarım. Tek döküm ürün hissi yok. Temel görsel kusurlu + üstüne kopya-oturum yaması.
+
+**AÇIK İŞ (sıradaki — Mehmet abi'nin GÖZÜYLE, iteratif, her adımı `code <png>` ile VS Code'da GÖSTER):**
+1. AR'yi oransal yerine TAM oturt: ITV mask temiz (`REG_B_MASK_X/Y`) + AR ölçek/konum (`REG_B_CX/TOP/W`) — DeviceFlowChart.tsx ~465-482.
+   - **CANLI GÖZLEM (2026-06-14, Mehmet abi tarayıcıda Tip-B):** Şu an AR oransal'ın YERİNE geçmiyor → sol-alta EKSTRA blok gibi biniyor, oransal hâlâ görünür (maske `REG_B_MASK_X=[0.12,0.30]/Y=[0.395,0.615]` boşa düşüyor, oransal'ı bulmuyor). AR **çok büyük** (`REG_B_W=0.42`). Mevcut değerler: `REG_B_CX=0.225, REG_B_TOP=0.370, REG_B_W=0.42`; oransal foto bölgesi `REG_FRAC=[0.15,0.33]` (merkez 0.24), oransal LCD `REG_DISP=[0.211,0.4467,...]`. → **FOTO-ÖLÇÜMLE** (tools/_diag) oransal'ın gerçek bbox'ını bul, maskeyi oraya tam oturt + AR'yi o yere doğru ölçekte (W muhtemelen ~0.18-0.22) koy. Kör tahmin DEĞİL — Mehmet abi gözüyle, ekran kanıtlı, Japonya kalitesi.
+   - **🔩 KRİTİK ÜRÜN BİLGİSİ (Mehmet abi 2026-06-14):** Montaj AYAKLARI + BRAKETLER (beyaz delikli plakalar) modüllerden AYRI PARÇALAR. Maske/parça-değişimi bunları **ÖRTMEZ/SİLMEZ** — sadece regülatör GÖVDESİ değişir (oransal→AR); braketler ve montaj ayakları YERİNDE KALIR. Maskeyi yalnız gövde dikdörtgenine sınırla, braketlere taşırma.
+2. AR ön saatini büyük/net göster: `drawAnalogGauge`'u AR manometre yerine doğru `GAUGE_B_POS` ile oturt → sonra enable=true (AR'nin kendi küçük saatiyle çakışmasın).
+3. Temel kolaj görselin (ams-system/ams-flow) kesme/katman hatalarını düzelt (en zor — gerçek/temiz birleştirme).
+- Araç: `scripts/shot.mjs` (`SHOT_MODEL=AMS40B`=Tip B), kırp+zoom PowerShell System.Drawing. dev: `npm run dev -- --port 5190` (Konsey penceresinden başlatılmıştı; port çakışırsa kapat/değiştir).
+
+## ŞU AN NEREDEYIZ (2026-06-13 — JAPONYA TESLİM HAZIRLIĞI + AKIŞ OVERHAUL maratonu)
 **Bağlam:** Turgay Bey "bu programı SMC Japonya'ya gönderin" dedi → kusursuz olmalı. Dal **`gece-fuar-fix`** (canlıya PUSH YOK). Dev: `npm run dev -- --port 5190` (M3MO, cihazsız=Demo). Tüm iş Mehmet abi ile **canlı, gözüyle, iteratif** yapıldı; her görsel ekran-görüntüsüyle doğrulandı.
 
 **BİTTİ ve COMMIT'Lİ (bu maraton):**

@@ -19,3 +19,11 @@ bridge/app-update.zip
 
 # OPC UA kalici istemci sertifikasi (her makinede uretilir)
 bridge/pki/
+
+# 2026-06-14 toparlik: gecici teshis/screenshot ciktilari + kok paket artiklari (araclar yeniden uretir)
+tools/_diag/
+tools/_orig_edges/
+tools/_recon/
+tools/_sbot.jpg
+/app.zip
+/SMC-AMS-Kopru.zip

@@ -60,11 +60,14 @@ const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (imag
 //   Mehmet Abi: "bağlantı/ayak konumu ürüne göre değişebilir" → birebir hizalama şart değil; konum gözle ayarlanabilir (tunable).
 // TİP B (elle-ayar AR regülatör) — Mehmet abi tarifi: ITV'yi GÖVDESİYLE kaldır → AR'yi bağlantı-aparatı ölçeğinde bindir → montaj BİRLİKTE.
 //   Tüm konum/ölçek tek yerde (kolay ince ayar; hepsi cihaz-oranı dw/dh).
-const REG_B_MASK_X: [number, number] = [0.12, 0.30]   // ITV'yi KOMPLE örten plaka (yatay) — gövde tonu, koyu delik YOK
-const REG_B_MASK_Y: [number, number] = [0.395, 0.615] // ITV'yi KOMPLE örten plaka (dikey; manifold köprüsünün altı)
+// 2026-06-14 OTONOM KALİBRASYON (Mehmet abi canlı: "oransal kalkmamış + AR çok büyük/yanlış yerde"):
+//   maske Y alt sınırı 0.615→0.80 (oransal SARKAN modülü TAM ört) + AR ölçek 0.42→0.21 (oransal ölçeği) + TOP 0.370→0.405.
+//   shot ile yakınsanıyor; tutmazsa bu 5 değer birlikte ince ayarlanır.
+const REG_B_MASK_X: [number, number] = [0.105, 0.355] // ITV örten plaka (yatay) — AR genişliğine uyumlu (yanlarda boş beyaz kalmasın); braketlere taşmaz
+const REG_B_MASK_Y: [number, number] = [0.40, 0.745] // ITV örten plaka (dikey) — AR alt ucuna denk (altta boş beyaz kalmasın)
 const REG_B_CX = 0.225   // AR merkez X (cihaz-oranı) — ITV gövde merkezine hizalı
-const REG_B_TOP = 0.370  // AR üst kenar Y (topuz manifoldun hemen altından başlar)
-const REG_B_W = 0.42     // AR genişliği / cihaz genişliği — BRAKET ölçeği (Mehmet abi ile büyütülüp küçültülür)
+const REG_B_TOP = 0.405  // AR üst kenar Y (üst yatay sıranın hemen altından başlar)
+const REG_B_W = 0.26     // AR genişliği — oransal modülü dolduracak ölçek (0.21 küçüktü, altı boş beyaz kalıyordu; 0.42 ise çok büyüktü)
 // GÜVENLİK BAYRAĞI: regülatör overlay'i DOĞRULANMADAN (Mehmet abi gözüyle konum + ekran kanıtı) AÇILMAZ.
 //   false iken program BİLİNEN-İYİ hâlinde (temel foto + orijinal LCD/LED) → bozuk/yarım görüntü ASLA gösterilmez.
 //   Konum REG_SWAP_X/Y birlikte ayarlanıp gözle doğrulanınca true yapılacak.
@@ -72,6 +75,9 @@ const REG_SWAP_ENABLED = true // Tip B: AR (elle-ayar) regülatör takası AÇIK
 // TİP B ANALOG SAAT GÜVENLİK BAYRAĞI: çalışan 270° saat HAZIR (drawAnalogGauge) ama temel foto Tip A olduğundan saat gövdeye oturmuyor
 //   ("havada" görünür — Mehmet abi "bu ne?"). false iken Tip B de orijinal dijital LCD'yi gösterir (BİLİNEN-İYİ; tuhaf görüntü YOK).
 //   Tip-B cihaz fotoğrafı gelince + konum (GAUGE_B_POS) Mehmet abi gözüyle doğrulanınca true yapılır.
+// NE: Tip-B analog saat KAPALI (güvene alındı). NEDEN: 2026-06-14 ekran kanıtı → çizilen saat HAVADA (cihaz sağ-üstünde,
+//   gerçek manometreden kopuk); Mehmet abi onayıyla bilinen-iyi dijital ekrana döndürüldü (Japonya teslim → havada/kırık görüntü ASLA).
+//   NASIL: false iken satır ~910 koşulu çizmez → Tip-B dijital LCD gösterir. YAN ETKI yok (bilinen-iyi hâl). Tip-B foto gelince GAUGE_B_POS gözle oturtulup true.
 const DEVICE_B_GAUGE_ENABLED = false
 const GAUGE_B_POS: [number, number, number] = [0.242, 0.452, 0.052] // [x, y, r] device-oranı (Tip-B foto gelince ayarlanacak)
 
