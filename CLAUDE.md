@@ -1,36 +1,41 @@
-# AMS Tanıtım Stüdyosu — repo rehberi (CLAUDE.md)
+# AMS Tanıtım Studio — oda kartı
 
-> Yeni Claude Code oturumuna "neredeyim" der. Güncel durum: [HANDOFF.md](HANDOFF.md).
+> SMC Hava Yönetim Sistemi için offline 3D saha/fuar demosu. Genel çalışma tarzı üst `~/.claude/CLAUDE.md`'de. Detay: [HANDOFF.md](HANDOFF.md).
 
-## Kimlik
-- **Proje:** SMC **Hava Yönetim Sistemi (AMS20/30/40/60)** için sinematik, **offline** canlı tanıtım & demo stüdyosu.
-- **Klasör:** `C:\Users\Admin\Projeler\ams-tanitim-studio` (diğer projelerin yanında).
-- **İlk kullanıcı:** SMC personeli **Halil İbrahim Karakelle** (ücretsiz pilot). **Hedef:** SMC'ye yazılım satan iş kolunun vitrin/kanıt eseri ("yazılım devi başlangıcı").
+## Amaç
+SMC **AMS** (Air Management System; ünite AMS40A/AMS30B, EXA1 hub) için offline, sinematik, foto-gerçek 3D saha satış/fuar demosu. SMC personeli müşteride cihazı bağlayıp canlı tasarrufu gösterir; cihaz gelince gerçek **OPC UA** verisiyle çalışır. İş hedefi: SMC'ye yazılım satan iş kolunun vitrini.
+
+## Teknik yığın (package.json)
+React + TypeScript + Vite (dev **5180**, strictPort) + Tailwind v4 + framer-motion. 3D: `three` + `@react-three/fiber`+`drei`+`postprocessing` (gerçek WebGL + bloom). Font `@fontsource-variable/inter` **gömülü (offline)**. Canlı cihaz: **OPC UA** (`node-opcua`) + ayrı Node köprüsü (`bridge/`, WebSocket `ws://localhost:4841`). PWA (offline-first, precache). i18n TR/EN/JA. Deploy: **GitHub Pages** (repo public, master, Actions otomatik). Doğrulama: `npm run typecheck` + `npm run build` (test runner yok).
 
 ## Bu repo NEDİR / NE DEĞİLDİR
-- ✅ **Bağımsız** bir SMC ürün tanıtım/demo uygulaması + ürün‑bağımsız platform.
-- ❌ MEBA Komuta Merkezi / Grup Finans Paneli / Teklif Sistemi **DEĞİL** — karıştırma.
+- ✅ Bağımsız SMC ürün tanıtım/demo uygulaması + ürün-bağımsız platform.
+- ❌ MEBA Komuta / Grup Finans / Teklif DEĞİL. Teslim/köprü paketi `Desktop\SMC-AMS-Kopru` bu projenin türevidir.
 
-## Stack
-Vite + React + TS + Tailwind v4 + Framer Motion + **three/@react-three/fiber/drei/postprocessing** (gerçek WebGL 3D + bloom). **Offline:** Inter fontu gömülü; tüm durum localStorage (auth/economy/device/sensorVisibility/recordings). Veri kaynağı soyut: `DemoDataSource` (şimdi) ↔ canlı OPC UA adaptörü (sonra).
+## Önemli kararlar + neden
+- **Merkezi sensör kaydı** (`src/data/metrics.ts`) — yeni sensör/ürün = tek satır (grafik/kart/efsane otomatik). Çekirdek ürün-bağımsız (AMS = ilk veri seti).
+- **Boru malzemesi emissive (kendi rengiyle ışıyan)** — PBR/metalik koyu sahnede boruları siyaha düşürüyordu (#1 şikayet, defalarca). **Bir daha karartan PBR denemesi yapma.**
+- **Fizik-doğru yerleşim resmi SMC kataloğundan** (Giriş→Regülatör→Hub/LCD→Tahliye Valfi→Çıkış; izolasyonda valf kapanır + geri-akış). Debimetre LCD gerçek SMC davranışı (7-segment, totalizer).
+- **Gerçek ürün fotosu/CAD render** — soyut/şematik kesit reddedildi ("ürünün GERÇEK görünümünü istiyorum"). Gerçek FOTO'ya agresif defringe YOK (montaj diplerini bozdu — geri alındı).
+- **Görsel yolları base-uyumlu** (`import.meta.env.BASE_URL`) — Pages alt-klasöründe mutlak yol 404; `.jpg` PWA precache'e dahil (offline'da görsel kaybolmasın).
+- **Lovable'a dönülmedi** — ağır R3F/WebGL'i bozar, offline kuralıyla çatışır, OPC UA'ya dokunamaz → statik GitHub Pages.
+- **Para birimi otomatik kur YOK → dile bağlı** (JA→¥, TR/EN→₺); ayrı seçici söküldü.
 
-## Mimari ilkeler
-- **Merkezi sensör kaydı** `src/data/metrics.ts` — yeni sensör = tek satır (grafik/kart/efsane/detay otomatik gelir).
-- **Çekirdek ürün‑bağımsız** — AMS = ilk veri seti; başka ürün = veri/config eklemek.
-- Sayfalar `src/pages/`, paylaşılan bileşenler `src/components/`, veri/iş mantığı `src/data` + `src/lib` + `src/hooks`.
+## Çözülen önemli sorunlar
+- **OPC UA fuar bağlantısı (13 Haz) çözüldü, gerçek veri aktı:** yanlış port (4840→4843) + bozuk adres → kurşungeçirmez parser; anonim reddi → Security None+admin; "premature disconnection" → başka istemci (UaExpert/atvise) tek oturumu tutuyordu, kapatılınca BAĞLANDI; veri 0 → otomatik browse gerçek düğüm isimlerini buldu → **VERİ AKTI** (cihaz LCD = ekran birebir); ölçek → kalibrasyon köprüde.
+- "Değişikliği göremiyorum" = çoğunlukla **PWA service worker eski cache** (explicit registration + anında reload + cleanupOutdatedCaches). TV/4K context-loss "ekran yenileniyor" döngüsü → auto-lite + ErrorBoundary + WebGL self-heal.
 
-## KATİ kurallar (carried)
-- **Hitabet (ÇAKIŞMADA BU GEÇERLİ):** Kullanıcıya **DAİMA "Mehmet Abi"** de; ben kendimi **"CC"** olarak konumlarım (sıcak/samimi CC tonu). Kullanıcı için **"Bakırdöğen Bey"/"Mehmet Bey" KULLANMA.** — "[Soyad] Bey" kuralı YALNIZCA **uygulama İÇİNDEKİ** SMC personeli hitabı içindir (örn. arayüzde "Halil İbrahim Bey"); sohbette kullanıcı = Mehmet Abi.
-- Her edit'te **blok yorum**: NE+NEDEN+NASIL+YAN ETKİ.
-- **Push öncesi** tam tarama: `npm run typecheck` + `npm run build` (sıfır hata).
-- **Birimi olan her sayının yanında birimi** görünür; **kafa karıştıran kısaltma yok** (büyük değerler kompakt: 1,2 Mn ₺).
-- Grafikler **gerçek 3D, akıcı (60fps), yuvarlak**; sahte/pikselli ışık yok. Her yüzeyde 3D derinlik (Tilt3D).
-- **Offline** korunur (CDN/online bağımlılık ekleme; fontlar/varlıklar gömülü).
-- **Mobil de CANLI moda geçebilir** (LAN köprü, 2026-06-04 Mehmet Abi kararı): köprü WS `0.0.0.0` dinler, uygulama köprü adresini host'tan türetir (`connection.ts` `BRIDGE_URL`), telefon PC'deki köprüden canlı cihaz verisi görür + set ayarı yapar. Güvenilir saha ağı varsayımı. (Eski "mobil = yalnız demo" yaklaşımı GEÇERSİZ.)
-- DB/script/terminal/deploy işlerini **CC çalıştırır**.
+## Şu anki durum
+Demo CANLI, GitHub Pages otomatik deploy; **sürpriz YAPILDI** (link SMC arkadaşına gönderildi). Fuar bağlantısı çözüldü, gerçek veri akıyor. Tam köprülü paket `SMC-AMS-Kopru.zip` (~46MB) hazır. tsc+build 0, TR/EN/JA tam. Fuar dalı `gece-fuar-fix` yerel commit; fuar bitti → push kısıtı kalktı.
 
-## Marka
-- Gerçek SMC logosu: `public/smc-logo.svg` (smc.eu resmî, beyaz) → cam/bombeli 3D rozet (`SmcLogo`). Slogan: **"Expertise – Passion – Automation"**. SMC mavisi `#0072CE`.
+## Açık işler
+- Dalı birleştir/push. Anlık/toplam debi düğüm eşleşmesi son teyidi (Efekan fotosu).
+- **Tip-B analog gauge** (Mehmet abi foto atınca; `DEVICE_B_GAUGE_ENABLED`). Cihaza gerçek OPC UA **yazma** (donanım gelince; iskelet hazır).
+- Söz: başka SMC ürününe "AMS reçetesi" (hangi dosya değişir); fizik-doğru hava akışı yeniden kurma (araştırma hazır); Electron .exe (köprüsüz) onay bekliyor.
 
-## Komutlar
-`npm run dev` (5180, strictPort) · `npm run build` · `npm run preview` · `npm run typecheck`.
+## Projeye özel kural
+- **Hitap ayrımı:** CC↔Mehmet abi sohbeti = "Mehmet abi". "[Ad] Bey" YALNIZCA uygulama içindeki SMC personeli hitabı (ör. arayüzde "Halil İbrahim Bey").
+- **Offline korunur** — CDN/online bağımlılık ekleme; font/varlık gömülü, veri buluta gitmez.
+- **Mobil de CANLI moda geçebilir** (LAN köprü kararı): köprü WS `0.0.0.0` dinler, uygulama köprü adresini host'tan türetir.
+- **Birimi olan her sayıda birim** görünür (l/dak, MPa, °C, %); kafa karıştıran kısaltma yok. Grafikler gerçek 3D, 60fps, yuvarlak.
+- Marka: gerçek SMC logosu (`public/smc-logo.svg`, smc.eu resmî) → cam 3D rozet; slogan **"Expertise – Passion – Automation"**; SMC mavisi **#0072CE**.

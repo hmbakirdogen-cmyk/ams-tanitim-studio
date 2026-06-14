@@ -72,6 +72,10 @@ const REG_B_W = 0.26     // AR genişliği — oransal modülü dolduracak ölç
 //   false iken program BİLİNEN-İYİ hâlinde (temel foto + orijinal LCD/LED) → bozuk/yarım görüntü ASLA gösterilmez.
 //   Konum REG_SWAP_X/Y birlikte ayarlanıp gözle doğrulanınca true yapılacak.
 const REG_SWAP_ENABLED = true // Tip B: AR (elle-ayar) regülatör takası AÇIK — Mehmet abi ile montaj (REG_B_CX/TOP/W) birlikte ince ayarlanıyor
+// NE: Tip-B montaj GÖRÜNÜMÜ canlı panelde GİZLİ → cihaz çizimi HER ZAMAN Tip-A (eski temiz hal). NEDEN: Mehmet abi (2026-06-14)
+//   "Tip-B'yi canlı panelde hiç gösterme, eskisi gibi olsun; ama tüm veriler/model yerli yerinde kalsın." NASIL: aşağıda dType bu
+//   bayrağa göre A'ya sabitlenir; metrics/demoSource/analiz (model.type) DOKUNULMAZ. YAN ETKİ: yok. true yapınca Tip-B görünümü geri açılır.
+const SHOW_TYPE_B_DEVICE_VIEW = false
 // TİP B ANALOG SAAT GÜVENLİK BAYRAĞI: çalışan 270° saat HAZIR (drawAnalogGauge) ama temel foto Tip A olduğundan saat gövdeye oturmuyor
 //   ("havada" görünür — Mehmet abi "bu ne?"). false iken Tip B de orijinal dijital LCD'yi gösterir (BİLİNEN-İYİ; tuhaf görüntü YOK).
 //   Tip-B cihaz fotoğrafı gelince + konum (GAUGE_B_POS) Mehmet abi gözüyle doğrulanınca true yapılır.
@@ -448,6 +452,8 @@ export function DeviceFlowChart({
       const axisY = dy + dh * meas.axis
       const pipeH = Math.max(9, dh * meas.pipe)
       const top = axisY - pipeH / 2, bot = axisY + pipeH / 2
+      // Cihaz ÇİZİM tipi: Tip-B görünümü gizliyse (SHOW_TYPE_B_DEVICE_VIEW=false) her zaman 'A' → oransal foto + canlı LCD + ITV LED (eski temiz).
+      const dType: 'A' | 'B' = SHOW_TYPE_B_DEVICE_VIEW ? getActiveModel().type : 'A'
       const regX0 = dx + dw * REG_FRAC[0], regX1 = dx + dw * REG_FRAC[1]
       const valveCx = dx + dw * VALVE_CX, valveCy = dy + dh * 0.24 // image #1: sağ valf modülü
       // EGZOZ PORTU: valf modülünün ALT-orta noktası (PDF: tahliye aşağı, susturucu valfin altında). Duman TAM buradan çıkar.
@@ -468,7 +474,7 @@ export function DeviceFlowChart({
       // 1b) REGÜLATÖR KOMPONENT (model.type): Tip A → DOKUNMA (temel foto zaten oransal/ITV). getActiveModel() canlı okunur.
       //   Tip B (elle-ayar) — Mehmet abi tarifi: (a) oransal ITV regülatörü GÖVDESİYLE kaldır (temizle) →
       //   (b) AR (elle-ayar) regülatörü BAĞLANTI-APARATI ölçeğinde (REG_B_W) bindir → AR orantılı büyür. Montaj birlikte ince ayar.
-      if (REG_SWAP_ENABLED && getActiveModel().type === 'B') {
+      if (REG_SWAP_ENABLED && dType === 'B') {
         // (a) ITV'yi KOMPLE kaldır: gövde bölgesini cihaz-GÖVDE TONUNDA opak plakayla ört. (clearRect KOYU ambient sızdırıyordu —
         //     Mehmet abi "dark arka plan geldi" → plaka AÇIK/gövde-rengi: delik YOK, ITV %100 gizli; AR'nin örtmediği ince kenar modül yüzeyi gibi.)
         const mx = dx + dw * REG_B_MASK_X[0], my = dy + dh * REG_B_MASK_Y[0]
@@ -772,7 +778,7 @@ export function DeviceFlowChart({
       // 8) CİHAZ LED'i — REGÜLATÖR güç/durum LED'i (valf LED'i kaldırıldı): devredeyse (standby) yeşil yanıp söner.
       // SADECE REGÜLATÖR LED'i (Mehmet Abi: valf LED'i kaldırıldı). KONUM SABİT (LED_REG); ÇOK KÜÇÜK + gerçekçi, YANIP SÖNER.
       //   Devredeyken (standby/iso) yeşil nabız, boştayken sönük.
-      if (!(REG_SWAP_ENABLED && getActiveModel().type === 'B')) { // overlay aktif + Tip B değilse orijinal güç LED'i gösterilir
+      if (!(REG_SWAP_ENABLED && dType === 'B')) { // overlay aktif + Tip B değilse orijinal güç LED'i gösterilir
         const lx = dx + dw * LED_REG[0], ly = dy + dh * LED_REG[1]
         const rr0 = Math.max(0.9, dh * 0.0055)                  // çok küçük dot (gerçek LED ölçeği)
         const regBlink = (now % 1150) < 820 ? 1 : 0.06          // ~0.87Hz yanıp sönme (açık ~0.82s / kapalı ~0.33s)
@@ -879,7 +885,7 @@ export function DeviceFlowChart({
 
       // 9b) REGÜLATÖR KIRMIZI dijital ekranı CANLI — orijinal yapı KORUNUR (foto çerçeve/etiketler kalır); statik ".200" gizlenip
       //   yerine CANLI basınç (MPa, kırmızı 7-seg, lider sıfırsız ".62" stili) yazılır. Mehmet Abi: "kendi göstergesi ama canlı".
-      if (getActiveModel().type === 'A') { // dijital kırmızı LCD: SADECE Tip A (E/P). Tip B → AR regülatör (kendi analog saati) → dijital gizli.
+      if (dType === 'A') { // dijital kırmızı LCD: SADECE Tip A (E/P). Tip B → AR regülatör (kendi analog saati) → dijital gizli.
         const pPa = readoutRef.current.pressure
         if (pPa != null) {
           let pv = pPa.toFixed(3)             // regülatör ekranı: MPa, 3 hane (gerçek E/P ekranı foto: ".287")
@@ -913,7 +919,7 @@ export function DeviceFlowChart({
 
       // 9b-B) TİP B (elle-ayar regülatör) — dijital ekran yerine ÇALIŞAN ANALOG BASINÇ SAATİ: 270° SMC kare-gömme manometre,
       //   İĞNE CANLI BASINÇLA (Mehmet abi referans görseli). Saat kendi gövdesiyle bütün (foto-overlay DEĞİL → temiz, kırık görüntü yok).
-      if (getActiveModel().type === 'B' && DEVICE_B_GAUGE_ENABLED) {
+      if (dType === 'B' && DEVICE_B_GAUGE_ENABLED) {
         const gcx = dx + dw * GAUGE_B_POS[0], gcy = dy + dh * GAUGE_B_POS[1], gr = dw * GAUGE_B_POS[2]
         drawAnalogGauge(ctx, gcx, gcy, gr, (readoutRef.current.pressure ?? 0) / 1.0, 1.0, pc ? `rgb(${pc[0]},${pc[1]},${pc[2]})` : '#36E0C8')
       }
@@ -975,7 +981,7 @@ export function DeviceFlowChart({
         dot(0.535, 0.404, AMB, steady, rHub)   // MODE — mod → amber SABİT
         dot(0.551, 0.404, AMB, sigI, rHub)     // SIG  — sinyal/veri → COMM tarzı BLINK
         // Regülatör LED'leri (foto-ölçüm çekirdek merkezi: COMM x0.230, POWER x0.254, y0.476). İKİSİ DE solid + blink → birebir eşleşir.
-        if (getActiveModel().type === 'A') { // ITV regülatör LED'leri — SADECE Tip A (Tip B AR elle-ayar → IO-Link LED yok)
+        if (dType === 'A') { // ITV regülatör LED'leri — SADECE Tip A (Tip B AR elle-ayar → IO-Link LED yok)
           dot(0.230, 0.476, GRN, commI, rReg)    // COMMUNICATION — IO-Link BLINK (referans)
           dot(0.254, 0.476, GRN, powI, rReg)     // POWER — soldaki (COMM) ile AYNI: solid yapı + blink + yuvada tam ortalı
         }

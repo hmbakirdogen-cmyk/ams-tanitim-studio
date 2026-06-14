@@ -1,0 +1,829 @@
+No.DOC1056928-3 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+PRODUCT NAME 
+ 
+SMC Certificate Generator 
+ 
+Model / Series / Part No. 
+ 
+EXA1-**-EN 
+EXA1-**-PN 
+EXW1-BENAC1 
+EXW1-BPNAC1 
+EX600-SPN31 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-2- 
+ 
+No.DOC1056928-3 
+Table of Contents 
+ 
+Safety Instructions ···························································································· 3 
+About this software ··························································································· 7 
+Overview ·············································································································································· 7 
+System configuration ······························································································································ 7 
+How to use this software···················································································· 8 
+Installation ·········································································································································· 8 
+Creation of CA certificate ····················································································································· 11 
+Creation and installation of device certificate ······························································································· 13 
+How to check the device certificate ··········································································································· 17 
+Other ·················································································································································· 18 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-3- 
+ 
+No.DOC1056928-3 
+ 
+Safety Instructions 
+ 
+These safety instructions are intended to prevent hazardous situations and/or equipment damage. These 
+instructions indicate the level of potential hazard with the labels of “Caution,” “Warning” or “Danger.” 
+They are all important notes for safety and must be followed in addition to International Standards (ISO/IEC)*1), 
+and other safety regulations. 
+ ∗1) ISO 4414: Pneumatic fluid power - General rules and safety requirements for systems and their components 
+  ISO 4413: Hydraulic fluid power - General rules and safety requirements for systems and their components 
+  IEC 60204-1: Safety of machinery - Electrical equipment of machines - Part 1: General requirements 
+  ISO 10218-1: Robots and robotic devices - Safety requirements for industrial robots - Part 1:Robots 
+  etc. 
+ 
+ 
+ 
+Danger 
+Danger indicates a hazard with a high level of risk which, if not avoided, will result 
+in death or serious injury. 
+ 
+ 
+Warning Warning indicates a hazard with a medium level of risk which, if not avoided, could 
+result in death or serious injury. 
+ 
+ 
+Caution Caution indicates a hazard with a low level of risk which, if not avoided, could result 
+in minor or moderate injury. 
+ 
+Warning 
+1. The compatibility of the product is the responsibility of the person who designs the equipment or 
+decides its specifications. 
+Since the product specified here is used under various operating conditions, its compatibility with specific 
+equipment must be decided by the person who designs the equipment or decides its specifications based on 
+necessary analysis and test results. The expected performance and safety assurance of the equipment will 
+be the responsibility of the person who has determined its compatibility with the product. This person should 
+also continuously review all specifications of the product referring to its latest catalog information, with a view 
+to giving due consideration to any possibility of equipment failure when configuring the equipment. 
+2. Only personnel with appropriate training should operate machinery and equipment. 
+The product specified here may become unsafe if handled incorrectly. The assembly, operation and 
+maintenance of machines or equipment including our products must be performed by an operator who is 
+appropriately trained and experienced. 
+3. Do not service or attempt to remove product and machinery/equipment until safety is confirmed. 
+1. The inspection and maintenance of machinery/equipment should only be performed after measures to 
+prevent falling or runaway of the driven objects have been confirmed. 
+2. When the product is to be removed, confirm that the safety measures as mentioned above are 
+implemented and the power from any appropriate source is cut, and read and understand the specific 
+product precautions of all relevant products carefully. 
+3. Before machinery/equipment is restarted, take measures to prevent unexpected operation and malfunction. 
+4. Our products cannot be used beyond their specifications. Our products are not developed, designed, 
+and manufactured to be used under the following conditions or environments. Use under such 
+conditions or environments is not covered. 
+1. Conditions and environments outside of the given specifications, or use outdoors or in a place exposed to 
+direct sunlight. 
+2. Use for nuclear power, railways, aviation, space equipment, ships, vehicles, military application, equipment 
+affecting human life, body, and property, fuel equipment, entertainment equipment, emergency shut-off 
+circuits, press clutches, brake circuits, safety equipment, etc., and use for applications that do not conform 
+to standard specifications such as catalogs and operation manuals. 
+3. Use for interlock circuits, except for use with double interlock such as installing a mechanical protection 
+function in case of failure. Please periodically inspect the product to confirm that the product is operating 
+properly. 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-4- 
+ 
+No.DOC1056928-3 
+ 
+ 
+Safety Instructions 
+ 
+Caution 
+We develop, design, and manufacture our products to be used for automatic control equipment, and 
+provide them for peaceful use in manufacturing industries.  
+Use in non-manufacturing industries is not covered. 
+Products we manufacture and sell cannot be used for the purpose of transactions or certification specified in the 
+Measurement Act. 
+The new Measurement Act prohibits use of any unit other than SI units in Japan. 
+ 
+Limited warranty and Disclaimer/Compliance Requirements 
+The product used is subject to the following “Limited warranty and Disclaimer” and “Compliance 
+Requirements”. 
+Read and accept them before using the product. 
+ 
+Limited warranty and Disclaimer 
+1. The warranty period of the product is 1 year in service or 1.5 years after the product is delivered, whichever is 
+first.∗2) 
+Also, the product may have specified durability, running distance or replacement parts. Please consult your 
+nearest sales branch. 
+2. For any failure or damage reported within the warranty period which is clearly our responsibility, a 
+replacement product or necessary parts will be provided. 
+This limited warranty applies only to our product independently, and not to any other damage incurred due to 
+the failure of the product. 
+3. Prior to using SMC products, please read and understand the warranty terms and disclaimers noted in the 
+specified catalog for the particular products. 
+ 
+*2) Vacuum pads are excluded from this 1 year warranty. 
+A vacuum pad is a consumable part, so it is warranted for a year after it is delivered. 
+Also, even within the warranty period, the wear of a product due to the use of the vacuum pad or failure due to  
+the deterioration of rubber material are not covered by the limited warranty 
+ 
+Compliance Requirements 
+1. The use of SMC products with production equipment for the manufacture of weapons of mass destruction 
+(WMD) or any other weapon is strictly prohibited. 
+2. The exports of SMC products or technology from one country to another are governed by the relevant 
+security laws and regulations of the countries involved in the transaction. Prior to the shipment of a SMC 
+product to another country, assure that all local rules governing that export are known and followed. 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-5- 
+ 
+No.DOC1056928-3 
+ 
+ 
+Operator 
+♦This operation manual is intended for those who have knowledge of machinery using 
+pneumatic equipment, and have sufficient knowledge of assembly, operation and maintenance 
+of such equipment. Only those persons are allowed to perform assembly, operation and 
+maintenance. 
+♦Read and understand this operation manual carefully before assembling, operating or providing 
+maintenance to the product. 
+ 
+■Safety Instructions 
+Warning 
+■Do not disassemble, modify (including changing the printed circuit board) or repair. 
+An injury or failure can result. 
+■Do not operate or set with wet hands. 
+This may lead to an electric shock. 
+■Do not operate the product outside of the specifications. 
+Do not use for flammable or harmful fluids. 
+Fire, malfunction, or damage to the product can result. 
+Verify the specifications before use. 
+■Do not operate in an atmosphere containing flammable or explosive gases. 
+Fire or an explosion can result. 
+This product is not designed to be explosion proof. 
+■If using the product in an interlocking circuit: 
+•Provide a double interlocking system, for example a mechanical system. 
+•Check the product regularly for proper operation. 
+Otherwise malfunction can result, causing an accident. 
+■The following instructions must be followed during maintenance: 
+•Turn off the power supply. 
+•Stop the air supply, exhaust the residual pressure and verify that the air is released before performing 
+maintenance. 
+Otherwise an injury can result. 
+ 
+Caution 
+■When handling the unit or assembling/replacing units: 
+•Do not touch the sharp metal parts of the connector or plug for connecting units. 
+•Take care not to hit your hand when disassembling the unit. 
+The connecting portions of the unit are firmly joined with seals. 
+•When joining units, take care not to get fingers caught between units. 
+An injury can result. 
+■After maintenance is complete, perform appropriate functional inspections. 
+Stop operation if the equipment does not function properly. 
+Safety cannot be assured in the case of unexpected malfunction. 
+■Provide grounding to assure noise resistance of the Fieldbus system. 
+Individual grounding should be provided close to the product with a short cable. 
+ 
+ 
+
+ 
+ 
+ 
+-6- 
+ 
+No.DOC1056928-3 
+Fieldbus System/ 
+Industrial IoT Cybersecurity 
+In recent years, factories have introduced industrial IoT, building up complex networks of production 
+machines. These systems maybe subject to a new threat, cyberattack. To protect the industrial IoT from 
+cyberattacks, it is important to take multiple measures (multi-layer protection) for IoT devices, networks and 
+clouds. 
+For this purpose, SMC recommends that the following measures are always taken into consideration. For 
+further details of the following measures, please see security information published by your local country 
+security agencies. 
+ 
+1. Do not connect the devices via a public 
+network. 
+• If you unavoidably need to access the device or 
+cloud via a public network, ensure to use a secure, 
+private network such as VPN. 
+• Do not connect an office IT network and factory IoT 
+network. 
+ 
+2. Build a firewall to prevent a threat from 
+entering the device and system. 
+• Set up a router or firewall at network boundaries to 
+allow minimum required communications. 
+• Disconnect from the network or turn off the device if 
+no continuous connection is required. 
+ 
+3. Physically block an access to unused 
+communication ports or disable them. 
+• Inspect regularly each port if any unnecessary 
+device is connected to the network system. 
+• Operate necessary services (SSH, FTP, SFTP, etc.) 
+only. 
+• Set a transmission range of the device using a 
+wireless LAN or other radio system to the minimum 
+required and use only devices approved according to 
+the radio act in the country concerned. 
+• Install a device generating radio waves in such place 
+as there is no interference from indoor or outdoor. 
+ 
+4. Set up a secure communication method such 
+as data encryption. 
+• Encrypt data in every environment, including IoT 
+networks, secure gate-way connections, for secure 
+communications. 
+ 
+5. Grant access permissions by user accounts 
+and limit the number of users. 
+• Regularly review accounts and delete all unused 
+accounts or permissions. 
+• Establish an account lockout system to block an 
+access to the account for a certain period if log-in 
+fails more than the given threshold. 
+6. Protect passwords. 
+• Change the default password when you first 
+use the device or system. 
+• Choose a long password (minimum 8 
+characters) using a mix of different letters and 
+characters to make the password more secure 
+and harder to hack. 
+ 
+7. Use the latest security software. 
+• Install antivirus software on all computers to 
+detect and remove viruses. 
+• Keep the antivirus software up to date. 
+ 
+8. Use the latest version of the device and 
+system software. 
+• Apply patches to keep the OS and applications 
+up to date. 
+ 
+9. Monitor and detect abnormalities in the 
+network. 
+• Keep monitoring the network for any 
+abnormalities to take a prompt measure and 
+issue an alert if any abnormality is detected. 
+Install an intrusion detection system (IDS) and 
+intrusion prevention system (IPS). 
+ 
+10. Delete data from devices when disposed of. 
+• Before disposing of any IoT devices, delete 
+stored data or physically destruct media to 
+prevent any misuse of the data. 
+ 
+ 
+A 280-1 
+
+ 
+ 
+ 
+-7- 
+ 
+No.DOC1056928-3 
+About this software 
+Overview 
+This software tool is intended to generate the device certificate for an OPC UA™-supported product. A 
+device certificate may be required when an OPC UA™-supported device is connected to an OPC UA™ client 
+tool. This software is used to generate and install the device certificate. 
+ 
+ 
+This is application software that runs on a PC. The following operating systems are supported: 
+Windows® 11 (64 bit) 
+Windows® 10 (32 bit/64 bit) 
+ 
+This software is applicable to the following OPC UA™-supported products: 
+EXA1-**-PN-** 
+EXA1-**-EN-** 
+EXW1-BPNAC1 
+EXW1-BENAC1 
+EX600-SPN31 
+ 
+ 
+ 
+System configuration 
+This software is used by connecting the PC on which this software is installed and the OPC UA™-supported 
+product with a LAN cable. It is advised to use a LAN cable that is suitable for the OPC UA™-supported 
+product you are using. For details about the LAN cables which can be used, refer to the operation manual for 
+the OPC UA™-supported product being used. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+PC 
+OPC UA
+ supported products 
+LAN cable 
+EXA1-**-PN-** 
+EXA1-**-EN-** 
+EXW1-BPNAC1 
+EXW1-BENAC1 
+EX600-SPN31 
+
+ 
+ 
+ 
+-8- 
+ 
+No.DOC1056928-3 
+How to use this software 
+Installation 
+To use this software, it must be installed on a PC. Download the file below from the SMC website. 
+ 
+SMC Certificate Generator Setup 2.1.0.0.exe 
+SMC Certificate Generator Setup 2.2.0.0.exe 
+ 
+Once downloaded, click the file to start the installation, and the window below will appear. Then, click “Next” 
+to move to the next step. 
+ 
+ 
+ 
+ 
+The following window will appear. Read the License Agreement and if you agree to the terms of the 
+agreement, select “I accept the agreement” and click the “Next” button. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-9- 
+ 
+No.DOC1056928-3 
+When the following window appears, select the folder in which this software is to be installed and click the 
+“Next” button. 
+ 
+ 
+ 
+ 
+You will then be given the option to create a desktop icon. Tick the box to create the icon and click the “Next” 
+button. 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-10- 
+ 
+No.DOC1056928-3 
+The software is now ready for installation. Click the “Install” button to begin the installation. 
+ 
+ 
+ 
+ 
+When the following window appears, click “Finish” to complete the installation. 
+ 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-11- 
+ 
+No.DOC1056928-3 
+Creation of CA certificate 
+Once the software is installed on the PC, the SMC Certificate Generator is added to the Windows Start menu 
+and is ready to create a CA and device certificates. 
+ 
+The following screen will appear when the SMC Certificate Generator is opened. 
+ 
+ 
+ 
+To create a CA certificate, click “Manage” at the bottom of the window. 
+When the following screen appears, click the “New” button. 
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-12- 
+ 
+No.DOC1056928-3 
+To create a CA certificate, enter Valid Days, CRL Valid Days, and Common Name (CN). The Common Name 
+can be any value. Fill in the other field as required. 
+ 
+After filling in all required fields, click the “Generate CA Certificate” button. 
+ 
+ 
+ 
+When the following window appears, the creation of the CA certificate is complete. 
+To view the CA certificate files, click the “Show in folder” button in the lower half of the window to open the 
+folder where the CA certificates are saved.   
+ 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-13- 
+ 
+No.DOC1056928-3 
+Creation and installation of device certificate 
+In order to create and install a device certificate, first connect your PC to the OPC UA™-supported product 
+you are using with a LAN cable. Then, power on and start up the OPC UA™-supported product. 
+ 
+Once the connection between the PC and the OPC UA™-supported product is established, the SMC 
+Certificate Generator will appear on the PC as shown below.  
+ 
+ 
+ 
+Click the Settings button at the top of the screen, and the following Settings window will appear. Click the 
+“Edit certificate default” button under “Certificate Settings”. 
+ 
+ 
+ 
+ 
+Settings button 
+
+ 
+ 
+ 
+-14- 
+ 
+No.DOC1056928-3 
+ 
+Check that the correct Valid Days have been entered, or edit or re-enter them if necessary. At leaset, please 
+input some information into "Country Name", "Organization Name" and "Organization Unit". For "Country 
+Name", please enter the “Country Name” using a two-letter country code. 
+After filling in the required fields, click the “OK” button to return to the previous screen.  
+ 
+ 
+ 
+When you return to the previous page screen, select the CA certificate to be used for generating the device 
+certificate. 
+1. Select the CA certificate to use from the "CA Certificate" menu at the bottom of the following screen. If 
+you have already created multiple CA certificates, you can select the CA certificate to use. 
+2. Next, click on the "Assign Certificate …" button, and the following page will appear. 
+(If you cannot click the "Assign Certificate …" button, click the "Rescan for devices" button at the upper 
+left corner of the screen.) 
+ 
+ 
+ 
+①Select the required CA certificate. 
+②Generate and assign the device certificate. 
+
+ 
+ 
+ 
+-15- 
+ 
+No.DOC1056928-3 
+ 
+On this screen, enter the information required to create the device certificate. 
+1. Check "OPC UA" in the "Protocols to Assign" section. 
+2. For Common Name under Identity, the values to be entered are different depending on the  
+OPC UATM -supported product. Please refer to Table 1 and enter the values. 
+ 
+Table. 1 Relationship between OPC UATM supported products and corresponding Common Names 
+OPC UA™ -supported products 
+Common Name 
+Note: Supported FW or software version 
+EXA1-**-PN-** 
+EXA1 
+FW Ver. 1.0 or later 
+EXA1-**-EN-** 
+EXA1-**-EN-** 
+FW Ver. 1.0 
+EXA1-EN 
+FW Ver. 1.1 or later 
+EXW1-BPNAC1 
+EXW1-BPN 
+Software Ver. 1.0 or later 
+EXW1-BENAC1 
+EXW1-BENAC* 
+Software Ver. 1.0 to 1.2 
+EXW1-BENAC 
+Software Ver. 1.3 or later 
+EX600-SPN31 
+EX600 
+FW Ver. 1.00.02 or later 
+ 
+ 
+ 
+ 
+ 
+ 
+3. For "Alternative Names", select "IP" from the pull-down menu and enter the IP address set for the 
+connected device. (Example: 192.168.0.1) 
+4. After entering the IP address, click the “Add” button to add the item.  
+Select "URI" from the pull-down menu and enter the value for each OPC UA™ compatible product. 
+ 
+<For EXA1-**-PN-**, EXA1-**-EN-**, EXW1-BPNAC1, EXW1-BENAC1> 
+Enter the following values: 
+urn: [PID]:www.smcworld.com 
+[PID]: Enter the PID (8 characters) of the OPC UA™-supported product being used 
+The PID can be found on the label affixed to the enclosure of the OPC UA™-supported product. 
+(Scan the Data Matrix code on the label to see the PID and other information). 
+ 
+■ Example 
+The value for [URI] when PID is 17E340EF: 
+urn:17E340EF:www.smcworld.com 
+ 
+<For EX600-SPN31> 
+Enter the following value: 
+urn:ex600.smc 
+ 
+When all of the fields have been filled in, click the "Continue" button. 
+ 
+ 
+①Add checks to OPC UA. 
+②Refer to Table. 1 and enter the Common Name. 
+③Select “IP” from the drop-down menu and  
+enter the IP address. 
+④Click the “Add” button to add an item. 
+⑤Select “URI” from the drop-down menu and 
+enter a value. 
+⑥Click the “Continue” button. 
+
+ 
+ 
+ 
+-16- 
+ 
+No.DOC1056928-3 
+ 
+You will then be asked to enter your username and password on the following screen. 
+Please use the Username and Password you set for your OPCUA account. 
+ 
+<For EXA1-**-PN-**, EXA1-**-EN-**, EXW1-BPNAC1, EXW1-BENAC1> 
+(The default Username/Password is admin/admin.) 
+After entering your Username and Password, click the "Continue" button. 
+ 
+ 
+<For EX600-SPN31> 
+If you have already accessed the web server of the product to be configured and set up an account and 
+password, the above screen will be displayed. Enter your Username and Password and click the "Continue" 
+button. 
+ 
+If you have not set up an account and password, the following screen will be displayed. 
+Please set the Username and Password for the Web Server and OPC UA account. 
+Please note that the following restrictions apply to creating the Username and Password. For details on how 
+to manage them and precautions, refer to the EX600-SPN31 operation manual. 
+ 
+・Username can be between 1 and 32 alphanumeric characters. 
+・Password can be between 8 and 64 alphanumeric characters and the special character _? - can be 
+used. 
+・Password must contain at least one lower case letter, one upper case letter and one number. 
+ 
+ 
+ 
+ 
+When the following window appears, the creation and installation of the device certificate is complete. 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-17- 
+ 
+No.DOC1056928-3 
+ 
+How to check the device certificate 
+The web server of the OPC UA™-supported products allows the device certificate to be viewed or deleted. 
+After starting the web browser software on your PC, enter the IP address of your OPC UA™-supported 
+product in the URL of the web browser to access the web server, and select “Certificate”. For details of the 
+web server, refer to the operation manual of the OPC UA™-supported product being used. 
+ 
+Below is an example of accessing the EXA1-**-PN-** web server. Select “Certificate”, and the device 
+certificate will be listed under the “Device Certificate” section. 
+In this window, the device certificate can also be deleted by clicking the “Delete” button. 
+ 
+ 
+ 
+
+ 
+-18- 
+ 
+No.DOC1056928-3 
+ 
+Other 
+Creation of the device certificate file 
+The SMC Certificate Generator allows the device certificate file to be created (i.e., a security certificate and 
+associated files such as a private key file) without installing the device certificate for an OPC UA™-supported 
+product, by following the instructions below. 
+ 
+First, start up the SMC Certificate Generator. The following window will appear. 
+ 
+ 
+ 
+Click the “Manage” button to open the window shown below, to display the device certificates that have been 
+generated. If more than one certificate is displayed, select the CA certificate that will be used to generate a 
+device certificate.  
+Then, click the “Show associated certificates” button. 
+ 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-19- 
+ 
+No.DOC1056928-2 
+ 
+When the following window appears, click the “New” button at the top of the window. 
+ 
+ 
+ 
+ 
+The Configure Certificate window will then appear. Fill in the information required to generate a device 
+certificate, which is the same as explained in the “Creation and installation of device certificate” section 
+above. 
+Once all of the information has been entered, click the “Continue” button to generate the device certificate 
+file. 
+ 
+ 
+ 
+Notes:  
+1. Click the “Add” button to add an item (IP, URI, etc.) to Alternative Names. After adding, select the 
+item to enter a value. 
+2. For Common Name (CN) under Identity, enter the value described in Table 1. 
+ 
+ 
+ 
+
+ 
+ 
+ 
+-20- 
+ 
+No.DOC1056928-2 
+ 
+The following window will appear once the device certificate has been generated:  
+ 
+ 
+ 
+ 
+Click the “Show in folder” button to open a folder containing the generated device certificate file, as shown 
+below:  
+ 
+ 
+ 
+ 
+The web server of the OPC UA™-supported products allows the device certificate to be viewed. In addition, 
+the web server allows a device certificate to be installed, when a device certificate file (a security certificate 
+and KEY file) is available. For further details about the specifications of the web server or how to use it, refer 
+to the operation manual for the OPC UA™-supported product being used. 
+ 
+
+ 
+ 
+No.DOC1056928-3 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Revision history 
+1: Contents are added [February 2024] 
+2: Contents are added [May 2025] 
+3: Contents are added [August 2025] 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Tel: + 81 3 5207 8249 Fax: +81 3 5298 5362 
+URL https://www.smcworld.com 
+ 
+Note: Specifications are subject to change without prior notice and any obligation on the part of the manufacturer. 
+© SMC Corporation All Rights Reserved 
