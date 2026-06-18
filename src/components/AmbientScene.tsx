@@ -17,12 +17,15 @@ const FLOW_N_DESKTOP = 54, FLOW_N_MOBILE = 22
 const GLOW_N_DESKTOP = 3, GLOW_N_MOBILE = 2
 const STAR_N_DESKTOP = 70, STAR_N_MOBILE = 26 // 'space' modu (ürün penceresi) yıldız alanı
 
-export function AmbientScene({ theme = 'dark', flow = 0.4, space = false }: { theme?: 'dark' | 'light'; flow?: number; space?: boolean }) {
+// calm: GRAFİK panelinin arkası için SAKİN mod (Mehmet Abi: "rahat, karmaşasız") — perspektif ızgara KAPALI + çok az zerre →
+//   veri boruları net odakta; yalnız yumuşak glow + vignette derinliği kalır (gürültü yok).
+export function AmbientScene({ theme = 'dark', flow = 0.4, space = false, calm = false }: { theme?: 'dark' | 'light'; flow?: number; space?: boolean; calm?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const flowRef = useRef(flow); flowRef.current = flow
   const themeRef = useRef(theme); themeRef.current = theme
   const spaceRef = useRef(space); spaceRef.current = space
+  const calmRef = useRef(calm); calmRef.current = calm
 
   useEffect(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current
@@ -30,7 +33,8 @@ export function AmbientScene({ theme = 'dark', flow = 0.4, space = false }: { th
     const ctx = canvas.getContext('2d')!
     // MOBİL: parçacık sayıları + dpr düşürülür (telefonda 3 canvas + WebGL aynı anda → ısınma/takılma/refresh önlenir).
     const mobile = isMobileDevice()
-    const FLOW_N = mobile ? FLOW_N_MOBILE : FLOW_N_DESKTOP
+    // SAKİN mod (grafik arkası): ÇOK az zerre → veri net (Mehmet Abi: "karmaşıklık biraz daha kalksın")
+    const FLOW_N = calm ? (mobile ? 3 : 6) : (mobile ? FLOW_N_MOBILE : FLOW_N_DESKTOP)
     const GLOW_N = mobile ? GLOW_N_MOBILE : GLOW_N_DESKTOP
     const STAR_N = mobile ? STAR_N_MOBILE : STAR_N_DESKTOP
 
@@ -113,6 +117,7 @@ export function AmbientScene({ theme = 'dark', flow = 0.4, space = false }: { th
       // 2) PERSPEKTİF SİSTEM IZGARASI — derinliğe kaçan çizgiler (3D "hava kanalı/sistem" hissi).
       //   Mehmet Abi "tertemiz/sakin derinlik" → ızgara İNCELTİLDİ + SOLUKLAŞTIRILDI (alpha ~yarı, çizgi 0.8px) ve KENARLARA
       //   doğru sönümlenir (vignette): ürünün/grafiğin arkası temiz, derinlik hissi korunur ama gürültü/çizgi-kalabalığı yok.
+      if (!calmRef.current) { // SAKİN modda (grafik arkası) perspektif ızgara ÇİZİLMEZ → temiz/odaklı backdrop (veri öne çıkar)
       ctx.lineWidth = 0.8
       const edgeFade = (x: number) => {                         // ekran kenarlarına doğru soluklaş (orta net, kenar temiz)
         const d = Math.abs(x - W / 2) / (W / 2)
@@ -138,6 +143,7 @@ export function AmbientScene({ theme = 'dark', flow = 0.4, space = false }: { th
       const hg = ctx.createLinearGradient(0, horizon - H * 0.16, 0, horizon + H * 0.08)
       hg.addColorStop(0, `rgba(${col},0)`); hg.addColorStop(0.6, `rgba(${col},${dark ? 0.10 : 0.06})`); hg.addColorStop(1, `rgba(${col},0)`)
       ctx.fillStyle = hg; ctx.fillRect(0, horizon - H * 0.16, W, H * 0.22)
+      }
 
       // 3) YATAY SÜZÜLEN HAVA ZERRELERİ — "uçan parlak ışıklar"; akış soldan sağa. Derinlik (fDep) → boyut/parlaklık/hız/parallax.
       //   Mehmet Abi "sakin derinlik" → parlaklık hafif kısıldı (uzak katman daha soluk), iz biraz inceltildi → ferah/temiz.

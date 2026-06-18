@@ -440,6 +440,13 @@ const EN: Record<string, string> = {
   'Zaman ekseni · dikey: her sensör kendi aralığında %0–%100 (değerler üstte)': 'Time axis · vertical: each sensor 0–100% of its own range (values above)',
   'Tasarruf (canlı oturum)': 'Savings (live session)',
   'Toplam hava': 'Total air',
+  'Toplam': 'Total',
+  'Toplam Hava Tüketimi': 'Total Air Consumption',
+  'seçili dönemde tüketilen hava': 'air consumed in the selected period',
+  '30 sn': '30 s',
+  '1 dk': '1 min',
+  '5 dk': '5 min',
+  '15 dk': '15 min',
   // NE: EN'de eksik olup UI'da t() ile cagrilan (su an TR'ye dusen) anahtarlar — toplu ekleme.
   // NEDEN: Mehmet Abi "kusursuz, sifir hata" — bugun canli demo; EN modunda hala Turkce gorunen metinler vardi.
   // NASIL: Anahtarlar ilgili bilesenlerden BIREBIR kopyalandi (kivrik tirnak/tire dahil). YAN ETKI: sadece ceviri; mevcut anahtarlar dokunulmadi.
@@ -920,6 +927,13 @@ const JA: Record<string, string> = {
   'Zaman ekseni · dikey: her sensör kendi aralığında %0–%100 (değerler üstte)': '時間軸 · 縦：各センサーは自身の範囲の0〜100%（数値は上部）',
   'Tasarruf (canlı oturum)': '節減（ライブセッション）',
   'Toplam hava': '総空気量',
+  'Toplam': '積算',
+  'Toplam Hava Tüketimi': '総エア消費量',
+  'seçili dönemde tüketilen hava': '選択期間に消費されたエア',
+  '30 sn': '30秒',
+  '1 dk': '1分',
+  '5 dk': '5分',
+  '15 dk': '15分',
   // NE: JA'da eksik olup UI'da t() ile cagrilan (su an TR'ye dusen) anahtarlar — EN ile simetrik toplu ekleme.
   // NEDEN: Mehmet Abi "kusursuz, sifir hata" — bugun canli demo; JA modunda hala Turkce gorunen metinler vardi.
   // NASIL: Anahtarlar bilesenlerden BIREBIR kopyalandi (EN blogu ile ayni anahtar seti). YAN ETKI: sadece ceviri.

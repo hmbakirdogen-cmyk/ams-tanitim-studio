@@ -23,9 +23,10 @@ interface Tilt3DProps {
   className?: string
   max?: number // maksimum egim (derece)
   lift?: number // hover'da one gelme (px, translateZ)
+  onClick?: () => void // tiklanabilir kart ( or. MetricCard -> detay penceresi)
 }
 
-export function Tilt3D({ children, className, max = 8, lift = 16 }: Tilt3DProps) {
+export function Tilt3D({ children, className, max = 8, lift = 16, onClick }: Tilt3DProps) {
   // Mobil sezimi ilk render'da sabit (device.ts: yuklemede tek sonuc) -> render boyunca degismez,
   // Hook kurallari guvenli (asagidaki motion hook'lari her zaman cagrilir, sadece mobilde KULLANILMAZ).
   const mobile = isMobileDevice()
@@ -53,7 +54,7 @@ export function Tilt3D({ children, className, max = 8, lift = 16 }: Tilt3DProps)
 
   // MOBIL: tilt yok -> dinleyici baglama, transform/glare uygulama; duz kart (komsu karta tasma riski sifir).
   if (mobile) {
-    return <div className={className}>{children}</div>
+    return <div className={className} onClick={onClick} role={onClick ? 'button' : undefined}>{children}</div>
   }
 
   return (
@@ -61,6 +62,8 @@ export function Tilt3D({ children, className, max = 8, lift = 16 }: Tilt3DProps)
       ref={ref}
       onMouseMove={handleMove}
       onMouseLeave={reset}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
       whileHover={{ z: lift }}
       style={{ rotateX, rotateY, transformPerspective: 1000, transformStyle: 'preserve-3d' }}
       className={className}

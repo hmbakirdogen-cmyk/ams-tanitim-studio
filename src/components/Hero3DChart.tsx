@@ -19,20 +19,22 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { MeshReflectorMaterial, Environment, Lightformer, Sparkles } from '@react-three/drei'
+import { MeshReflectorMaterial, Environment, Lightformer, Html } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import type { Reading } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 import { isMobileDevice, isLiteForced, markLite, dprBudget } from '@/lib/device'
+import { useLang } from '@/i18n'
+import { localeOf } from '@/lib/format'
 
 // --- Sahne sabitleri ---
 const SPAN_X = 23 // borularin X genisligi: uc "simdi" (sag) - kuyruk "gecmis(~48sn)" (sol). Mehmet Abi: "en ONDEKI cubuk 'simdi' eksenine degsin" →
 //   perspektifte EN ON (kameraya yakin, en buyuk z) boru en saga dustugu icin referans odur; SPAN 21→23 ile uclar saga "simdi" cizgisine ITILDI.
 const MAX_H = 4.0 // normalize deger -> yukseklik
 const L = 600 // ekran penceresi nokta sayisi (~48 sn @80ms tik) — Mehmet Abi GENIS zaman penceresini sevdi (sekme arkaplandayken gordugu ~56sn gibi); kalici/kontrollu
-const RADIAL = 22 // boru kesit cozunurlugu — Mehmet Abi "radusler kesik kesik; yaglanmis/cilalanmis PURUZSUZ seffaf boru olsun": 12->22
-//   (kesit cok-kenarli koselilik gider → yuvarlak cam boru silueti). Geometri BIR KEZ kurulur; per-frame writeTube biraz artar ama 60fps korunur (RAM-safe).
+const RADIAL = 30 // boru kesit cozunurlugu — Mehmet Abi "daha kaliteli/akici; yaglanmis PURUZSUZ cam boru": 22->30
+//   (kesit cok-kenarli koselilik tamamen gider → tam yuvarlak cam boru silueti). Geometri BIR KEZ kurulur; per-frame writeTube biraz artar ama 60fps korunur (RAM-safe; zayif GPU lite moda duser).
 const TWO_PI = Math.PI * 2
 
 // ChartOverlay'deki X-zaman etiketleri ekranda cizilen son N nokta ile hizali olsun (-> "simdi <-> ~-48 sn", L=600 @80ms)
@@ -40,15 +42,38 @@ export const WINDOW_POINTS = L
 
 const xAt = (i: number) => -SPAN_X / 2 + (i / (L - 1)) * SPAN_X
 
-// Gecmisi sabit L uzunlugunda HAM deger dizisine cevirir (yeni veri sagda = uc).
-// NEDEN ham: yukseklige cevirme ADAPTIF (gorunen-pencere min/max) -> useFrame'de yumusatilmis aralikla yapilir.
-function sampleRaw(history: Reading[], m: MetricDef): number[] {
+// 15 DK seriyi (≈1/sn, ~900 nokta) sabit L uzunlugunda HAM deger dizisine YENIDEN ORNEKLER (sol=15dk once … sag=simdi).
+// NEDEN: 15 dk ham veri boru geometrisine cok agir → veri (15dk) ile geometri (L=600 verteks) AYRILIR; seri L noktaya esit
+//   araliklarla orneklenir. Seri kisaysa (taze acilis) gerilir; doldukca 15 dk'yi gosterir. (Yukseklik useFrame'de m.min..m.max.)
+function sampleRaw(series: Reading[], m: MetricDef): number[] {
   const out = new Array<number>(L)
-  const n = history.length
+  const n = series.length
+  if (n === 0) { out.fill(m.min); return out }
+  if (n === 1) { out.fill(m.get(series[0])); return out }
+  if (n <= L) {
+    // AZ nokta (küçük pencere) → LİNEER ara-değer → merdiven/"kırık kırık" YOK (Mehmet Abi: küçük range'de kırık görünüyordu)
+    for (let i = 0; i < L; i++) {
+      const pos = (i / (L - 1)) * (n - 1), lo = Math.floor(pos), hi = Math.min(n - 1, lo + 1), fr = pos - lo
+      out[i] = m.get(series[lo]) * (1 - fr) + m.get(series[hi]) * fr
+    }
+    return out
+  }
+  // ÇOK nokta (büyük/15dk pencere) → BİN ORTALAMA → gürültü/karman-çormanlık azalır, trend kalır (Mehmet Abi: "15 dk çok karışık")
   for (let i = 0; i < L; i++) {
-    if (n === 0) { out[i] = m.min; continue }
-    const idx = n - L + i
-    out[i] = m.get(idx < 0 ? history[0] : history[idx]) // sol bos kisim en eski GERCEK degeri tekrar eder (m.min kirliligi yok)
+    const a = Math.floor((i / L) * n), b = Math.max(a + 1, Math.floor(((i + 1) / L) * n))
+    let s = 0; for (let j = a; j < b; j++) s += m.get(series[j])
+    out[i] = s / (b - a)
+  }
+  // + hafif hareketli ortalama (pencere büyüdükçe daha sakin/tatlı çizgi) — yarıçap pencere yoğunluğuyla ölçeklenir
+  const r = Math.min(6, Math.round(n / L))
+  if (r >= 1) {
+    const sm = out.slice()
+    for (let i = 0; i < L; i++) {
+      let s = 0, c = 0
+      for (let k = -r; k <= r; k++) { const j = i + k; if (j >= 0 && j < L) { s += out[j]; c++ } }
+      sm[i] = s / c
+    }
+    return sm
   }
   return out
 }
@@ -88,65 +113,43 @@ function writeTube(pos: Float32Array, nor: Float32Array, pts: THREE.Vector3[], r
   }
 }
 
-function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
+function TubeStrand({ history, reading = null, m, index = 0, total = 1 }: { history: Reading[]; reading?: Reading | null; m: MetricDef; index?: number; total?: number }) {
   const meshRef = useRef<THREE.Mesh>(null)
-  const headRef = useRef<THREE.Mesh>(null) // ucta kuyruklu-yildiz basi (hafif glow)
   const headCapRef = useRef<THREE.Mesh>(null) // bas ucu yuvarlak kapak (kesik degil)
   const tailCapRef = useRef<THREE.Mesh>(null) // kuyruk ucu yuvarlak kapak (soluk)
   const lightRef = useRef<THREE.PointLight>(null)
+  const labelGroupRef = useRef<THREE.Group>(null) // değer etiketi BORUNUN ÜSTÜNDE (3D, boruyu 60fps takip) — index'e göre yatay kaydırma → çakışmaz
+  const { t } = useLang()
 
-  const tubeRadius = Math.max(0.05, m.width * 0.82) // Mehmet Abi "goremiyorum" -> boru biraz kalin (her sensorun renkli cizgisi NET gorunur) ama hala gercek boru hissi. BIR KEZ kurulur (RAM maliyeti yok).
+  // Mehmet Abi: "boruları biraz daha incelt." Kesit yarıçapı daha da düşürüldü (0.6→0.48×, taban 0.05) → ince, zarif çizgi-boru.
+  const tubeRadius = Math.max(0.05, m.width * 0.48)
+  // DÜZLEŞTİRİLMİŞ Z (Mehmet Abi: "3D olduğu için boruların değerleri/zamanı karışıyor"): z yayılımı 3.0→~0.24'e indirildi (×0.08) →
+  //   borular NEREDEYSE AYNI DÜZLEMDE → aynı zaman = aynı dikey hat, değerler 2D gibi BİREBİR karşılaştırılır. Küçük offset yalnız
+  //   kesişmelerde tutarlı katman sırası için (z-fighting yok). Borular korunur ama "2D gibi hizalı" okunur.
+  const tz = m.z * 0.08
+  // Etiketin oturacağı NOKTA: borular boyunca GENİŞ yayılmış (yatay ayrık → çakışmaz). En oynak metrik (flow, en üst z = son sıra)
+  //   NOW ucunda → etiket yüksekliği canlı değere uyar; durağanlar (nem/sıcaklık) geride (zaten sabit → uyumlu). ~%11 aralık.
+  const labelIdx = Math.max(0, (L - 1) - (total - 1 - index) * Math.round(L * 0.11))
 
   const yRef = useRef<number[]>(new Array(L).fill(0.2))
   // useRef argümanı her render değerlendirilir ama yok sayılır → boş başlat; sampleRaw YALNIZ useMemo'da koşar (tik başına çift hesap önlenir).
   const targetRef = useRef<number[]>([])
   targetRef.current = useMemo(() => sampleRaw(history, m), [history, m])
+  // SENKRON (Mehmet Abi): tüpün UCU (now) = CANLI reading → grafik ucu cihaz LCD'si/kartlarla EŞZAMANLI hareket eder (trend
+  //   ~0,5sn gecikmesi ucu tutmaz). Memo dizisinin son elemanı her render canlı değere set edilir (ucuz; sayı ataması).
+  if (reading) targetRef.current[L - 1] = m.get(reading)
   // (ADAPTİF auto-range KALDIRILDI — Mehmet Abi: "akışları gerçek değerlerde göster" → mutlak ölçek; useFrame'de m.min..m.max.)
+  // Etiket metni = CANLI değer (reading) → cihaz LCD'si + sağ kartlarla BİREBİR TUTARLI (Mehmet Abi: "tüm değerler senkron").
+  //   reading yoksa (ilk an) o noktanın target değerine düşer.
+  const valText = new Intl.NumberFormat(localeOf(), { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(reading ? m.get(reading) : (targetRef.current[labelIdx] ?? m.min))
 
   // Yeniden kullanilan egri noktalari (kare basi tahsis yok)
-  const curvePts = useMemo(() => Array.from({ length: L }, (_, i) => new THREE.Vector3(xAt(i), 0.2, m.z)), [m.z])
+  const curvePts = useMemo(() => Array.from({ length: L }, (_, i) => new THREE.Vector3(xAt(i), 0.2, tz)), [tz])
   const curve = useMemo(() => new THREE.CatmullRomCurve3(curvePts), [curvePts])
 
-  // Boru geometrisi BIR KEZ + kuyruk izi icin STATIK vertex-alpha (uc opak -> kuyruk saydam)
-  const geo = useMemo(() => {
-    const g = new THREE.TubeGeometry(curve, L - 1, tubeRadius, RADIAL, false)
-    const count = g.attributes.position.count
-    const colors = new Float32Array(count * 4)
-    for (let p = 0; p < count; p++) {
-      const ring = Math.floor(p / (RADIAL + 1)) // 0 = kuyruk(eski/sol) ... L-1 = bas(yeni/sag)
-      // Mehmet Abi "halen goremiyorum -> her etiket kendi renginde gorunur+gercekci": kuyruk tabani 0.22->0.40 (cizgi TUM govde boyu NET okunur, yalniz bas degil)
-      //   + yumusak dusus (pow 0.85). RAM-SAFE: bir kez hesaplanir; per-frame tahsis/GPU pass YOK (tum arka planlar "ucuza-elit" ilkesi).
-      const a = 0.40 + 0.60 * Math.pow(ring / (L - 1), 0.85)
-      colors[p * 4] = 1; colors[p * 4 + 1] = 1; colors[p * 4 + 2] = 1; colors[p * 4 + 3] = a
-    }
-    g.setAttribute('color', new THREE.BufferAttribute(colors, 4)) // RGBA -> three alpha'yi kullanir
-    return g
-  }, [curve, tubeRadius])
+  // Boru geometrisi BIR KEZ (opak → kuyruk-izi vertex-alpha KALDIRILDI; fazladan katman yok, temiz/kaliteli).
+  const geo = useMemo(() => new THREE.TubeGeometry(curve, L - 1, tubeRadius, RADIAL, false), [curve, tubeRadius])
   useEffect(() => () => geo.dispose(), [geo])
-
-  // BOYLU BOYUNCA metal aksan cizgileri (gercek metal his): ust (parlak gumus) + yan (hafif). Kuyrukta boru ile uyumlu sonumlenir.
-  const { accentTopGeo, accentSideGeo, accentTopLine, accentSideLine } = useMemo(() => {
-    const build = (rgb: [number, number, number], opacityScale: number) => {
-      const g = new THREE.BufferGeometry()
-      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(L * 3), 3))
-      const col = new Float32Array(L * 4)
-      for (let i = 0; i < L; i++) {
-        const a = (0.06 + 0.94 * Math.pow(i / (L - 1), 1.0)) * opacityScale // tube kuyruk izine uyumlu
-        col[i * 4] = rgb[0]; col[i * 4 + 1] = rgb[1]; col[i * 4 + 2] = rgb[2]; col[i * 4 + 3] = a
-      }
-      g.setAttribute('color', new THREE.BufferAttribute(col, 4))
-      const mat = new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, toneMapped: false })
-      return { g, line: new THREE.Line(g, mat) }
-    }
-    const top = build([0.93, 0.96, 1.0], 1.0) // parlak gumus tepe cizgisi
-    const side = build([0.6, 0.7, 0.82], 0.6) // hafif yan metal cizgi
-    return { accentTopGeo: top.g, accentSideGeo: side.g, accentTopLine: top.line, accentSideLine: side.line }
-  }, [])
-  useEffect(() => () => {
-    accentTopGeo.dispose(); accentSideGeo.dispose()
-    ;(accentTopLine.material as THREE.Material).dispose()
-    ;(accentSideLine.material as THREE.Material).dispose()
-  }, [accentTopGeo, accentSideGeo, accentTopLine, accentSideLine])
 
   useFrame(() => {
     const raw = targetRef.current
@@ -158,8 +161,8 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
       const denom = Math.max(m.max - m.min, 1e-6)
       for (let i = 0; i < L; i++) {
         const h = 0.2 + THREE.MathUtils.clamp((raw[i] - m.min) / denom, 0, 1) * MAX_H
-        // Mehmet Abi "mini titresimi yok et, YAG GIBI suzulsunler": yapisma 0.13->0.06 (daha viskoz) → kucuk veri dalgalanmalari
-        //   titreme yerine puruzsuz/akici suzulur. Maliyet AYNI (tek carpan; per-frame tahsis yok).
+        // YAĞ GİBI akıcı (Mehmet Abi: "hepsinin hareketi yağ gibi akmalı") → TEK TİP yumuşak yapışma. Senkron, ucun CANLI reading'e
+        //   bağlı olmasından gelir (yukarıda head override); kademeli/sert lerp KALDIRILDI (kesik kesikliğin kaynağıydı).
         y[i] += (h - y[i]) * 0.06
       }
     }
@@ -167,7 +170,7 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
     for (let i = 0; i < L; i++) {
       const a = y[i - 1] ?? y[i]
       const c = y[i + 1] ?? y[i]
-      curvePts[i].set(xAt(i), (a + 2 * y[i] + c) / 4, m.z)
+      curvePts[i].set(xAt(i), (a + 2 * y[i] + c) / 4, tz)
     }
     // 3) Boru kesitini YERINDE yaz (tahsis yok)
     const mesh = meshRef.current
@@ -178,68 +181,63 @@ function TubeStrand({ history, m }: { history: Reading[]; m: MetricDef }) {
       posAttr.needsUpdate = true
       norAttr.needsUpdate = true
     }
-    // 3b) Boylu boyunca metal aksan cizgileri (boru tepesinde + on-yaninda)
-    const atp = accentTopGeo.attributes.position.array as Float32Array
-    const asp = accentSideGeo.attributes.position.array as Float32Array
-    for (let i = 0; i < L; i++) {
-      const px = curvePts[i].x
-      const py = curvePts[i].y
-      atp[i * 3] = px; atp[i * 3 + 1] = py + tubeRadius * 0.85; atp[i * 3 + 2] = m.z
-      asp[i * 3] = px; asp[i * 3 + 1] = py - tubeRadius * 0.35; asp[i * 3 + 2] = m.z + tubeRadius * 0.78
-    }
-    accentTopGeo.attributes.position.needsUpdate = true
-    accentSideGeo.attributes.position.needsUpdate = true
-    // 4) Kuyruklu-yildiz basi (ucta, yeni veri) + hero'da yumusak zemin isigi
+    // 4) Uç kapağı + hero zemin ışığı (metal aksan çizgileri ve uç glow KALDIRILDI — Mehmet Abi: "fazladan katmanlar kalitesiz")
     const hx = xAt(L - 1)
     const hy = y[L - 1]
-    if (headRef.current) headRef.current.position.set(hx, hy, m.z)
-    if (headCapRef.current) headCapRef.current.position.set(hx, hy, m.z) // bas ucu yuvarlak kapak
-    if (tailCapRef.current) tailCapRef.current.position.set(xAt(0), y[0], m.z) // kuyruk ucu yuvarlak kapak
-    if (m.hero && lightRef.current) lightRef.current.position.set(hx, hy + 0.5, m.z + 1.2)
+    if (headCapRef.current) headCapRef.current.position.set(hx, hy, tz) // bas ucu yuvarlak kapak
+    if (tailCapRef.current) tailCapRef.current.position.set(xAt(0), y[0], tz) // kuyruk ucu yuvarlak kapak
+    if (m.hero && lightRef.current) lightRef.current.position.set(hx, hy + 0.5, tz + 1.2)
+    // DEĞER etiketi borunun ÜSTÜNDE (labelIdx noktası) — boruyu 60fps takip eder (React DIŞI, akıcı). Her boru farklı x'te → çakışmaz.
+    if (labelGroupRef.current) labelGroupRef.current.position.set(xAt(labelIdx), y[labelIdx] + tubeRadius + 0.42, tz)
   })
 
   return (
     <group>
-      {/* RENKLI CAM boru - kendi renginde emissive ZEMIN (siyahlama yok) + dusuk roughness -> keskin cam parlamasi (ISIK),
-          studyo yansimasi (envMap) + kesit golgelemesi (GOLGE). DoubleSide (garanti gorunur) + kuyruk izi (vertex-alpha).
+      {/* RENKLI boru — kendi renginde emissive (siyahlama yok) + dusuk roughness -> keskin parlama; envMap yansima.
+          Mehmet Abi: "şeffaflığı olmasın" → OPAK (transparent + depthWrite=false + vertex-alpha kuyruk izi KALDIRILDI) → boru içi görünmez, dolu.
           frustumCulled=false: vertex'ler her kare yukseliyor ama boundingSphere sabit -> acidan kaybolmayi onler. */}
       <mesh ref={meshRef} geometry={geo} frustumCulled={false}>
         <meshStandardMaterial
           color={m.color}
           emissive={m.color}
-          emissiveIntensity={0.82}
+          emissiveIntensity={0.7}
           metalness={0}
-          roughness={0.18}
-          envMapIntensity={0.85}
-          vertexColors
-          transparent
-          depthWrite={false}
+          roughness={0.12}
+          envMapIntensity={1.2}
           side={THREE.DoubleSide}
           toneMapped={false}
         />
       </mesh>
 
-      {/* Yuvarlak UC KAPAKLARI - boru uclari kesik/acik gorunmesin (yuvarlansin + kapansin) */}
+      {/* Yuvarlak UC KAPAKLARI - boru uclari kesik gorunmesin; ikisi de OPAK (boru ile ayni dolu his) */}
       <mesh ref={headCapRef} frustumCulled={false}>
         <sphereGeometry args={[tubeRadius, 16, 16]} />
-        <meshStandardMaterial color={m.color} emissive={m.color} emissiveIntensity={0.82} metalness={0} roughness={0.18} envMapIntensity={0.85} transparent opacity={0.92} toneMapped={false} />
+        <meshStandardMaterial color={m.color} emissive={m.color} emissiveIntensity={0.7} metalness={0} roughness={0.12} envMapIntensity={1.2} toneMapped={false} />
       </mesh>
       <mesh ref={tailCapRef} frustumCulled={false}>
         <sphereGeometry args={[tubeRadius, 12, 12]} />
-        <meshBasicMaterial color={m.color} transparent opacity={0.12} depthWrite={false} toneMapped={false} />
-      </mesh>
-
-      {/* Boylu boyunca METAL aksan cizgileri (THREE.Line; <line> JSX SVG ile cakistigi icin primitive) */}
-      <primitive object={accentSideLine} />
-      <primitive object={accentTopLine} />
-
-      {/* Kuyruklu-yildiz BASI: ucta kucuk, hafif additive glow (her boru kendi renginde) */}
-      <mesh ref={headRef} frustumCulled={false}>
-        <sphereGeometry args={[tubeRadius * 1.6, 16, 16]} />
-        <meshBasicMaterial color={m.color} transparent opacity={0.5} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} />
+        <meshStandardMaterial color={m.color} emissive={m.color} emissiveIntensity={0.7} metalness={0} roughness={0.12} envMapIntensity={1.2} toneMapped={false} />
       </mesh>
 
       {m.hero && <pointLight ref={lightRef} color={m.color} intensity={3} distance={9} />}
+
+      {/* DEĞER etiketi — borunun ÜSTÜNDE oturur (3D, boruyu takip), kendi renginde + birimiyle (Mehmet Abi: "her borunun üzerinde, sağda
+          sabit hizada zıplamasın"). Her boru farklı x noktasında (index kaydırma) → birbirine basmaz. */}
+      <group ref={labelGroupRef}>
+        <Html center distanceFactor={13} zIndexRange={[20, 0]} style={{ pointerEvents: 'none', userSelect: 'none' }}>
+          <div
+            style={{
+              display: 'flex', alignItems: 'baseline', gap: 3, whiteSpace: 'nowrap',
+              padding: '2px 7px', borderRadius: 999,
+              background: 'rgba(5,11,24,0.82)',
+              border: `1px solid ${m.color}66`, boxShadow: `0 0 12px -4px ${m.color}`,
+            }}
+          >
+            <span className="num" style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>{valText}</span>
+            <span style={{ fontSize: 8, fontWeight: 600, color: m.color }}>{t(m.unitShort)}</span>
+          </div>
+        </Html>
+      </group>
     </group>
   )
 }
@@ -294,10 +292,12 @@ function ParallaxRig() {
 
 export function Hero3DChart({
   history,
+  reading = null,
   metrics = METRICS,
   theme = 'dark',
 }: {
   history: Reading[]
+  reading?: Reading | null   // on-tube etiketler CANLI değeri buradan okur → cihaz LCD + kartlarla BİREBİR tutarlı
   metrics?: MetricDef[]
   theme?: 'dark' | 'light'
 }) {
@@ -354,11 +354,9 @@ export function Hero3DChart({
         <Lightformer form="rect" intensity={1.3} color="#36E0C8" position={[-9, 3, 2]} scale={[6, 8, 1]} />
         <Lightformer form="rect" intensity={1.2} color="#ffffff" position={[9, 4, 3]} scale={[6, 8, 1]} />
       </Environment>
-      {/* Atmosferik isilti parcaciklari - sinematik derinlik */}
-      <Sparkles count={lite ? 10 : 36} scale={[26, 10, 14]} position={[0, 4, -2]} size={2.4} speed={0.25} color="#8fd0ff" opacity={0.5} />
 
-      {ordered.map((m) => (
-        <TubeStrand key={m.key} history={history} m={m} />
+      {ordered.map((m, i) => (
+        <TubeStrand key={m.key} history={history} reading={reading} m={m} index={i} total={ordered.length} />
       ))}
       <ReflectiveFloor color={floorColor} reflective={!lite} />
       <ParallaxRig />
@@ -366,7 +364,7 @@ export function Hero3DChart({
       {/* AĞIR post-processing (Bloom + multisampling) yalnız MASAÜSTÜ — mobilde GPU'yu boğup bağlam kaybına yol açıyordu. */}
       {!lite && (
         <EffectComposer multisampling={2}>
-          <Bloom intensity={0.85} luminanceThreshold={0.22} luminanceSmoothing={0.9} mipmapBlur radius={0.8} />
+          <Bloom intensity={0.62} luminanceThreshold={0.25} luminanceSmoothing={0.9} mipmapBlur radius={0.75} />
         </EffectComposer>
       )}
     </Canvas>

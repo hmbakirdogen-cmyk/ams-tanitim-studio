@@ -20,7 +20,7 @@
 
   /* Metrik renkleri (acik, net - kafa karistirmayan) */
   --c-flow: #2E9BFF;         /* Debi / Hava Tuketimi */
-  --c-pressure: #36E0C8;     /* Basinc */
+  --c-pressure: #FF453A;     /* Basinc — KIRMIZI (Efekan/saha istegi; metrics.ts ile birebir) */
   --c-temp: #FFB04D;         /* Sicaklik */
   --c-humidity: #7CE0FF;     /* Nem */
   --c-saving: #41E08A;       /* Tasarruf (yesil) */

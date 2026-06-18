@@ -271,11 +271,11 @@ async function browseHintsWithSession(session) {
       if (ref.nodeClass === NodeClass.Variable) {
         found.push({ id: childId, label })
         // TOPLAM (accumulated) debi AYRI yakalanir -> anlik 'flow' ile karismasin (cihazda Flow=anlik, AccumFlow=toplam)
-        if (!hints.totalFlow && /(accum|toplam|integr|topla|積算)/i.test(label) && /(flow|debi|ak[ıi][şs]|litre|liter|\bl\b)/i.test(label)) hints.totalFlow = childId
+        if (!hints.totalFlow && /(accum|total|toplam|integr|topla|積算)/i.test(label) && /(flow|debi|ak[ıi][şs]|litre|liter|\bl\b)/i.test(label)) hints.totalFlow = childId
         for (const key of wantKeys) {
           if (hints[key]) continue
           // ANLIK 'flow' icin accumulated/total dugumleri DISLA -> yanlis (toplam) dugumu anlik saymayalim
-          if (key === 'flow' && /(accum|toplam|integr|topla|積算)/i.test(label)) continue
+          if (key === 'flow' && /(accum|total|toplam|integr|topla|積算)/i.test(label)) continue
           if (HINT_PATTERNS[key].test(label)) hints[key] = childId
         }
       } else if (ref.nodeClass === NodeClass.Object && !seen.has(childId)) {
@@ -403,7 +403,7 @@ export function handleAppConnection(socket) {
       try {
         const { hints, found } = await browseHintsWithSession(session)
         console.log(`[kopru] cihazda ${found.length} degisken dugum bulundu.`)
-        const SENSORISH = /(flow|debi|ak[ıi][şs]|press|bas[ıi]n|bar|kpa|mpa|temp|s[ıi]cak|humid|nem|\brh\b|accum|toplam|integr|topla)/i
+        const SENSORISH = /(flow|debi|ak[ıi][şs]|press|bas[ıi]n|bar|kpa|mpa|temp|s[ıi]cak|humid|nem|\brh\b|accum|total|toplam|integr|topla)/i
         const cand = found.filter((f) => SENSORISH.test(f.label)).slice(0, 30)
         if (cand.length) {
           try {

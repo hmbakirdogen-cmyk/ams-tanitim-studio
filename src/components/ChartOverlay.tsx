@@ -1,19 +1,27 @@
 /*
- * NE      : Grafik aciklama katmani - UST yatay serit (sol: akis suresi · sag: anlik degerler) + seviye cizgileri + X/Y eksen basliklari.
- * NEDEN   : Mehmet Bey: "anlik degerler daha mantikli yerde olsun, arka plandaki cizgilerin gorunumunu ETKILEMESIN".
- *           Cizgiler sag uca (en guncel/şimdi) akiyor -> okuma paneli ust seride; cizgilerin ustunu kapatmaz.
- * NASIL   : Ust margin'de (cizgi alaninin ustunde) koyu cam serit; force-dark-surface ile metin daima acik/net.
- * YAN ETKI: pointer-events yok. Renkler metrics.ts cizgi renkleriyle birebir (kimlik bagi).
+ * NE      : Canlı 3D grafik açıklama katmanı — SOL: her sensörün KENDİ renginde değeri + ölçeği (min–max); ALT: GERÇEK SAAT (sık);
+ *           grafik üstünde yatay seviye + DÜŞEY ışık çizgileri (tatlı ızgara); SOL-ÜST: CANLI süre + ZAMAN PENCERESİ seçici.
+ * NEDEN   : Efekan Bey/saha + Mehmet Abi: "yüzde değil HER borunun değer skalası dikey eksende, kolay ayırt edilen rahat görünüm;
+ *           gerçek saat daha sık; düşey çizgilerle tatlı görünüm; üst üste binen etiket OLMASIN." → değerler artık SOL eksende
+ *           düzenli (çakışmaz), renklerle ayrışır; boru ucundaki yüzen etiketler kaldırıldı.
+ * NASIL   : Saf overlay (pointer-events yok; yalnız pencere seçici tıklanır). Renkler metrics.ts ile birebir (kimlik bağı).
+ *           Saat = startedAt + gösterilen pencere (LivePage'de seçili aralığa kırpılmış trend) göreli t.
+ * YAN ETKI: Arkadaki 3D boru görünümünü etkilemez (üstte, şeffaf). i18n korunur.
  */
 import { METRICS, type MetricDef } from '@/data/metrics'
-import { WINDOW_POINTS } from './Hero3DChart'
 import { useLang } from '@/i18n'
 import { localeOf } from '@/lib/format'
 import type { Reading } from '@/data/types'
 
-const LEVELS = [100, 75, 50, 25, 0]
-const TICKS = [0, 0.25, 0.5, 0.75, 1] // X ekseni zaman etiketleri (sol=eski/16sn, sag=simdi)
+const TICKS = Array.from({ length: 17 }, (_, i) => i / 16) // X ekseni — 2 KAT sık (17 nokta) gerçek saat + düşey çizgi (Mehmet Abi)
 const shadow = { textShadow: '0 1px 5px rgba(2,4,10,0.95), 0 0 2px rgba(2,4,10,0.9)' }
+// ZAMAN PENCERESI secenekleri (Mehmet Abi: "15 dk'lik araligi sifira dogru kolayca ayarlayabilelim") — 15 dk'dan asagi.
+const WINDOWS = [
+  { ms: 30_000, label: '30 sn' },
+  { ms: 60_000, label: '1 dk' },
+  { ms: 5 * 60_000, label: '5 dk' },
+  { ms: 15 * 60_000, label: '15 dk' },
+]
 
 function fmtElapsed(ms: number): string {
   const s = Math.floor(ms / 1000)
@@ -24,92 +32,80 @@ function fmtElapsed(ms: number): string {
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(ss)}` : `${pad(m)}:${pad(ss)}`
 }
 
-// Ekranda cizilen pencerenin (son WINDOW_POINTS okuma) zaman uzunlugu (saniye)
-function windowSpanSec(history: Reading[]): number {
-  const win = history.slice(-WINDOW_POINTS)
-  return win.length > 1 ? (win[win.length - 1].t - win[0].t) / 1000 : 0
-}
-
-export function ChartOverlay({ reading, history = [], metrics = METRICS }: { reading: Reading | null; history?: Reading[]; metrics?: MetricDef[] }) {
-  const { t, lang } = useLang()
-  const pct = (g: number) => (lang === 'tr' ? `%${g}` : `${g}%`) // yüzde yazımı dile göre (TR: %50, EN/JA: 50%)
+export function ChartOverlay({ reading, history = [], metrics = METRICS, startedAt = 0, windowMs, onWindowChange }: { reading: Reading | null; history?: Reading[]; metrics?: MetricDef[]; startedAt?: number; windowMs?: number; onWindowChange?: (ms: number) => void }) {
+  const { t } = useLang()
   const elapsed = fmtElapsed(reading?.t ?? 0)
-  const spanSec = windowSpanSec(history)
+  const nf = (v: number, d = 0) => new Intl.NumberFormat(localeOf(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
+  // GERÇEK SAAT (Efekan Bey): history = gösterilen pencere → X tikinin duvar saati = startedAt + göreli t.
+  const win = history
+  const hasWin = win.length > 1
+  const win0t = hasWin ? win[0].t : 0
+  const winNt = hasWin ? win[win.length - 1].t : (reading?.t ?? 0)
+  const clockAt = (f: number): string =>
+    new Date(startedAt + win0t + f * (winNt - win0t)).toLocaleTimeString(localeOf(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
   return (
     <div className="force-dark-surface pointer-events-none absolute inset-0">
-      {/* UST YATAY SERIT - cizgilerin ustunde, gorunumu etkilemez */}
-      <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-3">
-        {/* Sol: canli akis suresi */}
+      {/* SOL-ÜST: CANLI süre + ZAMAN PENCERESİ seçici */}
+      <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
         <div className="flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-[#050b18]/75 px-3 py-1.5 backdrop-blur-md">
           <span className="relative grid h-2.5 w-2.5 place-items-center">
             <span className="live-ring absolute h-2.5 w-2.5 rounded-full bg-[var(--c-saving)]" />
           </span>
           <span className="text-[11px] font-semibold tracking-wide text-[var(--c-saving)]">{t('CANLI')}</span>
           <span className="num text-sm font-bold text-white">{elapsed}</span>
-          <span className="text-[10px] text-[var(--ink-soft)]">{t('akış süresi')}</span>
         </div>
-
-        {/* Sag: anlik degerler (yatay, kompakt) */}
-        <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3 py-1.5 backdrop-blur-md">
-          {metrics.map((m) => {
-            const v = reading ? m.get(reading) : m.min
-            const txt = new Intl.NumberFormat(localeOf(), { minimumFractionDigits: m.digits, maximumFractionDigits: m.digits }).format(v)
-            return (
-              <div key={m.key} className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
-                <span className="text-[11px] font-medium text-[var(--ink-soft)]">{t(m.name)}</span>
-                <span className="num text-sm font-bold text-white">{txt}</span>
-                <span className="text-[10px] text-[var(--ink-soft)]">{t(m.unitShort)}</span>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Y ekseni basligi - dikey. NOT: her cizgi KENDI metriginin kendi araligina (%0-100) normalize -> etikette netlestir
-          (Mehmet Abi: "%seviye hangi veri? hepsi mi?" -> her sensor kendi olceginde; gercek degerler ust seritte). */}
-      <div
-        className="absolute left-1 top-1/2 hidden text-[10px] font-semibold uppercase tracking-widest text-[var(--ink-soft)] lg:block"
-        style={{ writingMode: 'vertical-rl', transform: 'translateY(-50%) rotate(180deg)', ...shadow }}
-      >
-        {t('Seviye · her sensör kendi ölçeğinde')}
-      </div>
-
-      {/* Seviye cizgileri - her sensor kendi araliginda %0-100 */}
-      <div className="absolute inset-x-0 bottom-16 top-20">
-        {LEVELS.map((g) => (
-          <div key={g} className="absolute inset-x-12 flex items-center" style={{ top: `${100 - g}%` }}>
-            <span className="-translate-y-1/2 rounded bg-[#04060f]/40 px-1 text-[10px] font-medium text-[var(--ink)]" style={shadow}>
-              {pct(g)}
-            </span>
-            <div className="ml-2 h-px flex-1" style={{ background: 'var(--hair)' }} />
+        {onWindowChange && windowMs != null && (
+          <div className="pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-full border border-white/10 bg-[#050b18]/75 p-0.5 backdrop-blur-md">
+            {WINDOWS.map((w) => {
+              const on = Math.abs(windowMs - w.ms) < 1
+              return (
+                <button
+                  key={w.ms}
+                  onClick={() => onWindowChange(w.ms)}
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                  style={on ? { background: 'linear-gradient(135deg, rgba(0,114,206,0.5), rgba(0,114,206,0.18))', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : undefined}
+                >
+                  {t(w.label)}
+                </button>
+              )
+            })}
           </div>
+        )}
+      </div>
+
+      {/* DÜŞEY zaman çizgileri (tüm şeritleri keser) — yatay ızgara + sol ölçek artık CANVAS'ta (her şerit kendi Y-ekseniyle, lane düzeni). */}
+      <div className="absolute left-[50px] right-[50px] top-16 bottom-11">
+        {TICKS.map((f) => (
+          <div
+            key={`v${f}`}
+            className="absolute top-0 bottom-0 w-px"
+            style={
+              f === 1
+                ? { left: '100%', background: 'rgba(65,224,138,0.55)' } // "şimdi" → belirgin yeşil
+                : { left: `${f * 100}%`, backgroundImage: 'repeating-linear-gradient(180deg, rgba(130,175,235,0.5) 0 4px, transparent 4px 9px)', opacity: 0.7 } // düşey kesik ışık çizgisi
+            }
+          />
         ))}
       </div>
 
-      {/* X ekseni CANLI zaman etiketleri - sol=eski(16sn), sag=simdi (konvansiyonel) */}
-      <div className="absolute inset-x-12 bottom-7 h-6">
-        {TICKS.map((f) => {
-          const secsAgo = spanSec * (1 - f)
-          const label = f === 1 ? t('şimdi') : `−${Math.round(secsAgo)} ${t('sn')}`
+      {/* X ekseni — GERÇEK SAAT (sık), plot ile hizalı. Uç etiketler KENARDAN TAŞMASIN (Mehmet Abi: yeşil "şimdi" saati tam görünsün):
+          ilk=sola, son=sağa hizalı; ortadakiler ortalı. */}
+      <div className="absolute left-[50px] right-[50px] bottom-5 h-5">
+        {TICKS.map((f, i) => {
+          const edge = i === 0 ? 'translate-x-0' : i === TICKS.length - 1 ? '-translate-x-full' : '-translate-x-1/2'
           return (
-            <div key={f} className="absolute flex -translate-x-1/2 flex-col items-center gap-0.5" style={{ left: `${f * 100}%` }}>
-              <span className="h-2 w-px" style={{ background: 'var(--hair)' }} />
-              <span className={`num rounded bg-[#04060f]/55 px-1.5 py-0.5 text-[10px] font-semibold ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink)]'}`} style={shadow}>
-                {label}
-              </span>
+            <div key={f} className={`absolute flex flex-col items-center gap-0.5 ${edge}`} style={{ left: `${f * 100}%` }}>
+              <span className={`num whitespace-nowrap text-[8px] font-semibold ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'}`} style={shadow}>{clockAt(f)}</span>
             </div>
           )
         })}
       </div>
 
-      {/* Alt aciklama - zaman ekseni + seviye (SOL=geçmiş, SAĞ=şimdi) */}
-      {/* ASKERİ NİZAM (Mehmet abi: dar pencerede yazılar üst üste biniyordu): uzun açıklama YALNIZ lg+ (geniş) görünür + nowrap (2 satıra
-          sarıp zaman etiketlerine binmez); dar/stacked'te gizli → eksen rakamları + geçmiş/şimdi yeter. geçmiş/şimdi shrink-0 (squish yok). */}
-      <div className="absolute inset-x-12 bottom-1 flex items-center justify-between gap-2 overflow-hidden text-[10px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
-        <span className="shrink-0">← {t('geçmiş')}</span>
-        <span className="hidden whitespace-nowrap lg:inline">{t('Zaman ekseni · dikey: her sensör kendi aralığında %0–%100 (değerler üstte)')}</span>
-        <span className="shrink-0">{t('şimdi')} →</span>
+      {/* Alt aciklama (SOL=geçmiş, SAĞ=şimdi) */}
+      <div className="absolute left-[50px] right-[50px] bottom-0.5 flex items-center justify-between text-[9px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
+        <span>← {t('geçmiş')}</span>
+        <span>{t('şimdi')} →</span>
       </div>
     </div>
   )

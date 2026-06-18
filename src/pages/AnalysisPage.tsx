@@ -6,7 +6,7 @@
  */
 import { useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Clock, Layers, PiggyBank, CalendarClock } from 'lucide-react'
+import { Clock, Layers, PiggyBank, CalendarClock, Wind } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { Sparkline } from '@/components/Sparkline'
@@ -163,7 +163,7 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                   {win.length > 1 ? `${fromClock} → ${toClock}` : t('Seçili')}
                 </span>
                 <span><b className="num text-[var(--ink)]">{fmt(spanSec, 1)} {t('sn')}</b> · {win.length} {t('ölçüm')}</span>
-                <span>{t('Toplam hava')}: <b className="num text-[var(--ink)]">{fmtCompact(consumedL)} l</b></span>
+                <span>{t('Toplam hava')}: <b className="num text-[var(--ink)]">{fmtCompact(consumedL)} Litre</b></span>
               </span>
             </div>
             <div className="space-y-2">
@@ -198,14 +198,23 @@ export function AnalysisPage({ data }: { data: LiveState }) {
               </div>
             </Tilt3D>
 
-            <Tilt3D className="glass relative overflow-hidden rounded-2xl p-5" max={5}>
-              <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-25 blur-3xl" style={{ background: 'var(--c-saving)' }} />
-              {/* KAYNAK ETIKETI (#6): bu kart CANLI oturum gunlugunden (data.log) hesaplanir; "Tarihsel rapor"daki tasarruf
-                  ise kalici DAKIKALIK gecmisten gelir -> ayni donem icin sayilar farkli olabilir. Kullanici karistirmasin diye baslik kaynagi belirtir. */}
-              <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><PiggyBank size={16} className="text-[var(--c-saving)]" /> {t('Tasarruf (canlı oturum)')}</div>
-              <div className="num mt-2 text-3xl font-bold text-[var(--c-saving)]">{fmtMoneyCompact(sv.money)}</div>
-              <div className="num mt-1 text-sm text-[var(--ink-soft)]">{fmtCompact(sv.kwh)} kWh · {fmtCompact(sv.co2)} kg CO₂</div>
-            </Tilt3D>
+            <div className="flex flex-col gap-4">
+              <Tilt3D className="glass relative overflow-hidden rounded-2xl p-5" max={5}>
+                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-25 blur-3xl" style={{ background: 'var(--c-saving)' }} />
+                {/* KAYNAK ETIKETI (#6): bu kart CANLI oturum gunlugunden (data.log) hesaplanir; "Tarihsel rapor"daki tasarruf
+                    ise kalici DAKIKALIK gecmisten gelir -> ayni donem icin sayilar farkli olabilir. Kullanici karistirmasin diye baslik kaynagi belirtir. */}
+                <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><PiggyBank size={16} className="text-[var(--c-saving)]" /> {t('Tasarruf (canlı oturum)')}</div>
+                <div className="num mt-2 text-3xl font-bold text-[var(--c-saving)]">{fmtMoneyCompact(sv.money)}</div>
+                <div className="num mt-1 text-sm text-[var(--ink-soft)]">{fmtCompact(sv.kwh)} kWh · {fmtCompact(sv.co2)} kg CO₂</div>
+              </Tilt3D>
+              {/* TOPLAM HAVA TÜKETİMİ (Mehmet Abi: "geçmiş analiz sayfasında da toplam hava tüketim verisi olmalı") — seçili dönemde tüketilen toplam hava. */}
+              <Tilt3D className="glass relative overflow-hidden rounded-2xl p-5" max={5}>
+                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-25 blur-3xl" style={{ background: 'var(--c-flow)' }} />
+                <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><Wind size={16} style={{ color: 'var(--c-flow)' }} /> {t('Toplam Hava Tüketimi')}</div>
+                <div className="num mt-2 text-3xl font-bold" style={{ color: 'var(--c-flow)' }}>{fmtCompact(consumedL)} <span className="text-base font-semibold text-[var(--ink-soft)]">Litre</span></div>
+                <div className="num mt-1 text-sm text-[var(--ink-soft)]">{t('seçili dönemde tüketilen hava')}</div>
+              </Tilt3D>
+            </div>
           </div>
 
           {/* Her sensor: secili aralik detayli */}
@@ -225,7 +234,22 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                       <span className="text-xs text-[var(--ink-soft)]">{t(m.unitShort)}</span>
                     </span>
                   </div>
-                  <Sparkline values={series} color={m.color} min={m.min} max={m.max} height={50} />
+                  {/* DETAYLI grafik (Mehmet Abi: "X/Y eksen skalaları"): SOL = Y ekseni (maks/orta/min, kendi renginde), ALT = X ekseni (başlangıç→bitiş saati). */}
+                  <div className="flex gap-2">
+                    <div className="flex w-10 shrink-0 flex-col justify-between py-0.5 text-right num text-[9px] leading-none" style={{ color: m.color }}>
+                      <span className="font-semibold">{fmt(m.max, m.max < 10 ? 1 : 0)}</span>
+                      <span className="opacity-70">{fmt((m.min + m.max) / 2, m.max < 10 ? 1 : 0)}</span>
+                      <span className="font-semibold">{fmt(m.min, m.min < 10 ? 1 : 0)}</span>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Sparkline values={series} color={m.color} min={m.min} max={m.max} height={70} baseline />
+                      <div className="mt-1 flex items-center justify-between border-t border-[var(--hair)] pt-1 text-[9px] text-[var(--ink-soft)]">
+                        <span className="num">{fromClock || '—'}</span>
+                        <span className="uppercase tracking-wide">{t(m.unitShort)} · {t('zaman')}</span>
+                        <span className="num">{toClock || t('şimdi')}</span>
+                      </div>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-2">
                     {([['En düşük', s.min], ['Ortalama', s.avg], ['En yüksek', s.max]] as const).map(([label, val]) => (
                       <div key={label}>

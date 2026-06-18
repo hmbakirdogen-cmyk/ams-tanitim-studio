@@ -19,6 +19,7 @@ interface SparklineProps {
   head?: boolean      // CANLI son-deger noktasi (default KAPALI; sadece Canli Panel karti acar — PDF/rapor sade kalsin)
   pulse?: boolean     // son nokta etrafinda nabiz halkasi - "hareket" (default KAPALI)
   baseline?: boolean  // ince zemin referans cizgisi (default KAPALI)
+  fill?: boolean      // EBEVEYNI DOLDUR (height yerine %100) — kart icinde flex-1 alana otursun (bos bosluk olmasin)
 }
 
 // Catmull-Rom -> kubik bezier (yuvarlak, kirilmasiz egri)
@@ -39,13 +40,14 @@ function smoothPath(pts: [number, number][]): string {
   return d
 }
 
-export function Sparkline({ values, color, min, max, height = 40, head = false, pulse = false, baseline = false }: SparklineProps) {
+export function Sparkline({ values, color, min, max, height = 40, head = false, pulse = false, baseline = false, fill = false }: SparklineProps) {
   const uid = useId()
   const gid = `spark-${uid}`
   const W = 100
   const H = 100
+  const hStyle: number | string = fill ? '100%' : height
 
-  if (values.length < 2) return <div style={{ height }} />
+  if (values.length < 2) return <div style={{ height: hStyle }} />
 
   const span = max - min || 1
   const norm = (v: number) => Math.max(0, Math.min(1, (v - min) / span))
@@ -57,8 +59,8 @@ export function Sparkline({ values, color, min, max, height = 40, head = false, 
   const lastNorm = norm(values[values.length - 1]) // son okumanin 0..1 konumu (head noktasi)
 
   return (
-    <div style={{ position: 'relative', width: '100%', height }}>
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height, display: 'block' }}>
+    <div style={{ position: 'relative', width: '100%', height: hStyle }}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: hStyle, display: 'block' }}>
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity="0.26" />

@@ -25,6 +25,7 @@ import { asset } from '@/lib/asset'
 import type { Reading, Mode } from '@/data/types'
 import { METRICS, type MetricDef } from '@/data/metrics'
 import { getActiveModel } from '@/data/model'
+import { publishTotalizer } from '@/data/totalizer'   // toplam debi (totalizer) -> sag kol "Toplam Tuketim" karti AYNI degeri okur
 import { drawSevenSeg, measureSevenSeg, type RGB } from '@/lib/sevenSeg'
 import { sampleCurl } from '@/lib/flowField'   // curl-noise akış alanı (divergence-free, TAHSİSSİZ) — geri-dönüş sink + egzoz round-jet doğal salınımı
 
@@ -63,19 +64,24 @@ const LED_REG: [number, number] = [0.258, 0.478]  // regülatör POWER LED (imag
 // 2026-06-14 OTONOM KALİBRASYON (Mehmet abi canlı: "oransal kalkmamış + AR çok büyük/yanlış yerde"):
 //   maske Y alt sınırı 0.615→0.80 (oransal SARKAN modülü TAM ört) + AR ölçek 0.42→0.21 (oransal ölçeği) + TOP 0.370→0.405.
 //   shot ile yakınsanıyor; tutmazsa bu 5 değer birlikte ince ayarlanır.
-const REG_B_MASK_X: [number, number] = [0.105, 0.355] // ITV örten plaka (yatay) — AR genişliğine uyumlu (yanlarda boş beyaz kalmasın); braketlere taşmaz
-const REG_B_MASK_Y: [number, number] = [0.40, 0.745] // ITV örten plaka (dikey) — AR alt ucuna denk (altta boş beyaz kalmasın)
-const REG_B_CX = 0.225   // AR merkez X (cihaz-oranı) — ITV gövde merkezine hizalı
-const REG_B_TOP = 0.405  // AR üst kenar Y (üst yatay sıranın hemen altından başlar)
-const REG_B_W = 0.26     // AR genişliği — oransal modülü dolduracak ölçek (0.21 küçüktü, altı boş beyaz kalıyordu; 0.42 ise çok büyüktü)
+// 2026-06-15: Mehmet abi montaj stüdyosuyla (tip-b-montaj.html, ayrı port 5181) GÖZÜYLE oturttu → birebir değerler.
+//   Araç ams-flow tam görsel oranını kullanır = kod dw/dh oranı (624/500≈1.248 ↔ dh/dw≈1.247) → DÖNÜŞÜM GEREKMEZ.
+const REG_B_MASK_X: [number, number] = [0.16, 0.31]  // oransal ITV REGÜLATÖR dikey modülü örtücü (yatay) — ölçüm: x≈0.17-0.31. Hub'a (x>0.40) dokunmaz.
+const REG_B_MASK_Y: [number, number] = [0.27, 0.59]  // ITV modülü (gövde + '.200' ekran + IO-Link konnektörler) — AR-altı kısmı örtülür; üstü AR foto kapatır
+const REG_B_CX = 0.198   // AR merkez X (cihaz-oranı) — Mehmet abi montaj aracı
+const REG_B_TOP = -0.003 // AR üst kenar Y — Mehmet abi montaj aracı
+const REG_B_W = 0.536    // AR genişliği (yükseklik kareden) — Mehmet abi montaj aracı
 // GÜVENLİK BAYRAĞI: regülatör overlay'i DOĞRULANMADAN (Mehmet abi gözüyle konum + ekran kanıtı) AÇILMAZ.
 //   false iken program BİLİNEN-İYİ hâlinde (temel foto + orijinal LCD/LED) → bozuk/yarım görüntü ASLA gösterilmez.
 //   Konum REG_SWAP_X/Y birlikte ayarlanıp gözle doğrulanınca true yapılacak.
 const REG_SWAP_ENABLED = true // Tip B: AR (elle-ayar) regülatör takası AÇIK — Mehmet abi ile montaj (REG_B_CX/TOP/W) birlikte ince ayarlanıyor
+// NE: AR arkasındaki gövde-tonu örtü plakası KAPALI. NEDEN: Mehmet abi (2026-06-15) "AR'nin arkasındaki boş pencereyi kaldır" —
+//   AR'nin şeffaf köşelerinden taşan gri plaka "boş pencere" gibi duruyordu. AR kendi gövdesiyle binince temiz. true: plaka geri gelir.
+const REG_B_MASK_ENABLED = true
 // NE: Tip-B montaj GÖRÜNÜMÜ canlı panelde GİZLİ → cihaz çizimi HER ZAMAN Tip-A (eski temiz hal). NEDEN: Mehmet abi (2026-06-14)
 //   "Tip-B'yi canlı panelde hiç gösterme, eskisi gibi olsun; ama tüm veriler/model yerli yerinde kalsın." NASIL: aşağıda dType bu
 //   bayrağa göre A'ya sabitlenir; metrics/demoSource/analiz (model.type) DOKUNULMAZ. YAN ETKİ: yok. true yapınca Tip-B görünümü geri açılır.
-const SHOW_TYPE_B_DEVICE_VIEW = false
+const SHOW_TYPE_B_DEVICE_VIEW = true
 // TİP B ANALOG SAAT GÜVENLİK BAYRAĞI: çalışan 270° saat HAZIR (drawAnalogGauge) ama temel foto Tip A olduğundan saat gövdeye oturmuyor
 //   ("havada" görünür — Mehmet abi "bu ne?"). false iken Tip B de orijinal dijital LCD'yi gösterir (BİLİNEN-İYİ; tuhaf görüntü YOK).
 //   Tip-B cihaz fotoğrafı gelince + konum (GAUGE_B_POS) Mehmet abi gözüyle doğrulanınca true yapılır.
@@ -201,7 +207,9 @@ export function DeviceFlowChart({
   const colorRef = useRef<{ flow: number[]; pressure: number[]; hum: number[] }>({ flow: [46, 155, 255], pressure: [54, 224, 200], hum: [124, 224, 255] })
   // Hub LCD'sine basilacak GERÇEK ham degerler + ana ekran 2-renk durumu. Birim/renk/cozunurluk cizimde GERCEK cihaza gore
   //   sabittir (MPa/L/min/°C/L; ust=yesil-kirmizi, alt=turuncu) — kullanim kilavuzu om_ams_20-30-40-60. Toplam debi totalizer'dan.
-  const readoutRef = useRef<{ pressure: number | null; flow: number | null; temp: number | null; mainRed: boolean }>({ pressure: null, flow: null, temp: null, mainRed: false })
+  // total: CANLI cihazin GERCEK toplam debisi (AccumFlow / reading.totalFlow). Kopru gonderirse LCD sag-alt totalizer BUNU gosterir
+  //   (yerel uydurma DEGIL). Yoksa null -> demo/yerel biriktirmeye duser. (Saha: "toplam veri gorunmuyor" -> totalizer cihaza bagli degildi.)
+  const readoutRef = useRef<{ pressure: number | null; flow: number | null; temp: number | null; total: number | null; mainRed: boolean }>({ pressure: null, flow: null, temp: null, total: null, mainRed: false })
   // VERİ KALP ATIŞI — GERÇEK-veri tahrikli LED'ler için: reading her degistiginde (yeni paket) say + performance.now damgala.
   //   Boylece COMM/SIG/PORT vb. SAHTE timer yerine GERÇEK veri akisina gore yanip soner; veri durursa LED de durur.
   const dataRef = useRef({ prevT: -1, n: 0, lastT: 0 })
@@ -218,6 +226,8 @@ export function DeviceFlowChart({
       pressure: reading ? reading.pressure : null,
       flow: reading ? reading.flow : null,
       temp: reading ? reading.temperature : null,
+      // CANLI cihaz totalFlow (AccumFlow) gonderdiyse YAKALA -> totalizer cihazin GERCEK totalini gosterir. Yoksa null (demo/yerel).
+      total: reading && reading.totalFlow != null && Number.isFinite(reading.totalFlow) ? reading.totalFlow : null,
       mainRed: mode === 'isolation',
     }
     // Yeni veri paketi geldi mi? reading.t her tikte (80ms / canlı cihaz hızı) degisir → GERÇEK paket sayaci + zaman damgasi.
@@ -245,6 +255,7 @@ export function DeviceFlowChart({
     let deviceCanvas: HTMLCanvasElement | null = null
     let devAR = 1
     let regB: HTMLImageElement | null = null // Tip B (elle-ayar) regülatör görseli — yüklenince, model B ise bindirilir
+    let regBSil: HTMLCanvasElement | null = null // AR-şekilli gövde-tonu siluet (cache) — oransalı AR'nin KENDİ konturu boyunca örter (dikdörtgen "boş pencere" yok)
     const meas = { axis: FB_AXIS, pipe: FB_PIPE, inX: FB_IN, outX: FB_OUT }
     // Dijital ekran dikdortgenleri (tum-foto orani 0..1) — SABIT foto-olcum (otomatik tespit kaldirildi → const)
     const displays: { x: number; y: number; w: number; h: number }[] = FB_DISPLAYS
@@ -324,7 +335,17 @@ export function DeviceFlowChart({
     }
     loadDevice()
     // Tip B (elle-ayar) regülatör görselini yükle (şeffaf AR PNG). Tip A temel fotoda zaten var → yalnız B'de bindirilir.
-    const loadRegB = () => { const r = new Image(); r.onload = () => { regB = r }; r.src = asset('products/regulator-ar-hd.png') }
+    const loadRegB = () => {
+      const r = new Image()
+      r.onload = () => {
+        regB = r
+        // AR-şekilli gövde-tonu siluet'i BİR KEZ hazırla (RAM-safe; kare-başı tahsis yok): AR çiz → source-in → gövde-tonu doldur → AR konturu siluet.
+        const o = document.createElement('canvas'); o.width = r.naturalWidth; o.height = r.naturalHeight
+        const oc = o.getContext('2d')
+        if (oc) { oc.drawImage(r, 0, 0); oc.globalCompositeOperation = 'source-in'; oc.fillStyle = 'rgb(228,230,228)'; oc.fillRect(0, 0, o.width, o.height); regBSil = o }
+      }
+      r.src = asset('products/regulator-ar-hd.png')
+    }
     loadRegB()
 
     const sig = { flow: 0, pressure: 0, temp: 0, hum: 0, exhaust: 0, reg: 0, valve: 0 }
@@ -378,6 +399,8 @@ export function DeviceFlowChart({
     // TOTALIZER (toplam debi L) — kalıcı; ilk açılışta model debisinden tohumlanır (inandırıcı 4 haneli başlangıç).
     let accumL = loadAccum(Math.round(getActiveModel().baselineFlow))
     let accumSaveT = 0   // periyodik kalıcılaştırma sayacı (saniye)
+    let pubT = 0         // "Toplam Tüketim" kartı yayın sayacı (saniye) — ~1sn'de bir publishTotalizer (60fps'te her kare DEĞİL)
+    publishTotalizer(accumL)  // ilk değer: kart 0 yerine gerçek başlangıcı göstersin (cihaz bağlandığında ilk tikle gerçeğe güncellenir)
     // NE: Önceki karenin valf sinyali. NEDEN: Egzoz, valfin KAPANMA HIZINA bağlanacak (sürekli fışkırma değil, geçişte fışkırma).
     //   NASIL: Her karede sig.valve ile farkı alınıp valveRate hesaplanır. YAN ETKİ: effect-scoped (kare-başı alloc YOK, sadece sayı).
     let prevValveSig = 0
@@ -386,10 +409,18 @@ export function DeviceFlowChart({
     const draw = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       const t = targetRef.current
-      // Toplam debi biriktir: anlık debi(l/dak) × dt(sn)/60 = geçen litre. Her ~3 sn kalıcılaştır (gerçek cihaz: son kayıttan devam).
-      accumL += (readoutRef.current.flow ?? 0) * dt / 60
+      // TOPLAM debi (totalizer) KAYNAGI:
+      //   • CANLI CIHAZ totalFlow (AccumFlow) gonderiyorsa → BIREBIR onu goster (cihazin GERCEK totali; olcek kopruDE kalibre edilir).
+      //     BUG (saha: "toplam veri gorunmuyor"): bu deger eskiden HIC okunmuyordu → LCD'de basinc/debi/sicaklik cihazdan gelirken
+      //     toplam YEREL uydurmaydi (cihaza bagli OLMAYAN tek alan). Artik cihaz totali varsa o gosterilir.
+      //   • Yoksa (demo / cihazda accum dugumu yok) → anlik debi(l/dak) × dt/60 ile YEREL biriktir (eski demo davranisi korunur).
+      const devTotal = readoutRef.current.total
+      if (devTotal != null) accumL = devTotal
+      else accumL += (readoutRef.current.flow ?? 0) * dt / 60
       accumSaveT += dt
       if (accumSaveT >= 3) { saveAccum(accumL); accumSaveT = 0 }
+      pubT += dt
+      if (pubT >= 1) { publishTotalizer(accumL); pubT = 0 }   // sağ kol "Toplam Tüketim" kartı ~1sn'de bir güncellenir (LCD ile AYNI değer)
       const k = Math.min(1, dt * 4)
       sig.flow += (t.flow - sig.flow) * k; sig.pressure += (t.pressure - sig.pressure) * k
       sig.temp += (t.temp - sig.temp) * k; sig.hum += (t.hum - sig.hum) * k
@@ -475,19 +506,23 @@ export function DeviceFlowChart({
       //   Tip B (elle-ayar) — Mehmet abi tarifi: (a) oransal ITV regülatörü GÖVDESİYLE kaldır (temizle) →
       //   (b) AR (elle-ayar) regülatörü BAĞLANTI-APARATI ölçeğinde (REG_B_W) bindir → AR orantılı büyür. Montaj birlikte ince ayar.
       if (REG_SWAP_ENABLED && dType === 'B') {
-        // (a) ITV'yi KOMPLE kaldır: gövde bölgesini cihaz-GÖVDE TONUNDA opak plakayla ört. (clearRect KOYU ambient sızdırıyordu —
-        //     Mehmet abi "dark arka plan geldi" → plaka AÇIK/gövde-rengi: delik YOK, ITV %100 gizli; AR'nin örtmediği ince kenar modül yüzeyi gibi.)
-        const mx = dx + dw * REG_B_MASK_X[0], my = dy + dh * REG_B_MASK_Y[0]
-        const mw = dw * (REG_B_MASK_X[1] - REG_B_MASK_X[0]), mh = dh * (REG_B_MASK_Y[1] - REG_B_MASK_Y[0])
-        const mg = ctx.createLinearGradient(0, my, 0, my + mh)
-        mg.addColorStop(0, 'rgb(237,238,236)'); mg.addColorStop(1, 'rgb(208,210,208)')
-        ctx.fillStyle = mg
-        const mrad = Math.min(mw, mh) * 0.12
-        if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(mx, my, mw, mh, mrad); ctx.fill() } else ctx.fillRect(mx, my, mw, mh)
-        // (b) AR (elle-ayar) regülatörü plakanın üstüne bindir — BAĞLANTI/braket ölçeğinde (REG_B_W); montaj birlikte ince ayar.
+        // (a) ITV'yi örten gövde-tonu plaka — Mehmet abi isteğiyle KAPALI (REG_B_MASK_ENABLED=false): "AR arkasındaki boş pencereyi kaldır".
+        if (REG_B_MASK_ENABLED) {
+          const mx = dx + dw * REG_B_MASK_X[0], my = dy + dh * REG_B_MASK_Y[0]
+          const mw = dw * (REG_B_MASK_X[1] - REG_B_MASK_X[0]), mh = dh * (REG_B_MASK_Y[1] - REG_B_MASK_Y[0])
+          const mg = ctx.createLinearGradient(0, my, 0, my + mh)
+          mg.addColorStop(0, 'rgb(237,238,236)'); mg.addColorStop(1, 'rgb(208,210,208)')
+          ctx.fillStyle = mg
+          const mrad = Math.min(mw, mh) * 0.12
+          if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(mx, my, mw, mh, mrad); ctx.fill() } else ctx.fillRect(mx, my, mw, mh)
+        }
+        // (b) AR-SİLUET (gövde-tonu) + gerçek AR fotosu. Siluet, alttaki oransalı AR'nin KENDİ konturu boyunca örter →
+        //     Mehmet abi "boş pencere" (dikdörtgen köşe) sorunu çözülür; oransal, AR'nin altında temiz kapanır. Sonra AR fotosu üstüne biner.
         if (regB && regB.complete && regB.naturalWidth) {
           const iw = dw * REG_B_W, ih = iw * (regB.naturalHeight / regB.naturalWidth)
-          ctx.drawImage(regB, dx + dw * REG_B_CX - iw / 2, dy + dh * REG_B_TOP, iw, ih)
+          const rx = dx + dw * REG_B_CX - iw / 2, ry = dy + dh * REG_B_TOP
+          if (regBSil) ctx.drawImage(regBSil, rx, ry, iw, ih) // AR-şekilli gövde-tonu örtü (oransalı kontur boyunca gizler)
+          ctx.drawImage(regB, rx, ry, iw, ih)                 // gerçek AR fotosu üstüne
         }
       }
 
@@ -833,7 +868,9 @@ export function DeviceFlowChart({
         const pStr = ro2.pressure != null ? ro2.pressure.toFixed(3) : '---'   // basınç 0.200
         const fStr = ro2.flow != null ? String(Math.round(ro2.flow)) : '---'  // anlık debi 300
         const tStr = ro2.temp != null ? ro2.temp.toFixed(1) : '---'           // sıcaklık 26.5
-        const aStr = String(Math.floor(accumL) % 100000)                      // toplam debi (totalizer; ≤5 hane → taşmaz/küçültmez)
+        // GUARD: accumL non-finite olursa (NaN) 7-seg cizemez → sag-alt BOS gorunur (saha "gorunmuyor" sikayetinin olasi kaynagi).
+        //   → daima sonlu bir string; en kotu halde "0". Boylece totalizer ASLA bos kalmaz.
+        const aStr = Number.isFinite(accumL) ? String(Math.floor(accumL) % 100000) : '0'   // toplam debi (totalizer; ≤5 hane → taşmaz/küçültmez)
         // RAKAM BOYU — SABİT referanstan (tüm 7-seg AYNI boyut, gerçek cihaz). SOL en geniş "0.200", SAĞ en geniş 5-hane "88888".
         //   → digH artık canlı veriye bağlı DEĞİL → zamanla küçülmez/oynamaz (kararlı/sabit görünüm).
         const REF_L = measureSevenSeg('0.200', 1)    // sol sütun en geniş sabit referans

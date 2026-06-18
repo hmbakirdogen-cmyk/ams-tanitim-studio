@@ -40,7 +40,8 @@ const BASE: Omit<MetricDef, 'max'>[] = [
   },
   {
     key: 'pressure', name: 'Basınç', unit: 'megapaskal', unitShort: 'MPa',
-    icon: Gauge, color: '#36E0C8', digits: 2, min: 0,
+    // KIRMIZI (Efekan Bey/saha isteği: "basınç çizgisi kırmızı olsun"). Tek kaynak → grafik borusu + kart + overlay BİREBİR kırmızı (kimlik bağı korunur).
+    icon: Gauge, color: '#FF453A', digits: 2, min: 0,
     z: 0.5, width: 0.085, get: (r) => r.pressure,
   },
   {

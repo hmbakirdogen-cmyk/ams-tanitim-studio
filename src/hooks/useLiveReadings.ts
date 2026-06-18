@@ -15,11 +15,17 @@ import { applyDeviceSettingsFromDevice, getDeviceSettings, subscribeDeviceSettin
 
 const MAX_POINTS = 620 // grafikte tutulan son okuma sayisi (akan grafik; L=600 → ~48 sn pencere icin yeterli tampon)
 const LOG_MAX = 4500 // analiz/kayit icin daha uzun gunluk (~6 dk @80ms tik)
+// CANLI GRAFIK 15 DK PENCERESI (Efekan Bey/saha: "son 15 dk'lik veriyi goster"). 80ms ham tik 15 dk'da ~11k nokta = boru
+//   geometrisi icin ASIRI agir → SEYRELT: ~1 ornek/sn (TREND) → 15 dk ≈ 900 nokta. Boru bunu L=600 vertekse YENIDEN ORNEKLER
+//   (geometri ucuz/akici kalir; data 15 dk'yi gosterir). Demo/canli ayni; pencere zamanla 15 dk'ya dolar.
+const TREND_MS = 15 * 60 * 1000
+const TREND_SAMPLE_MS = 500 // ~2 ornek/sn → 15 dk ≈ 1800 nokta; kucuk pencerelerde (30sn/1dk) daha puruzsuz (kullanici araligi sifira dogru kucultebilir)
 
 export interface LiveState {
   reading: Reading | null
   history: Reading[]
   log: Reading[]
+  trend: Reading[] // 15 dk seyreltilmis (≈1/sn) — canli 3D grafik (borular) gercek-zaman 15 dk penceresi
   startedAt: number // t=0 aninin duvar saati (epoch ms) -> raporda gercek tarih/saat icin
   setMode: (m: Mode) => void
 }
@@ -29,10 +35,13 @@ export function useLiveReadings(): LiveState {
   const [reading, setReading] = useState<Reading | null>(null)
   const [history, setHistory] = useState<Reading[]>([])
   const [log, setLog] = useState<Reading[]>([])
+  const [trend, setTrend] = useState<Reading[]>([])
 
   const srcRef = useRef<DataSource | null>(null)
   const startedAtRef = useRef<number>(Date.now())
   const pinnedRef = useRef(false)
+  const trendRef = useRef<Reading[]>([]) // 15 dk seyreltilmis tampon (mutasyon + ~1/sn setTrend snapshot)
+  const lastTrendRef = useRef<number>(-Infinity)
 
   useEffect(() => {
     // Mod/endpoint degisince taze basla
@@ -40,6 +49,9 @@ export function useLiveReadings(): LiveState {
     setReading(null)
     setHistory([])
     setLog([])
+    setTrend([])
+    trendRef.current = []
+    lastTrendRef.current = -Infinity
 
     // HIBRIT senkron: canli kaynak, cihazin gonderdigi mevcut ayarlari Urun Ayarlari'na uygular (cihazdan oku → devam et)
     const src: DataSource = settings.mode === 'live'
@@ -75,11 +87,20 @@ export function useLiveReadings(): LiveState {
         next.push(r)
         return next
       })
+      // 15 DK TREND: ~1/sn seyrelt + 15 dk'dan eskiyi buda → 3D grafik (borular) gercek-zaman 15 dk penceresi
+      if (r.t - lastTrendRef.current >= TREND_SAMPLE_MS - 50) {
+        lastTrendRef.current = r.t
+        const tb = trendRef.current
+        tb.push(r)
+        const cut = r.t - TREND_MS
+        while (tb.length > 2 && tb[0].t < cut) tb.shift()
+        setTrend(tb.slice())
+      }
     })
     return () => { unsubSettings(); src.stop() }
     // nodeIds degisince (kilavuzdan) canli kaynak yeniden kurulur -> yeni dugumlerle okur
   }, [settings.mode, settings.endpoint, settings.nodeIds])
 
   const setMode = (m: Mode) => srcRef.current?.setMode?.(m)
-  return { reading, history, log, startedAt: startedAtRef.current, setMode }
+  return { reading, history, log, trend, startedAt: startedAtRef.current, setMode }
 }

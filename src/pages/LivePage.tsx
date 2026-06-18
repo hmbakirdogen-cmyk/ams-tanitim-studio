@@ -8,9 +8,11 @@
  *           NOT: Cihaz penceresi İÇİNDEKİ anlık readout'lar (PipeOverlay) Mehmet Abi isteğiyle SOL-üstte (arkalarında animasyon olmadan).
  * YAN ETKI: VIEW_KEY/anahtar kaldırıldı (artık tek düzen). Mobil zaten engelli; masaüstü hedefli ferah grid. i18n korunur.
  */
-import { Hero3DChart } from '@/components/Hero3DChart'
+import { AnimatePresence } from 'framer-motion'
+import { LiveChart2D } from '@/components/LiveChart2D'
 import { ChartOverlay } from '@/components/ChartOverlay'
 import { DeviceFlowChart } from '@/components/DeviceFlowChart'
+import { MetricDetailModal } from '@/components/MetricDetailModal'
 import { PipeOverlay } from '@/components/PipeOverlay'
 import { HeroKPI } from '@/components/HeroKPI'
 import { MetricCard } from '@/components/MetricCard'
@@ -23,6 +25,7 @@ import { savingPercent } from '@/lib/savings'
 import { useSensorVisibility } from '@/data/sensorVisibility'
 import { useDeviceSettings } from '@/data/deviceSettings'
 import { useEconomy } from '@/data/economy'
+import { useTotalizer } from '@/data/totalizer'
 import { fmtInt, fmt2 } from '@/lib/format'
 import { useLang } from '@/i18n'
 import { isMobileDevice } from '@/lib/device'
@@ -30,7 +33,17 @@ import { useMemo, useState, useEffect } from 'react'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
 export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
-  const { reading, history, setMode } = data
+  const { reading, history, setMode, startedAt, trend } = data
+  // ZAMAN PENCERESI (Mehmet Abi: "15 dk'yi sıfıra doğru kolayca ayarlayabilelim") — 3D grafik bu aralığı gösterir; 15 dk varsayılan.
+  const [windowMs, setWindowMs] = useState(15 * 60 * 1000)
+  // Kart tıklanınca açılan DETAY penceresi (Mehmet Abi: "kartlar tıklanabilir, detaylı grafik+eksen göstersin") — seçili metrik anahtarı.
+  const [detailKey, setDetailKey] = useState<MetricKey | null>(null)
+  // Seçili pencereye kırpılmış trend (≈2/sn, en çok 15 dk) → Hero3DChart L=600 vertekse yeniden örnekler + ChartOverlay saat etiketleri.
+  const shownTrend = useMemo(() => {
+    if (!trend.length) return trend
+    const cut = trend[trend.length - 1].t - windowMs
+    return trend.filter((r) => r.t >= cut)
+  }, [trend, windowMs])
   const { t } = useLang()
   const mobile = isMobileDevice() // mobilde ağır arka plan katmanlarını azalt (ısınma/refresh önlenir)
   // CANLI PANEL'E GEÇİŞ AKICILIĞI (Mehmet Abi: "geçerken gecikme/görüntü kirliliği/takılma"): ağır katmanlar (WebGL 3D + 2D akış +
@@ -43,6 +56,8 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   const metrics = useMetrics() // aktif modele gore reaktif (debi/basinc olcegi modelle gelir)
   const byKey = Object.fromEntries(metrics.map((m) => [m.key, m])) as Record<MetricKey, MetricDef>
   const { visible } = useSensorVisibility()
+  // TOPLAM TÜKETİM (totalizer) — cihaz LCD'sindeki sağ-alt toplamla AYNI değer (DeviceFlowChart yayınlar). Flow kartında gösterilir.
+  const totalL = useTotalizer()
   // visibleMetrics MEMO'lu → referans yalnız model/görünürlük değişince değişir (tik başına yeni referans + gereksiz sort/sampleY çöpü önlenir).
   const visibleMetrics = useMemo(() => metrics.filter((m) => visible[m.key]), [metrics, visible])
   const mode = reading?.mode ?? 'normal'
@@ -104,30 +119,52 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             <div className="glass relative h-[30vh] min-h-[190px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2]">
               {heavyReady && (
                 <div className="ams-fade-in absolute inset-0">
-                  {/* MOBİL: bu 2. AmbientScene (3D grafiğin ARKASINDA, çoğu görünmez) ÇİZİLMEZ → boşa dönen canvas yok. Masaüstünde kalır. */}
-                  {!mobile && <AmbientScene theme={theme} flow={flowNorm} />}
+                  {/* MOBİL: bu 2. AmbientScene (3D grafiğin ARKASINDA, çoğu görünmez) ÇİZİLMEZ → boşa dönen canvas yok. Masaüstünde kalır.
+                      calm: Mehmet Abi "rahat/karmaşasız" → grafik arkası SAKİN (perspektif ızgara kapalı + az zerre) → veri net odakta. */}
+                  {!mobile && <AmbientScene theme={theme} flow={flowNorm} calm />}
                   <ErrorBoundary variant="inline" label={t('Grafik')}>
-                    <Hero3DChart history={history} metrics={visibleMetrics} theme={theme} />
+                    <LiveChart2D history={shownTrend} reading={reading} metrics={visibleMetrics} theme={theme} />
                   </ErrorBoundary>
                 </div>
               )}
-              <ChartOverlay reading={reading} history={history} metrics={visibleMetrics} />
+              <ChartOverlay reading={reading} history={shownTrend} metrics={visibleMetrics} startedAt={startedAt} windowMs={windowMs} onWindowChange={setWindowMs} />
             </div>
           </div>
 
-          {/* SAĞ KOLON: Tasarruf + kompakt kartlar. Mobil: tam genişlik, 2 sütunlu kart ızgarası. lg: sabit DAR dikey kolon. */}
-          <div className="flex flex-col gap-3 lg:min-h-0 lg:w-[clamp(190px,16vw,230px)] lg:shrink-0">
+          {/* SAĞ KOLON: Tasarruf + BÜYÜK Hava Tüketimi kartı + 3 kompakt kart. lg: sabit dikey kolon (biraz genişletildi → büyük kart sığar). */}
+          <div className="flex flex-col gap-3 lg:min-h-0 lg:w-[clamp(200px,17vw,242px)] lg:shrink-0">
             <div className="shrink-0">
               <HeroKPI percent={percent} mode={mode} />
             </div>
-            <div className="grid grid-cols-2 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-1 lg:grid-rows-4">
-              {cardDefs.map((m) => (
-                <MetricCard key={m.key} def={m} history={history} size="xs" />
+            {/* HAVA TÜKETİMİ — BÜYÜK (Mehmet Abi: "grafik kaybolmasın + toplam tüketim öne çıksın"): kendi geniş hücresinde, sm boy + TOPLAM satırı. Tıklanınca detay. */}
+            {byKey.flow && visible.flow && (
+              <div className="lg:min-h-0 lg:flex-[1.05]">
+                <MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} />
+              </div>
+            )}
+            {/* Diğer sensörler — kompakt (mobilde 3 sütun, lg'de dikey). Tıklanınca detay penceresi (büyük eksenli grafik). */}
+            <div className="grid grid-cols-3 gap-3 lg:min-h-0 lg:flex-[1.85] lg:grid-cols-1 lg:auto-rows-fr">
+              {cardDefs.filter((m) => m.key !== 'flow').map((m) => (
+                <MetricCard key={m.key} def={m} history={history} size="xs" onClick={() => setDetailKey(m.key)} />
               ))}
             </div>
           </div>
         </div>
       </section>
+
+      {/* DETAY penceresi — kart tıklanınca büyük eksenli grafik. series = shownTrend → zaman aralığı CANLI paneldeki pencere seçimine BAĞLI (Mehmet Abi). */}
+      <AnimatePresence>
+        {detailKey && byKey[detailKey] && (
+          <MetricDetailModal
+            def={byKey[detailKey]}
+            series={shownTrend}
+            reading={reading}
+            startedAt={startedAt}
+            total={detailKey === 'flow' ? totalL : undefined}
+            onClose={() => setDetailKey(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
