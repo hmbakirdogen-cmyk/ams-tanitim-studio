@@ -116,11 +116,12 @@ const DEFAULT_NODE_IDS = {
   valveMode: 'ns=2;s=AMS.ValveMode',
   // TOPLAM debi (totalizer) + GERCEK DURUM BOOL'lari (LED'leri birebir surmek icin) — cihazda yoksa okuma atlanir -> demo'ya duser.
   //   Gercek isimler cihaz Tag listesinden; browse zaten gercegini bulur (placeholder ns=2 elle netlesir).
-  accumFlow: 'ns=2;s=AMS30_PF34_AccumFlow',
+  //   2026-06-19 EFEKAN BEY SAHA DUZELTMESI: debimetre serisi PF34 DEGIL PF3A -> accumFlow/doOut dugum adlari PF3A'ya cekildi (yoksa veri gelmez).
+  accumFlow: 'ns=2;s=AMS30_PF3A_AccumFlow',
   standby: 'ns=2;s=AMS30_Standby',
   forcedStandby: 'ns=2;s=AMS30_ForcedStandBy',
   vpDvNo: 'ns=2;s=AMS30_VP_DV_NO',
-  doOut: 'ns=2;s=AMS30_PF34_DOout',
+  doOut: 'ns=2;s=AMS30_PF3A_DOout',
 }
 
 // OLCEK (KALIBRASYON): cihaz HAM tamsayi doner -> ekranla BIREBIR tutmasi icin olcekle.

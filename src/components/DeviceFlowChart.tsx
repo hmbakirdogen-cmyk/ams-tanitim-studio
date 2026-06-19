@@ -81,7 +81,7 @@ const REG_B_MASK_ENABLED = true
 // NE: Tip-B montaj GÖRÜNÜMÜ canlı panelde GİZLİ → cihaz çizimi HER ZAMAN Tip-A (eski temiz hal). NEDEN: Mehmet abi (2026-06-14)
 //   "Tip-B'yi canlı panelde hiç gösterme, eskisi gibi olsun; ama tüm veriler/model yerli yerinde kalsın." NASIL: aşağıda dType bu
 //   bayrağa göre A'ya sabitlenir; metrics/demoSource/analiz (model.type) DOKUNULMAZ. YAN ETKİ: yok. true yapınca Tip-B görünümü geri açılır.
-const SHOW_TYPE_B_DEVICE_VIEW = true
+const SHOW_TYPE_B_DEVICE_VIEW = false // Mehmet abi 2026-06-19: elle-ayar (Tip-B) cihaz görünümü HENÜZ optimize değil → KOMPLE GİZLE. Tip-B model seçilse de çizim TEMİZ Tip-A + dijital LCD kalır; model/veri/analiz yerinde. (AR montajı sonra yapılacak.)
 // TİP B ANALOG SAAT GÜVENLİK BAYRAĞI: çalışan 270° saat HAZIR (drawAnalogGauge) ama temel foto Tip A olduğundan saat gövdeye oturmuyor
 //   ("havada" görünür — Mehmet abi "bu ne?"). false iken Tip B de orijinal dijital LCD'yi gösterir (BİLİNEN-İYİ; tuhaf görüntü YOK).
 //   Tip-B cihaz fotoğrafı gelince + konum (GAUGE_B_POS) Mehmet abi gözüyle doğrulanınca true yapılır.
@@ -91,7 +91,7 @@ const SHOW_TYPE_B_DEVICE_VIEW = true
 const DEVICE_B_GAUGE_ENABLED = false
 const GAUGE_B_POS: [number, number, number] = [0.242, 0.452, 0.052] // [x, y, r] device-oranı (Tip-B foto gelince ayarlanacak)
 
-const FLOW_COUNT = 280       // akan molekül sayısı — Mehmet Abi: daha zengin akış (224→280); GÖRÜNEN sayı debiyle ölçeklenir (flowN)
+const FLOW_COUNT = 240       // akan hava molekülü havuzu — Mehmet abi 2026-06-19: mantıklı yoğunluk (280→240, ferah ama zengin); GÖRÜNEN sayı debiyle ölçeklenir (flowN)
 const FLOW_LANES = 14        // paralel laminar şerit; aynı şeritteki moleküller AYNI hızda → asla karışmaz
 const MOLE_COUNT = 120   // regülatör sıkışma molekülleri — Mehmet Abi: daha çok kendini belli etsin (çoğaltıldı)
 const DROPLET_MAX = 60
@@ -465,6 +465,32 @@ export function DeviceFlowChart({
       ctx.fillStyle = dark ? 'rgba(6,10,22,0.32)' : 'rgba(225,235,247,0.40)'
       ctx.fillRect(0, 0, W, H)
 
+      // SPACE DERİNLİĞİ — PERSPEKTİF zemin ızgarası (Mehmet abi 2026-06-19: "düz kareler değil, space derinliği"): ufuktan derinliğe KAÇAN
+      //   yatay + dikey çizgiler (3D kanal/zemin hissi) + ufuk ışık bandı. Koyu scrim'in ÜSTÜNE, cihaz fotosunun ALTINA; statik (animasyon yok),
+      //   kenara/uzağa solar. Cihaz (opak) üstüne biner → cihazın olduğu yerde görünmez, yalnız çevrede derinlik hissi verir. RAM-safe.
+      {
+        const col = dark ? '110,160,230' : '60,110,180'
+        const cxC = W / 2, horizon = H * 0.34
+        const edgeFade = (x: number) => 1 - Math.min(1, Math.abs(x - W / 2) / (W / 2)) * 0.5
+        ctx.lineWidth = 1
+        for (let i = 1; i <= 9; i++) {
+          const f = i / 9
+          const yy = horizon + Math.pow(f, 2.1) * (H - horizon) * 1.06 // ufuk ALTI: derinliğe açılan zemin çizgileri
+          if (yy <= H + 2) { ctx.strokeStyle = `rgba(${col},${(dark ? 0.15 : 0.12) * (1 - f * 0.5)})`; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(W, yy); ctx.stroke() }
+          const yu = horizon - Math.pow(f, 2.1) * horizon * 1.02 // ufuk ÜSTÜ: simetrik tavan kanalı
+          if (yu >= -2) { ctx.strokeStyle = `rgba(${col},${(dark ? 0.09 : 0.07) * (1 - f * 0.5)})`; ctx.beginPath(); ctx.moveTo(0, yu); ctx.lineTo(W, yu); ctx.stroke() }
+        }
+        const spread = W * 0.92
+        for (let i = -6; i <= 6; i++) { // kaçış noktasına yakınsayan dikey çizgiler (derinlik)
+          const xb = cxC + (i / 6) * spread
+          ctx.strokeStyle = `rgba(${col},${(dark ? 0.12 : 0.10) * (1 - Math.abs(i) / 7) * edgeFade(xb)})`
+          ctx.beginPath(); ctx.moveTo(cxC + (i / 6) * spread * 0.08, horizon); ctx.lineTo(xb, H); ctx.stroke()
+        }
+        const hg = ctx.createLinearGradient(0, horizon - H * 0.14, 0, horizon + H * 0.07) // ufuk ışık bandı = derinlik kapanışı
+        hg.addColorStop(0, `rgba(${col},0)`); hg.addColorStop(0.6, `rgba(${col},${dark ? 0.10 : 0.06})`); hg.addColorStop(1, `rgba(${col},0)`)
+        ctx.fillStyle = hg; ctx.fillRect(0, horizon - H * 0.14, W, H * 0.21)
+      }
+
       // CİHAZ ÖLÇÜ+KONUM: kablo kırpıldığı için GÖRÜNEN bölge = üst CABLE_CROP. Bu GÖRÜNEN bölgeyi panele BÜYÜK contain-fit oturt
       //   (Mehmet Abi: ürünü büyüt) → tam görsel yüksekliği görünenin 1/CABLE_CROP'u (≈%35 daha iri). Görünen bölge dikey ORTALANIR
       //   + DEV_DROP kadar aşağı (bu kadar yukarıda olmasın). visAR = görünen bölgenin en/boy oranı.
@@ -554,7 +580,7 @@ export function DeviceFlowChart({
       ctx.globalCompositeOperation = dark ? 'lighter' : 'source-over'   // tema-duyarlı: gece additif, gündüz source-over (yıkanmasın)
       const pr = pipeH * 0.42
       const baseV = 0.05 + 0.95 * sig.flow
-      const flowN = Math.round((0.5 + 0.5 * sig.flow) * FLOW_COUNT) // MİKTAR debiyle ölçeklenir: düşük debi SEYREK, tam debi YOĞUN (doğal az/çok hava)
+      const flowN = Math.round((0.25 + 0.75 * sig.flow) * FLOW_COUNT) // MİKTAR DEBİYLE ORANTILI (Mehmet abi 2026-06-19 mantıklı): düşük debi belirgin SEYREK (%25), tam debi YOĞUN — hava az→molekül az
       const aK = dark ? 1 : 1.4   // GÜNDÜZ alfa biraz yüksek → translucent mavi açık zeminde net okunur
       ctx.lineCap = 'round'
       for (let i = 0; i < FLOW_COUNT; i++) {
@@ -591,7 +617,7 @@ export function DeviceFlowChart({
           const bornFade = sstep((1 - fp) / 0.10)             // sağ uçta yumuşak doğum
           const nearPort = dnv / Math.max(1, exOy - axisY)    // 0 boru .. 1 egzoz ağzı
           const drainFade = 1 - sstep((nearPort - 0.72) / 0.28)  // son ~%28'de sön → egzoz jeti devralır (görünmez geçiş)
-          const a = (0.16 + 0.55 * sig.valve) * (0.5 + 0.5 * prof) * aK * bornFade * drainFade
+          const a = (0.26 + 0.62 * sig.valve) * (0.5 + 0.5 * prof) * aK * bornFade * drainFade // Mehmet abi 2026-06-19: geri-akış HAVASI belirgin (yoksa "geri dönüşte sadece nem akıyor" görünüyordu)
           if (a <= 0.012) continue
           const len = (7 + 12 * sig.valve) * (0.72 + 0.5 * prof) * (0.4 + 0.6 * cs)  // DİKEYde KISA iz (düşey çizgi olmasın)
           const lw = 1.0 + 1.3 * prof
@@ -718,7 +744,7 @@ export function DeviceFlowChart({
         mg.addColorStop(0, cH(0)); mg.addColorStop(0.5, cH(mistA)); mg.addColorStop(1, cH(0))
         ctx.fillStyle = mg; ctx.fillRect(0, top, W, pipeH)
       }
-      const humN = Math.round((0.03 + 0.42 * sig.hum) * DROPLET_MAX) // Mehmet abi "havadan çok nem varmış gibi" → nem AZINLIK (hava baskın): sayı belirgin kısıldı
+      const humN = Math.round((0.03 + 0.34 * sig.hum) * DROPLET_MAX) // Mehmet abi 2026-06-19: nem AZINLIK (hava baskın); geri-akışta nem baskın görünmesin diye biraz daha kısıldı
       const humDrift = (0.05 + 0.95 * sig.flow) * 0.5 + 0.03          // akışLA sürüklenir (durağanken hafif süzülür)
       // GERİ AKIŞ (izolasyon): nem de HAVA gibi davranır — valf SAĞINDAKİ nem valfe/egzoza doğru GERİ akar, egzoz ağzında
       //   aşağı süzülüp söner (havayla birlikte çıkar) ve sağ uca recycle olur; valf SOLUNDAKİ ileri nem valfi geçmez.
@@ -767,13 +793,18 @@ export function DeviceFlowChart({
         const coreLen = Math.max(8, dh * 0.018)            // potential core (parlak çekirdek) uzunluğu
         const coreR = Math.max(3.5, dh * 0.014)            // ağız çekirdek yarıçapı (Mehmet abi: biraz büyüt)
         const SPREAD = 0.28                                // tan(~15.6°) yarı-koni açılımı (Mehmet abi: biraz genişlet)
+        // DUMAN MİKTARI DEĞİŞKENLİĞİ (Mehmet abi 2026-06-19): aktif puff sayısı egzoz ŞİDDETİYLE orantılı (az egzoz→ince duman, çok→yoğun) —
+        //   eskiden hep PUFF_COUNT doğuyordu (tekdüze) → sadece hız/parlaklık değişiyordu. + hafif püskürtme nabzı (mekanik değil) → miktar
+        //   canlı oynar. i>=puffN partikülleri YENİDEN doğmaz; yaşayanlar söner → yumuşak geçiş (ani kesilme yok).
+        const burst = 0.82 + 0.18 * Math.sin(now * 0.0026)
+        const puffN = Math.round(PUFF_COUNT * Math.min(1, Math.max(0, (0.18 + 0.82 * exA) * burst)))
         // (A) AĞIZ ÇEKİRDEK PARILTISI KALDIRILDI (Mehmet abi: "egzozun çıktığı yerde nokta parlamasına gerek yok").
         //     Ağızda sahte "nokta" lekesi YOK; jet sadece kendi akan partikülleriyle (B) belirir.
         // (B) JET PARTİKÜLLERİ — çekirdek dar/hızlı → mesafeyle koni açılır, hız söner, boyut büyür
         for (let i = 0; i < PUFF_COUNT; i++) {
           pLife[i] -= dt / (0.5 + Math.random() * 0.45)    // kısa ömür → belir/söner (jet uzanır)
           if (pLife[i] <= 0) {
-            if (exA > 0.06) {
+            if (exA > 0.06 && i < puffN) {                  // i < puffN → MİKTAR şiddetle değişir (Mehmet abi: duman miktarı değişkenliği)
               const sp = (150 + Math.random() * 120) * (0.55 + exA)            // ağız hızı ∝ şiddet
               pX[i] = exOx + (Math.random() - 0.5) * coreR * 1.2               // DAR ağız → parlak çekirdek
               pY[i] = exOy + coreR * 0.3

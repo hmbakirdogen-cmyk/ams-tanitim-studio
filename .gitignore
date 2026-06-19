@@ -26,4 +26,12 @@ tools/_orig_edges/
 tools/_recon/
 tools/_sbot.jpg
 /app.zip
-/SMC-AMS-Kopru.zip
+/SMC-AMS-Tanitim.zip
+
+# 2026-06-19: CC ekran-dogrulama ciktilari + gecici arsiv/yedek/deneme (commit DISI; araclar yeniden uretir)
+_*.png
+_*.jpg
+/_arsiv/
+/_yedek/
+scripts/_*.mjs
+public/tip-b-montaj.html

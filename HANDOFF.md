@@ -2,7 +2,36 @@
 
 > Bu dosya, yeni Claude Code oturumunun "neredeyim" sorusuna ilk cevabıdır. **Güncel tut.**
 
-## ŞU AN NEREDEYIZ (2026-06-14 — TİP-B MONTAJ + SAAT + KOLAJ; Mehmet abi ile canlı) ⭐⭐⭐ EN GÜNCEL
+## ŞU AN NEREDEYIZ (2026-06-19 — CANLI UI MARATONU + bar/MPa + EFEKAN PAKETİ) ⭐⭐⭐ EN GÜNCEL
+> Mehmet abi ile uzun canlı oturum (M3MO). HER değişiklik **tsc 0 + build 0 + headless screenshot** ile doğrulandı. Dal `gece-fuar-fix` (commit+push edildi). Paket masaüstünde.
+- **Canlı Panel grafiği:** ısı+nem KALDIRILDI → yalnız **Hava Tüketimi + Basınç**, 2 eşit AYRI şerit. Skala **yuvarlak/sabit** (auto-range yerine): Hava Tük. 0…flowMax (ürün max debisi, taşma yok), Basınç **MPa 0…0,6 / bar 0…6**. Rakamlar ince (bold değil) + çizgide ortalı; şerit başlığı (ad+birim); gutter ferah (PAD 60, ChartOverlay eşli). Zaman ekseni saat + altında **göreli süre (60sn+ = dk+sn)**; **10 dk** penceresi eklendi. Uç rozetleri premium pill (glow+cam+bullet+birim).
+- **Arka planlar sade:** panel-içi 60fps AmbientScene KALDIRILDI. Cihaz arka planı = DeviceFlowChart İÇİNDE statik **perspektif space ızgarası** (scrim üstü/cihaz altı; düz kare değil).
+- **Sağ panel hiyerarşi:** Tasarruf (HeroKPI küçük) > Hava Tük. (sm+toplam) > Basınç (sm) > Sıcaklık/Nem (xs büyütüldü, veri hep görünür).
+- **Akış/molekül:** hava debiyle orantılı, nem azınlık, **geri-akışta hava belirgin** ("sadece nem" düzeldi); egzoz dumanı **miktar değişkenliği** (şiddet+nabız).
+- **Detay penceresi (MetricDetailModal):** yağ-gibi açılış; grafik **akıcı (sabit-N + lerp)**; ortalama çizgisi, kesik zaman çizgileri, birimli baloncuk, derinlik arka plan.
+- **Geçmiş Analizi:** grafikler **nice auto-range** (sabit ölçek tepe-kırpma düzeldi). **Sparkline üst/alt PAY (PADV=7)** → rapor/analiz/kart grafik tepesi ARTIK KIRPILMAZ.
+- **bar/MPa (YENİ):** `data/pressureUnit.ts` merkezi anahtar → metrics.ts pressure metriği birime göre (get×10/birim/ondalık/ölçek) → TÜM basınç gösterimleri otomatik uyar. Ufak **MPa|bar toggle** (`PressureUnitToggle.tsx`) basınç kartlarında + grafikte. Float-yuvarlama bug (0,8×0,75→0,8) **epsilon** ile düzeldi (niceAxis).
+- **Tip-B (elle-ayar) görünümü KOMPLE GİZLENDİ** (`SHOW_TYPE_B_DEVICE_VIEW=false`): optimize değil; Tip-B seçilse de çizim temiz Tip-A + dijital LCD (model/veri yerinde). **AR montajı SONRA.**
+- **Efekan düzeltmesi:** OPC UA debimetre düğümü **PF34→PF3A** (accumFlow/doOut) — "toplam harcanan hava" gelmiyordu, düzeldi (opcua-bridge.mjs + types.ts).
+- **Veri denetimi (ajan):** akış tutarlı (tek reading/totalizer). Not: model↔economy.baselineFlow senkronu AMS40A dışında elle (düşük risk).
+- **Paket:** `paket/SMC-AMS-Tanitim.zip` (~46MB, gömülü node+bridge+app) + **masaüstüne kopyalandı**. GitHub Release adımı ATLANDI (Mehmet abi WeTransfer/WhatsApp ile gönderir).
+- **AÇIK (sonra):** Tip-B AR regülatör montaj optimizasyonu · model↔economy senkron sağlamlaştırma · gerçek cihaz OPC UA testi · shot.mjs `SHOT_CLICK2` (2. tık) eklendi (modal/sayfa testi).
+
+## ŞU AN NEREDEYIZ (2026-06-15 — EFEKAN BEY PAKETİ: temiz program + Tip-B gizli) ⭐⭐ ÖNCEKİ
+> Mehmet abi: "AMS'yi her yönüyle temiz tamamla, Efekan Bey'e yeni paket göndereyim." YAPILDI:
+> - **Tip-B canlı panel görünümü GİZLENDİ** (`SHOW_TYPE_B_DEVICE_VIEW=false` + `dType`) → cihaz çizimi hep Tip-A (eski temiz); model/veri/analiz Tip-B YERİNDE.
+> - Kapsamlı 5-cephe denetim + **ModeStrip dar-ekran fix** + bozuk kod temizliği (yok lint script + ölü `'olmalı:'` çeviri) + **~26MB çöp** + **circular chunk fix** (vite.config).
+> - `_smc_certgen.txt` (SMC EXA1 dok.) konsey'den AMS köküne taşındı.
+> - **YEREL paket üretildi:** `paket/SMC-AMS-Kopru.zip` (45.8MB, sürüm `99e4e4f`) — **bridge dahil** (a6990dc, Efekan'dakiyle birebir), GitHub yayını YOK (Mehmet abi WeTransfer/WhatsApp ile gönderecek). `paketle-kopru.ps1` GitHub Release YAPIYOR → otonom çalıştırma YOK; yerel adımlar elle yapıldı.
+> - Commit'ler (dal `gece-fuar-fix`, **push YOK**): `99e4e4f` Tip-B gizle, `f07f6ab` vite circular, `10781d1` toparlama.
+> - **EFEKAN bağlamı (WhatsApp):** Efekan'a 13 Haz sabahı WeTransfer tam zip + öğle bridge tek-dosya gönderilmişti (cihaz bağlantı bridge'le çözüldü). Yeni paket = o tarihten bu yana TÜM UI iyileştirmeleri + güncel bridge içeride → tek paketle hepsi.
+>
+> **⏳ AÇIK İŞ — SİYAH PENCERE GİZLEME (Mehmet abi 2026-06-15 onaylı, SONRAKİ sürüm):** `Baslat.bat` node motorunu ARKA PLANDA görünmez
+>   çalıştırsın (VBS/gizli launcher) + **"AMS'yi Kapat" kısayolu** (motor düzgün dursun) + teşhis logları **dosyaya** (şu an siyah pencerede;
+>   fuarda NEDEN mesajları işe yaradı, kaybetme). Mehmet abi: "bu paket böyle gitsin (siyah pencere kalsın, çalışıyor), sonra temizle." → şu anki pakette BİLİNÇLİ bırakıldı.
+> **⏳ AÇIK (Mehmet abi gözü/cihazı gerek):** kolaj ana görsel (`ams-system-hd.png` — gerçek SMC ünite görseli), Tip-B montaj ince ayar (K3 hazır, foto gelince `SHOW_TYPE_B_DEVICE_VIEW=true`), OPC UA gerçek cihaz testi.
+
+## ŞU AN NEREDEYIZ (2026-06-14 — TİP-B MONTAJ + SAAT + KOLAJ; Mehmet abi ile canlı) ⭐⭐ ÖNCEKİ
 > **Bağlam:** Mehmet abi "AMS'yi HER YÖNÜYLE kusursuz tamamlayalım — Turgay Bey Japonya'ya gönderebilir" dedi. İş Konsey
 > penceresinde başladı; o pencere AMS geçmişini taşımadığı için Mehmet abi haklı olarak "gerçek CC değilsin / unutmuşsun"
 > dedi → AMS **kendi penceresine** taşındı. **Bu HANDOFF'u oku, Mehmet abi'yi TANIYARAK devam et (yabancı karşılama YOK).**

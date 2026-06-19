@@ -9,6 +9,7 @@
  * YAN ETKI: Arkadaki 3D boru görünümünü etkilemez (üstte, şeffaf). i18n korunur.
  */
 import { METRICS, type MetricDef } from '@/data/metrics'
+import { PressureUnitToggle } from './PressureUnitToggle'
 import { useLang } from '@/i18n'
 import { localeOf } from '@/lib/format'
 import type { Reading } from '@/data/types'
@@ -20,6 +21,7 @@ const WINDOWS = [
   { ms: 30_000, label: '30 sn' },
   { ms: 60_000, label: '1 dk' },
   { ms: 5 * 60_000, label: '5 dk' },
+  { ms: 10 * 60_000, label: '10 dk' }, // Mehmet abi 2026-06-19
   { ms: 15 * 60_000, label: '15 dk' },
 ]
 
@@ -43,6 +45,15 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS, started
   const winNt = hasWin ? win[win.length - 1].t : (reading?.t ?? 0)
   const clockAt = (f: number): string =>
     new Date(startedAt + win0t + f * (winNt - win0t)).toLocaleTimeString(localeOf(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  // Mehmet abi 2026-06-19: her saat etiketinin ALTINA ŞİMDİ'ye göre göreli süre (sağ uç 0, sola geçmiş). 60 sn ve üstü DAKİKA+SANİYE
+  //   (geniş pencerede 600 sn yerine "−10 dk" okunaklı); 60 sn altı sadece saniye.
+  const relAt = (f: number): string => {
+    const s = Math.round(((1 - f) * (winNt - win0t)) / 1000)
+    if (s <= 0) return `0 ${t('sn')}`
+    if (s < 60) return `−${s} ${t('sn')}`
+    const m = Math.floor(s / 60), ss = s % 60
+    return ss === 0 ? `−${m} ${t('dk')}` : `−${m} ${t('dk')} ${ss} ${t('sn')}`
+  }
 
   return (
     <div className="force-dark-surface pointer-events-none absolute inset-0">
@@ -74,8 +85,13 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS, started
         )}
       </div>
 
+      {/* SAĞ-ÜST: BASINÇ BİRİMİ (MPa/bar) — Mehmet abi 2026-06-19: grafikten de değiştirilebilsin (kartlarla aynı global anahtar). */}
+      <div className="pointer-events-auto absolute right-3 top-3">
+        <PressureUnitToggle />
+      </div>
+
       {/* DÜŞEY zaman çizgileri (tüm şeritleri keser) — yatay ızgara + sol ölçek artık CANVAS'ta (her şerit kendi Y-ekseniyle, lane düzeni). */}
-      <div className="absolute left-[50px] right-[50px] top-16 bottom-11">
+      <div className="absolute left-[60px] right-[60px] top-16 bottom-11">
         {TICKS.map((f) => (
           <div
             key={`v${f}`}
@@ -91,19 +107,20 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS, started
 
       {/* X ekseni — GERÇEK SAAT (sık), plot ile hizalı. Uç etiketler KENARDAN TAŞMASIN (Mehmet Abi: yeşil "şimdi" saati tam görünsün):
           ilk=sola, son=sağa hizalı; ortadakiler ortalı. */}
-      <div className="absolute left-[50px] right-[50px] bottom-5 h-5">
+      <div className="absolute left-[60px] right-[60px] bottom-5 h-5">
         {TICKS.map((f, i) => {
           const edge = i === 0 ? 'translate-x-0' : i === TICKS.length - 1 ? '-translate-x-full' : '-translate-x-1/2'
           return (
             <div key={f} className={`absolute flex flex-col items-center gap-0.5 ${edge}`} style={{ left: `${f * 100}%` }}>
               <span className={`num whitespace-nowrap text-[8px] font-semibold ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'}`} style={shadow}>{clockAt(f)}</span>
+              <span className={`num whitespace-nowrap text-[7px] font-medium ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'} opacity-75`} style={shadow}>{relAt(f)}</span>
             </div>
           )
         })}
       </div>
 
       {/* Alt aciklama (SOL=geçmiş, SAĞ=şimdi) */}
-      <div className="absolute left-[50px] right-[50px] bottom-0.5 flex items-center justify-between text-[9px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
+      <div className="absolute left-[60px] right-[60px] bottom-0.5 flex items-center justify-between text-[9px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
         <span>← {t('geçmiş')}</span>
         <span>{t('şimdi')} →</span>
       </div>

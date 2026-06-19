@@ -19,7 +19,7 @@ export function HeroKPI({ percent, mode }: { percent: number; mode: Mode }) {
   const p = useSmoothNumber(percent, 0.1)
   const c = MODE_COLOR[mode]
   return (
-    <Tilt3D className="glass relative flex h-full flex-col justify-between overflow-hidden rounded-2xl p-6">
+    <Tilt3D className="glass relative flex h-full flex-col justify-between overflow-hidden rounded-2xl p-4">
       {/* 3D DERİNLİK arka planı: radyal tasarruf-yeşili vurgu + ust-ic isik / alt-ic golge (panel boşlukta yüzer hissi) */}
       <div
         className="pointer-events-none absolute inset-0"
@@ -28,18 +28,19 @@ export function HeroKPI({ percent, mode }: { percent: number; mode: Mode }) {
       <div className="relative" style={{ transform: 'translateZ(22px)' }}>
         <div className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--ink-soft)]">{t('Anlık Tasarruf')}</div>
         <div
-          className="num mt-1 inline-flex items-baseline text-5xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
+          className="num mt-1 inline-flex items-baseline text-4xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
           style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)' }}
         >
           {/* SABİT GENİŞLİK: % işareti + sağa hizalı sabit-genişlik rakam alanı → ondalık/hane değişince blok ZIPLAMAZ */}
           <span>%</span>
           <span className="inline-block text-right tabular-nums" style={{ minWidth: '2.6ch' }}>{fmt1(p)}</span>
         </div>
-        <div className="mt-2 text-xs text-[var(--ink-soft)]">{t('Normal çalışmaya göre daha az hava tüketimi')}</div>
+        <div className="mt-1.5 text-xs text-[var(--ink-soft)]">{t('Normal çalışmaya göre daha az hava tüketimi')}</div>
       </div>
       {/* MOD BLOĞU SABİT YÜKSEKLİK (Mehmet Abi: mod değişince kart boyu DEĞİŞMESİN → alttaki kartlar kaymasın):
-          MODE_DESC modlar arası 1-2 satır oynuyordu; h-[3.6em]+overflow-hidden ile blok hep aynı → kart HEP aynı ölçü. */}
-      <div className="h-[3.6em] overflow-hidden" style={{ transform: 'translateZ(12px)' }}>
+          MODE_DESC modlar arası 1-2 satır oynuyordu; sabit yükseklik+overflow-hidden ile blok hep aynı → kart HEP aynı ölçü.
+          2026-06-19: kart küçültüldü (Mehmet abi: Sıcaklık/Nem'e yer aç) → h-[3.6em]→h-[3em]. */}
+      <div className="h-[3em] overflow-hidden" style={{ transform: 'translateZ(12px)' }}>
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c, boxShadow: `0 0 10px ${c}` }} />
           <span className="truncate text-base font-semibold text-white">{t(MODE_LABEL[mode])}</span>

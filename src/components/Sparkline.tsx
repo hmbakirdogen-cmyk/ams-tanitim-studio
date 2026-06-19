@@ -51,7 +51,10 @@ export function Sparkline({ values, color, min, max, height = 40, head = false, 
 
   const span = max - min || 1
   const norm = (v: number) => Math.max(0, Math.min(1, (v - min) / span))
-  const y = (v: number) => H - norm(v) * H
+  // ÜST/ALT PAY (Mehmet abi 2026-06-19: "rapor grafiklerinin üstü kesik") — çizgi + ışık gölgesi + nokta SVG/konteyner kenarında KIRPILMASIN:
+  //   çizimi içeri al (norm 0..1 → [PADV, H−PADV]). Veri tepeye/dibe değse bile kenarda pay kalır.
+  const PADV = 7
+  const y = (v: number) => PADV + (1 - norm(v)) * (H - 2 * PADV)
   const step = W / (values.length - 1)
   const pts: [number, number][] = values.map((v, i) => [i * step, y(v)])
   const line = smoothPath(pts)
@@ -87,7 +90,7 @@ export function Sparkline({ values, color, min, max, height = 40, head = false, 
       {head && (
         <span
           aria-hidden
-          style={{ position: 'absolute', left: 'calc(100% - 4px)', top: `${(1 - lastNorm) * 100}%`, transform: 'translate(-50%, -50%)' }}
+          style={{ position: 'absolute', left: 'calc(100% - 4px)', top: `${PADV + (1 - lastNorm) * (100 - 2 * PADV)}%`, transform: 'translate(-50%, -50%)' }}
         >
           {pulse && (
             <span

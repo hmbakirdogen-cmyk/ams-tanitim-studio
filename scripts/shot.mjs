@@ -12,6 +12,7 @@ const URL = process.argv[2] || 'http://localhost:5190/'
 const OUT = process.argv[3] || 'shot.png'
 const CLICK = (process.argv[4] || '').toLowerCase()
 const W = Number(process.argv[5] || 1600), H = Number(process.argv[6] || 1000)
+const CLICK2 = (process.env.SHOT_CLICK2 || '').toLowerCase() // 2. tık: ilk tıktan sonra (ör. giriş→KART) — metni içeren cursor-pointer öğeye tıklar (modal testi)
 const PORT = 9333
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -58,6 +59,11 @@ async function jget(path) {
     const r = await cmd('Runtime.evaluate', { expression: `(()=>{const b=[...document.querySelectorAll('button')].find(x=>(x.textContent||'').toLowerCase().includes(${JSON.stringify(CLICK)}));if(b){b.click();return b.textContent.trim()}return 'YOK'})()`, returnByValue: true })
     console.log('tikla:', r?.result?.value)
     await sleep(4000) // panel render
+  }
+  if (CLICK2) {
+    const r2 = await cmd('Runtime.evaluate', { expression: `(()=>{const cands=[...document.querySelectorAll('button,[role=button],a,.cursor-pointer')].filter(x=>(x.textContent||'').toLowerCase().includes(${JSON.stringify(CLICK2)}));const el=cands.sort((a,b)=>(a.textContent||'').length-(b.textContent||'').length)[0];if(el){el.click();return 'OK'}return 'YOK'})()`, returnByValue: true })
+    console.log('tikla2:', r2?.result?.value)
+    await sleep(2400) // modal açılış (yağ gibi spring) + canlı çizim
   }
   const shot = await cmd('Page.captureScreenshot', { format: 'png' })
   fs.writeFileSync(OUT, Buffer.from(shot.data, 'base64'))

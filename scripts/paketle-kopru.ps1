@@ -1,5 +1,5 @@
 # NE      : AMS tek-tik dagitim paketi (gomulu Node + offline app + cihaz koprusu) + OTOMATIK GUNCELLEME Release'i uretir.
-#           -> paket\SMC-AMS-Kopru.zip (dagitim) + GitHub Release "app-<hash>" (app.zip = kurulu makinelerin cektigi guncelleme).
+#           -> paket\SMC-AMS-Tanitim.zip (dagitim) + GitHub Release "app-<hash>" (app.zip = kurulu makinelerin cektigi guncelleme).
 # NEDEN   : Mehmet Abi "tek butonla hazir + kurulu bilgisayarlar da guncel olsun." Saha mühendisi hicbir sey kurmaz; kurulu
 #           makineler online olunca son app'i Release'ten ceker (bkz bridge/updater.mjs).
 # NASIL   : node.exe + node_modules + FRESH build -> dist/version.json (git hash) -> staging -> tam zip + app.zip -> gh release.
@@ -11,8 +11,8 @@ $root   = Split-Path -Parent $PSScriptRoot
 $bridge = Join-Path $root 'bridge'
 $dist   = Join-Path $root 'dist'
 $out    = Join-Path $root 'paket'
-$stage  = Join-Path $out 'SMC-AMS-Kopru'
-$zip    = Join-Path $out 'SMC-AMS-Kopru.zip'
+$stage  = Join-Path $out 'SMC-AMS-Tanitim'
+$zip    = Join-Path $out 'SMC-AMS-Tanitim.zip'
 $appZip = Join-Path $out 'app.zip'
 $nodeVer = 'v24.14.0'
 $nodeExe = Join-Path $bridge 'runtime\node.exe'

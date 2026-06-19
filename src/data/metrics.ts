@@ -12,6 +12,7 @@ import { Wind, Gauge, Thermometer, Droplets } from 'lucide-react'
 import { useMemo } from 'react'
 import type { Reading } from './types'
 import { getActiveModel, useModel, type AmsModel } from './model'
+import { getPressureUnit, pressureFactor, usePressureUnit, type PressureUnit } from './pressureUnit'
 
 export type MetricKey = 'flow' | 'pressure' | 'temperature' | 'humidity'
 
@@ -56,11 +57,21 @@ const BASE: Omit<MetricDef, 'max'>[] = [
   },
 ]
 
-// Model bazli olcekleri uretir: debi tepe = baseline * 1.12, basinc tepe = modelin MPa siniri
-export function buildMetrics(model: AmsModel): MetricDef[] {
+// Model + BASINÇ BİRİMİ bazlı ölçek üretir: debi tepe = flowMax; basınç tepe = pressureMax × birim-faktörü (bar→×10).
+export function buildMetrics(model: AmsModel, pUnit: PressureUnit = getPressureUnit()): MetricDef[] {
+  const pf = pressureFactor(pUnit) // MPa→1, bar→10
   return BASE.map((b) => {
-    if (b.key === 'flow') return { ...b, max: Math.max(50, Math.round(model.baselineFlow * 1.12)) }
-    if (b.key === 'pressure') return { ...b, max: model.pressureMax }
+    // Mehmet abi 2026-06-19: grafik/ölçek tepesi = ÜRÜN max debisi (flowMax) → "max debi 2000 ise 2500/6000 görünmesin", eksen tam üründe biter.
+    if (b.key === 'flow') return { ...b, max: model.flowMax }
+    // Mehmet abi 2026-06-19: BASINÇ birime göre (bar/MPa). Değer/ölçek/birim/ondalık birimden türer → kart/grafik/overlay/detay/analiz HEPSİ otomatik uyar.
+    if (b.key === 'pressure') return {
+      ...b,
+      max: model.pressureMax * pf,
+      unit: pUnit === 'bar' ? 'bar' : 'megapaskal',
+      unitShort: pUnit === 'bar' ? 'bar' : 'MPa',
+      digits: pUnit === 'bar' ? 1 : 2, // 0,49 MPa = 4,9 bar
+      get: (r) => r.pressure * pf,     // reading.pressure HAM MPa → gösterimde çevrilir
+    }
     if (b.key === 'temperature') return { ...b, max: 30 }
     return { ...b, max: 60 }
   })
@@ -69,8 +80,9 @@ export function buildMetrics(model: AmsModel): MetricDef[] {
 // Aktif model anlik snapshot (React disindan kullanim icin - or. demoSource ileride okumasi gerekirse)
 export const METRICS: MetricDef[] = buildMetrics(getActiveModel())
 
-// Bilesenlerin model degisikliginde otomatik yeniden render olmasi icin reaktif dizi
+// Bilesenlerin model VEYA basınç birimi degisikliginde otomatik yeniden render olmasi icin reaktif dizi
 export function useMetrics(): MetricDef[] {
   const { model } = useModel()
-  return useMemo(() => buildMetrics(model), [model])
+  const { unit } = usePressureUnit()
+  return useMemo(() => buildMetrics(model, unit), [model, unit])
 }

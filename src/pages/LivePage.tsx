@@ -18,7 +18,6 @@ import { HeroKPI } from '@/components/HeroKPI'
 import { MetricCard } from '@/components/MetricCard'
 import { ModeStrip } from '@/components/ModeStrip'
 import { PageHeader } from '@/components/PageHeader'
-import { AmbientScene } from '@/components/AmbientScene'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useMetrics, type MetricDef, type MetricKey } from '@/data/metrics'
 import { savingPercent } from '@/lib/savings'
@@ -28,7 +27,6 @@ import { useEconomy } from '@/data/economy'
 import { useTotalizer } from '@/data/totalizer'
 import { fmtInt, fmt2 } from '@/lib/format'
 import { useLang } from '@/i18n'
-import { isMobileDevice } from '@/lib/device'
 import { useMemo, useState, useEffect } from 'react'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
@@ -45,7 +43,6 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
     return trend.filter((r) => r.t >= cut)
   }, [trend, windowMs])
   const { t } = useLang()
-  const mobile = isMobileDevice() // mobilde ağır arka plan katmanlarını azalt (ısınma/refresh önlenir)
   // CANLI PANEL'E GEÇİŞ AKICILIĞI (Mehmet Abi: "geçerken gecikme/görüntü kirliliği/takılma"): ağır katmanlar (WebGL 3D + 2D akış +
   //   ambient) sayfa geçiş animasyonu (~0.22s) BİTTİKTEN sonra mount edilir → opacity geçişi GPU/shader init'iyle ÇAKIŞMAZ; sonra fade-in.
   const [heavyReady, setHeavyReady] = useState(false)
@@ -64,10 +61,6 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   // Tasarruf % = AKTİF MODEL baseline'ına göre (SavingsPage + demoSource ile birebir tutarlı; eski sabit 1800 yerine economy.baselineFlow).
   const { economy } = useEconomy()
   const percent = reading ? savingPercent(reading.flow, economy.baselineFlow) : 0
-  // Ortak AmbientScene için akış hızı 0..1 (canlı veriyle hava zerreleri hızlanır) — debi metriğinin kendi ölçeğine normalize
-  const flowNorm = reading && byKey.flow
-    ? Math.max(0, Math.min(1, (byKey.flow.get(reading) - byKey.flow.min) / (byKey.flow.max - byKey.flow.min)))
-    : 0.4
 
   // ESIK degerleri (Urun Ayarlari'ndan) - PipeOverlay'de okunabilir etiket (anlik deger + birim)
   const { settings: dev } = useDeviceSettings()
@@ -108,7 +101,8 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             <div className="glass relative h-[42vh] min-h-[240px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[3]">
               {heavyReady && (
                 <div className="ams-fade-in absolute inset-0">
-                  <AmbientScene theme={theme} flow={flowNorm} space />
+                  {/* ARKA PLAN SADELEŞTİ (Mehmet abi 2026-06-19): 60fps AmbientScene KALDIRILDI (sistemi yoruyordu). Hafif "space derinliği"
+                      ızgarası artık DeviceFlowChart İÇİNDE — koyu scrim'in ÜSTÜNE, cihazın ALTINA çiziliyor (yoksa scrim bastırıyordu). Burada ek katman yok. */}
                   <DeviceFlowChart reading={reading} metrics={metrics} mode={mode} theme={theme} />
                 </div>
               )}
@@ -119,9 +113,8 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             <div className="glass relative h-[30vh] min-h-[190px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2]">
               {heavyReady && (
                 <div className="ams-fade-in absolute inset-0">
-                  {/* MOBİL: bu 2. AmbientScene (3D grafiğin ARKASINDA, çoğu görünmez) ÇİZİLMEZ → boşa dönen canvas yok. Masaüstünde kalır.
-                      calm: Mehmet Abi "rahat/karmaşasız" → grafik arkası SAKİN (perspektif ızgara kapalı + az zerre) → veri net odakta. */}
-                  {!mobile && <AmbientScene theme={theme} flow={flowNorm} calm />}
+                  {/* ARKA PLAN SADELEŞTİ (Mehmet abi 2026-06-19): grafiğin arkasındaki AmbientScene (zaten "çoğu görünmez"di) KALDIRILDI →
+                      sistemi boşa yormayan sade arka plan; glass yüzey grafiğe net/odaklı zemin verir, veri öne çıkar. */}
                   <ErrorBoundary variant="inline" label={t('Grafik')}>
                     <LiveChart2D history={shownTrend} reading={reading} metrics={visibleMetrics} theme={theme} />
                   </ErrorBoundary>
@@ -136,15 +129,23 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             <div className="shrink-0">
               <HeroKPI percent={percent} mode={mode} />
             </div>
-            {/* HAVA TÜKETİMİ — BÜYÜK (Mehmet Abi: "grafik kaybolmasın + toplam tüketim öne çıksın"): kendi geniş hücresinde, sm boy + TOPLAM satırı. Tıklanınca detay. */}
+            {/* ÖNEM HİYERARŞİSİ (Mehmet abi 2026-06-19): Tasarruf(üst) > HAVA TÜKETİMİ (hero, ana ölçüm + toplam) > Basınç (kontrol) > Sıcaklık/Nem (ortam).
+                HAVA TÜKETİMİ — en büyük metrik kartı (sm + TOPLAM satırı). */}
             {byKey.flow && visible.flow && (
-              <div className="lg:min-h-0 lg:flex-[1.05]">
+              <div className="lg:min-h-0 lg:flex-[1.18]">
                 <MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} />
               </div>
             )}
-            {/* Diğer sensörler — kompakt (mobilde 3 sütun, lg'de dikey). Tıklanınca detay penceresi (büyük eksenli grafik). */}
-            <div className="grid grid-cols-3 gap-3 lg:min-h-0 lg:flex-[1.85] lg:grid-cols-1 lg:auto-rows-fr">
-              {cardDefs.filter((m) => m.key !== 'flow').map((m) => (
+            {/* BASINÇ — ikinci önemli (kontrol değişkeni): kendi hücresinde sm (Sıcaklık/Nem'den büyük), Hava Tüketimi'nin biraz altında. */}
+            {byKey.pressure && visible.pressure && (
+              <div className="lg:min-h-0 lg:flex-[1.0]">
+                <MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} />
+              </div>
+            )}
+            {/* Sıcaklık + Nem — ortam: Mehmet abi 2026-06-19 BİRAZ BÜYÜTÜLDÜ (Tasarruf kartından açılan yerle); xs'te değer + grafik YAN YANA →
+                veri ASLA görünmez olmaz. Mobil 2 sütun, lg dikey. */}
+            <div className="grid grid-cols-2 gap-3 lg:min-h-0 lg:flex-[1.3] lg:grid-cols-1 lg:auto-rows-fr">
+              {cardDefs.filter((m) => m.key !== 'flow' && m.key !== 'pressure').map((m) => (
                 <MetricCard key={m.key} def={m} history={history} size="xs" onClick={() => setDetailKey(m.key)} />
               ))}
             </div>

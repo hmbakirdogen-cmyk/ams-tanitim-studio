@@ -10,6 +10,7 @@ import type { MetricDef } from '@/data/metrics'
 import type { Reading } from '@/data/types'
 import { Tilt3D } from './Tilt3D'
 import { Sparkline } from './Sparkline'
+import { PressureUnitToggle } from './PressureUnitToggle'
 import { useLang } from '@/i18n'
 import { localeOf, fmtInt, fmtCompact } from '@/lib/format'
 
@@ -98,6 +99,7 @@ export function MetricCard({ def, history, size = 'md', total, onClick }: { def:
           <Icon size={17} />
         </span>
         <span className="text-sm font-semibold text-[var(--ink)]">{t(def.name)}</span>
+        {def.key === 'pressure' && <PressureUnitToggle color={def.color} />}
       </div>
 
       {/* ANLIK değer + TOPLAM AYNI SATIRDA (Mehmet Abi: kartta da grafik görünmez oluyordu) → dikey yer açılır, grafik HER ZAMAN sığar. */}

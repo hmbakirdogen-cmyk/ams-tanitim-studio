@@ -10,6 +10,7 @@ import { Clock, Layers, PiggyBank, CalendarClock, Wind } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Tilt3D } from '@/components/Tilt3D'
 import { Sparkline } from '@/components/Sparkline'
+import { PressureUnitToggle } from '@/components/PressureUnitToggle'
 import { RangeAnalysisModal, type RangePreset } from '@/components/RangeAnalysisModal'
 import { useMetrics } from '@/data/metrics'
 import { MODE_LABEL, MODE_COLOR, type Mode } from '@/data/types'
@@ -33,6 +34,14 @@ const PRESETS: { label: string; start: number; end: number }[] = [
   { label: 'Son Çeyrek', start: 75, end: 100 },
 ]
 
+// Grafik ekseni için yuvarlak adım (Mehmet abi 2026-06-19: sabit ölçekte hareketler kayboluyor / tepede kırpılıyordu → seçili dönem aralığına nice auto-range)
+function niceStep(range: number): number {
+  if (range <= 0) return 1
+  const raw = range / 4
+  const e = Math.pow(10, Math.floor(Math.log10(raw)))
+  const f = raw / e
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e
+}
 function stats(series: number[]) {
   if (!series.length) return { min: 0, max: 0, avg: 0, cur: 0 }
   let min = series[0]
@@ -223,12 +232,20 @@ export function AnalysisPage({ data }: { data: LiveState }) {
               const series = win.map(m.get)
               const s = stats(series)
               const Icon = m.icon
+              // GRAFİK EKSENİ — seçili dönemin GERÇEK aralığına nice auto-range (sabit ölçek hatası: hareketler kayboluyor / tepede kırpılıyordu)
+              const aStep = niceStep(Math.max(s.max - s.min, m.max * 0.001))
+              let aMin = Math.floor(s.min / aStep) * aStep
+              let aMax = Math.ceil(s.max / aStep) * aStep
+              if (m.min === 0 && aMin < 0) aMin = 0
+              if (aMax - aMin < aStep) aMax = aMin + aStep
+              const dg = (v: number) => fmt(v, v < 10 ? (v % 1 ? 1 : 0) : 0)
               return (
                 <Tilt3D key={m.key} className="glass relative flex flex-col gap-3 overflow-hidden rounded-2xl p-5" max={4}>
                   <span className="absolute inset-x-0 top-0 h-1" style={{ background: m.color, boxShadow: `0 0 18px ${m.color}` }} />
                   <div className="flex items-center gap-2.5">
                     <span className="grid h-9 w-9 place-items-center rounded-lg" style={{ background: `${m.color}1f`, color: m.color }}><Icon size={18} /></span>
                     <span className="text-sm font-semibold text-[var(--ink)]">{t(m.name)}</span>
+                    {m.key === 'pressure' && <PressureUnitToggle color={m.color} />}
                     <span className="ml-auto flex items-baseline gap-1">
                       <span className="num text-2xl font-bold text-white" style={{ textShadow: `0 0 18px ${m.color}66` }}>{fmt(s.cur, m.digits)}</span>
                       <span className="text-xs text-[var(--ink-soft)]">{t(m.unitShort)}</span>
@@ -237,12 +254,12 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                   {/* DETAYLI grafik (Mehmet Abi: "X/Y eksen skalaları"): SOL = Y ekseni (maks/orta/min, kendi renginde), ALT = X ekseni (başlangıç→bitiş saati). */}
                   <div className="flex gap-2">
                     <div className="flex w-10 shrink-0 flex-col justify-between py-0.5 text-right num text-[9px] leading-none" style={{ color: m.color }}>
-                      <span className="font-semibold">{fmt(m.max, m.max < 10 ? 1 : 0)}</span>
-                      <span className="opacity-70">{fmt((m.min + m.max) / 2, m.max < 10 ? 1 : 0)}</span>
-                      <span className="font-semibold">{fmt(m.min, m.min < 10 ? 1 : 0)}</span>
+                      <span className="font-semibold">{dg(aMax)}</span>
+                      <span className="opacity-70">{dg((aMin + aMax) / 2)}</span>
+                      <span className="font-semibold">{dg(aMin)}</span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <Sparkline values={series} color={m.color} min={m.min} max={m.max} height={70} baseline />
+                      <Sparkline values={series} color={m.color} min={aMin} max={aMax} height={70} baseline />
                       <div className="mt-1 flex items-center justify-between border-t border-[var(--hair)] pt-1 text-[9px] text-[var(--ink-soft)]">
                         <span className="num">{fromClock || '—'}</span>
                         <span className="uppercase tracking-wide">{t(m.unitShort)} · {t('zaman')}</span>

@@ -34,7 +34,7 @@ export interface DeviceStatus {
   standby?: boolean       // AMS30_Standby — tasarruf modu aktif
   forcedStandby?: boolean // AMS30_ForcedStandBy — zorlanmis standby
   valveOpen?: boolean     // AMS30_VP_DV_NO — kesme valfi durumu
-  doOut?: boolean         // AMS30_PF34_DOout — dijital cikis (alarm/esik)
+  doOut?: boolean         // AMS30_PF3A_DOout — dijital cikis (alarm/esik) [PF3A: Efekan Bey saha duzeltmesi 2026-06-19]
   operation?: boolean     // calisiyor/devrede
 }
 
