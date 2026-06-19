@@ -17,7 +17,7 @@ import { localeOf } from '@/lib/format'
 const PAD_L = 60, PAD_R = 60, PAD_T = 64, PAD_B = 44 // sol+sağ Y-skala gutter'ları — FERAH (Mehmet abi: skalaları rahatlat); ChartOverlay left/right-[60px] ile EŞLİ tutulur
 const N = 220
 const LANE_GAP = 16 // iki şerit İYİCE ayrık (Mehmet abi)
-const GROUPS: MetricKey[][] = [['flow'], ['pressure']] // Mehmet abi 2026-06-19: ısı+nem KALDIRILDI → yalnız Hava Tüketimi + Basınç, her biri AYRI şeritte TAM doldurur
+// Şerit grupları artık PROP (Mehmet abi 2026-06-19 sekme: Hava&Basınç ↔ Sıcaklık&Nem). Default = Hava Tüketimi + Basınç.
 
 function hexRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '')
@@ -40,16 +40,17 @@ function niceAxis(maxV: number): { hi: number; step: number } {
   return { hi, step }
 }
 
-export function LiveChart2D({ history = [], reading = null, metrics, theme = 'dark' }: {
+export function LiveChart2D({ history = [], reading = null, metrics, theme = 'dark', groups = [['flow'], ['pressure']] }: {
   history?: Reading[]
   reading?: Reading | null
   metrics: MetricDef[]
   theme?: 'dark' | 'light'
+  groups?: MetricKey[][] // Mehmet abi 2026-06-19: sekme → hangi 2 sensör (Hava&Basınç / Sıcaklık&Nem)
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const dataRef = useRef({ history, reading, metrics })
-  dataRef.current = { history, reading, metrics }
+  const dataRef = useRef({ history, reading, metrics, groups })
+  dataRef.current = { history, reading, metrics, groups }
   const dispRef = useRef<Record<string, Float32Array>>({})
 
   useEffect(() => {
@@ -82,7 +83,7 @@ export function LiveChart2D({ history = [], reading = null, metrics, theme = 'da
       if (typeof document !== 'undefined' && document.hidden) return
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, W, H)
-      const { history: hist, reading: rd, metrics: mets } = dataRef.current
+      const { history: hist, reading: rd, metrics: mets, groups: grps } = dataRef.current
       const n = hist.length
       const px = PAD_L, py = PAD_T, pw = Math.max(1, W - PAD_L - PAD_R), ph = Math.max(1, H - PAD_T - PAD_B)
       if (n < 2 || !mets.length) return
@@ -93,7 +94,7 @@ export function LiveChart2D({ history = [], reading = null, metrics, theme = 'da
         return m.get(hist[lo]) * (1 - fr) + m.get(hist[hi]) * fr
       }
       ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-      const lanes = GROUPS.map((keys) => keys.map((k) => mets.find((m) => m.key === k)).filter(Boolean) as MetricDef[]).filter((g) => g.length)
+      const lanes = grps.map((keys) => keys.map((k) => mets.find((m) => m.key === k)).filter(Boolean) as MetricDef[]).filter((g) => g.length)
       const weights = lanes.map(() => 1) // iki şerit EŞİT yükseklik → ikisi de tam doldurur (Mehmet abi: ısı+nem kalkınca dengeli bölüşüm)
       const wsum = weights.reduce((a, b) => a + b, 0) || 1
       const availH = ph - (lanes.length - 1) * LANE_GAP

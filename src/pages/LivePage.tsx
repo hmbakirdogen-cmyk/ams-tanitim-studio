@@ -30,10 +30,18 @@ import { useLang } from '@/i18n'
 import { useMemo, useState, useEffect } from 'react'
 import type { LiveState } from '@/hooks/useLiveReadings'
 
+// Grafik sekmeleri (Mehmet abi 2026-06-19): AYNI görünüm mantığı, farklı 2 sensör çifti
+const CHART_TABS: { label: string; groups: MetricKey[][] }[] = [
+  { label: 'Hava & Basınç', groups: [['flow'], ['pressure']] },
+  { label: 'Sıcaklık & Nem', groups: [['temperature'], ['humidity']] },
+]
+
 export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
   const { reading, history, setMode, startedAt, trend } = data
   // ZAMAN PENCERESI (Mehmet Abi: "15 dk'yi sıfıra doğru kolayca ayarlayabilelim") — 3D grafik bu aralığı gösterir; 15 dk varsayılan.
   const [windowMs, setWindowMs] = useState(15 * 60 * 1000)
+  // GRAFİK SEKMESİ (Mehmet abi 2026-06-19): 0 = Hava & Basınç, 1 = Sıcaklık & Nem
+  const [chartTab, setChartTab] = useState(0)
   // Kart tıklanınca açılan DETAY penceresi (Mehmet Abi: "kartlar tıklanabilir, detaylı grafik+eksen göstersin") — seçili metrik anahtarı.
   const [detailKey, setDetailKey] = useState<MetricKey | null>(null)
   // Seçili pencereye kırpılmış trend (≈2/sn, en çok 15 dk) → Hero3DChart L=600 vertekse yeniden örnekler + ChartOverlay saat etiketleri.
@@ -116,11 +124,11 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
                   {/* ARKA PLAN SADELEŞTİ (Mehmet abi 2026-06-19): grafiğin arkasındaki AmbientScene (zaten "çoğu görünmez"di) KALDIRILDI →
                       sistemi boşa yormayan sade arka plan; glass yüzey grafiğe net/odaklı zemin verir, veri öne çıkar. */}
                   <ErrorBoundary variant="inline" label={t('Grafik')}>
-                    <LiveChart2D history={shownTrend} reading={reading} metrics={visibleMetrics} theme={theme} />
+                    <LiveChart2D history={shownTrend} reading={reading} metrics={visibleMetrics} theme={theme} groups={CHART_TABS[chartTab].groups} />
                   </ErrorBoundary>
                 </div>
               )}
-              <ChartOverlay reading={reading} history={shownTrend} metrics={visibleMetrics} startedAt={startedAt} windowMs={windowMs} onWindowChange={setWindowMs} />
+              <ChartOverlay reading={reading} history={shownTrend} metrics={visibleMetrics} startedAt={startedAt} windowMs={windowMs} onWindowChange={setWindowMs} tabs={CHART_TABS.map((c) => c.label)} activeTab={chartTab} onTabChange={setChartTab} showPressureToggle={chartTab === 0} theme={theme} />
             </div>
           </div>
 

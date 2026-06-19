@@ -46,6 +46,7 @@ export function MetricDetailModal({ def, series, reading, startedAt, total, onCl
   const seriesRef = useRef(series); seriesRef.current = series
   const dispRef = useRef<Float32Array | null>(null)        // akıcı çizgi havuzu (canlı panel gibi yağ-gibi akış)
   const rangeRef = useRef<{ lo: number; hi: number } | null>(null) // yumuşak eksen (akışta zıplamaz)
+  const avgRef = useRef<number | null>(null) // ortalama çizgisi yağ-gibi (Mehmet abi 2026-06-19): hedef ortalamaya lerp
 
   const nf = (v: number, d = def.digits) => new Intl.NumberFormat(localeOf(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
   const clk = (ms: number) => new Date(ms).toLocaleTimeString(localeOf(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -105,6 +106,8 @@ export function MetricDetailModal({ def, series, reading, startedAt, total, onCl
       if (n) { mn = Infinity; mx = -Infinity; for (const r2 of s) { const v = def.get(r2); if (v < mn) mn = v; if (v > mx) mx = v; sum += v } }
       if (!Number.isFinite(mn) || !Number.isFinite(mx) || mx - mn < 1e-9) { mn = def.min; mx = def.max || def.min + 1 }
       const avgV = n ? sum / n : 0
+      let avgD = avgRef.current; if (avgD == null) avgD = avgV
+      avgD += (avgV - avgD) * 0.08; avgRef.current = avgD // ortalama YAĞ GİBİ kayar (Mehmet abi 2026-06-19)
       const step = niceStep(mx - mn)
       let tMin = Math.floor(mn / step) * step
       let tMax = Math.ceil(mx / step) * step
@@ -159,11 +162,11 @@ export function MetricDetailModal({ def, series, reading, startedAt, total, onCl
         const pts: number[][] = new Array(N)
         for (let i = 0; i < N; i++) pts[i] = [px + (i / (N - 1)) * pw, py + ph - disp[i] * ph]
         // ORTALAMA referans çizgisi (kesik, sensör renginde) + etiket → "iyice detay"
-        const ay = yOf(avgV)
+        const ay = yOf(avgD)
         ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.45)`; ctx.lineWidth = 1
         ctx.beginPath(); ctx.moveTo(px, ay + 0.5); ctx.lineTo(px + pw, ay + 0.5); ctx.stroke(); ctx.restore()
         ctx.font = '600 8px ui-sans-serif, system-ui, sans-serif'; ctx.fillStyle = `rgba(${cr},${cg},${cb},0.72)`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'
-        ctx.fillText(`${t('ort')} ${nf(avgV)}`, px + 4, ay - 2)
+        ctx.fillText(`${t('ort')} ${nf(avgD)}`, px + 4, ay - 2)
         // ALAN dolgusu (yağ gibi smooth)
         ctx.beginPath(); smooth(pts); ctx.lineTo(px + pw, py + ph); ctx.lineTo(px, py + ph); ctx.closePath()
         const g = ctx.createLinearGradient(0, py, 0, py + ph)

@@ -15,7 +15,9 @@ import { localeOf } from '@/lib/format'
 import type { Reading } from '@/data/types'
 
 const TICKS = Array.from({ length: 17 }, (_, i) => i / 16) // X ekseni — 2 KAT sık (17 nokta) gerçek saat + düşey çizgi (Mehmet Abi)
-const shadow = { textShadow: '0 1px 5px rgba(2,4,10,0.95), 0 0 2px rgba(2,4,10,0.9)' }
+// Mehmet abi 2026-06-19: gölge TEMA-DUYARLI — gündüz açık zeminde koyu gölge metni BULANIKLAŞTIRIYORDU; gündüz beyaz halo, gece koyu gölge.
+const shadowDark = { textShadow: '0 1px 5px rgba(2,4,10,0.95), 0 0 2px rgba(2,4,10,0.9)' }
+const shadowLight = { textShadow: '0 0 2px rgba(255,255,255,0.95), 0 0 1px rgba(255,255,255,0.95)' }
 // ZAMAN PENCERESI secenekleri (Mehmet Abi: "15 dk'lik araligi sifira dogru kolayca ayarlayabilelim") — 15 dk'dan asagi.
 const WINDOWS = [
   { ms: 30_000, label: '30 sn' },
@@ -34,8 +36,9 @@ function fmtElapsed(ms: number): string {
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(ss)}` : `${pad(m)}:${pad(ss)}`
 }
 
-export function ChartOverlay({ reading, history = [], metrics = METRICS, startedAt = 0, windowMs, onWindowChange }: { reading: Reading | null; history?: Reading[]; metrics?: MetricDef[]; startedAt?: number; windowMs?: number; onWindowChange?: (ms: number) => void }) {
+export function ChartOverlay({ reading, history = [], metrics = METRICS, startedAt = 0, windowMs, onWindowChange, tabs, activeTab = 0, onTabChange, showPressureToggle = true, theme = 'dark' }: { reading: Reading | null; history?: Reading[]; metrics?: MetricDef[]; startedAt?: number; windowMs?: number; onWindowChange?: (ms: number) => void; tabs?: string[]; activeTab?: number; onTabChange?: (i: number) => void; showPressureToggle?: boolean; theme?: 'dark' | 'light' }) {
   const { t } = useLang()
+  const shadow = theme === 'light' ? shadowLight : shadowDark // gündüz/gece okunurluk (Mehmet abi)
   const elapsed = fmtElapsed(reading?.t ?? 0)
   const nf = (v: number, d = 0) => new Intl.NumberFormat(localeOf(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
   // GERÇEK SAAT (Efekan Bey): history = gösterilen pencere → X tikinin duvar saati = startedAt + göreli t.
@@ -66,6 +69,24 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS, started
           <span className="text-[11px] font-semibold tracking-wide text-[var(--c-saving)]">{t('CANLI')}</span>
           <span className="num text-sm font-bold text-white">{elapsed}</span>
         </div>
+        {/* SEKME (Mehmet abi 2026-06-19): Hava&Basınç ↔ Sıcaklık&Nem — grafik içeriğini değiştirir (aynı görünüm mantığı) */}
+        {tabs && tabs.length > 1 && onTabChange && (
+          <div className="pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-full border border-white/10 bg-[#050b18]/75 p-0.5 backdrop-blur-md">
+            {tabs.map((tb, i) => {
+              const on = i === activeTab
+              return (
+                <button
+                  key={tb}
+                  onClick={() => onTabChange(i)}
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                  style={on ? { background: 'linear-gradient(135deg, rgba(0,114,206,0.5), rgba(0,114,206,0.18))', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : undefined}
+                >
+                  {t(tb)}
+                </button>
+              )
+            })}
+          </div>
+        )}
         {onWindowChange && windowMs != null && (
           <div className="pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-full border border-white/10 bg-[#050b18]/75 p-0.5 backdrop-blur-md">
             {WINDOWS.map((w) => {
@@ -85,10 +106,12 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS, started
         )}
       </div>
 
-      {/* SAĞ-ÜST: BASINÇ BİRİMİ (MPa/bar) — Mehmet abi 2026-06-19: grafikten de değiştirilebilsin (kartlarla aynı global anahtar). */}
-      <div className="pointer-events-auto absolute right-3 top-3">
-        <PressureUnitToggle />
-      </div>
+      {/* SAĞ-ÜST: BASINÇ BİRİMİ (MPa/bar) — Mehmet abi 2026-06-19: grafikten de değiştirilebilsin. YALNIZ basınç içeren sekmede (Sıcaklık/Nem'de gizli). */}
+      {showPressureToggle && (
+        <div className="pointer-events-auto absolute right-3 top-3">
+          <PressureUnitToggle />
+        </div>
+      )}
 
       {/* DÜŞEY zaman çizgileri (tüm şeritleri keser) — yatay ızgara + sol ölçek artık CANVAS'ta (her şerit kendi Y-ekseniyle, lane düzeni). */}
       <div className="absolute left-[60px] right-[60px] top-16 bottom-11">

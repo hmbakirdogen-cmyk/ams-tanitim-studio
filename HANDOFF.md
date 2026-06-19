@@ -15,6 +15,7 @@
 - **Efekan düzeltmesi:** OPC UA debimetre düğümü **PF34→PF3A** (accumFlow/doOut) — "toplam harcanan hava" gelmiyordu, düzeldi (opcua-bridge.mjs + types.ts).
 - **Veri denetimi (ajan):** akış tutarlı (tek reading/totalizer). Not: model↔economy.baselineFlow senkronu AMS40A dışında elle (düşük risk).
 - **Paket:** `paket/SMC-AMS-Tanitim.zip` (~46MB, gömülü node+bridge+app) + **masaüstüne kopyalandı**. GitHub Release adımı ATLANDI (Mehmet abi WeTransfer/WhatsApp ile gönderir).
+- **Grafik SEKMESİ (YENİ):** Canlı Panel grafiğinde **Hava & Basınç ↔ Sıcaklık & Nem** sekmesi (aynı görünüm mantığı; LiveChart2D `groups` prop + ChartOverlay `tabs`). bar/MPa toggle YALNIZ basınç sekmesinde. Detay penceresi **ortalama çizgisi de yağ-gibi (lerp)**.
 - **AÇIK (sonra):** Tip-B AR regülatör montaj optimizasyonu · model↔economy senkron sağlamlaştırma · gerçek cihaz OPC UA testi · shot.mjs `SHOT_CLICK2` (2. tık) eklendi (modal/sayfa testi).
 
 ## ŞU AN NEREDEYIZ (2026-06-15 — EFEKAN BEY PAKETİ: temiz program + Tip-B gizli) ⭐⭐ ÖNCEKİ

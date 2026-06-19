@@ -47,11 +47,13 @@ async function jget(path) {
   const cmd = (method, params = {}) => new Promise((res) => { const i = ++id; pend.set(i, res); ws.send(JSON.stringify({ id: i, method, params })) })
   await new Promise((r) => ws.addEventListener('open', r, { once: true }))
   await cmd('Page.enable'); await cmd('Runtime.enable')
-  // SHOT_MODEL (ops.): cihaz modelini zorla (Tip A/B variant testi). localStorage'a yaz + reload → model.ts yüklemede okur.
+  // SHOT_MODEL / SHOT_THEME (ops.): cihaz modelini / temayı (light|dark) zorla. localStorage'a yaz + reload → uygulama yüklemede okur.
   const MODEL = process.env.SHOT_MODEL || ''
-  if (MODEL) {
+  const THEME = process.env.SHOT_THEME || ''
+  if (MODEL || THEME) {
     await sleep(1400)
-    await cmd('Runtime.evaluate', { expression: `localStorage.setItem('ams_model_v1', ${JSON.stringify(MODEL)})` })
+    if (MODEL) await cmd('Runtime.evaluate', { expression: `localStorage.setItem('ams_model_v1', ${JSON.stringify(MODEL)})` })
+    if (THEME) await cmd('Runtime.evaluate', { expression: `localStorage.setItem('ams_theme_v1', ${JSON.stringify(THEME)})` })
     await cmd('Page.reload'); await sleep(1700)
   }
   await sleep(3800) // ilk render + IntroSplash gecisi
