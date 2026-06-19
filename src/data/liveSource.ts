@@ -6,7 +6,7 @@
  *           Otomatik yeniden baglanma; durum connection store'a yazilir. stop() sonrasi GEC gelen olaylar durumu EZMEZ (stopped + handler null).
  * YAN ETKI: Offline (yerel kopru, internet yok). DemoDataSource ile AYNI sozlesme -> sayfalar degismeden canli veriyi cizer.
  */
-import type { DataSource, Mode, Reading } from './types'
+import type { CommandKey, DataSource, Mode, Reading } from './types'
 import { setConnStatus, BRIDGE_URL, type ConnStatus, type NodeIds } from './connection'
 import type { DeviceSettings } from './deviceSettings'
 
@@ -133,5 +133,10 @@ export class LiveDataSource implements DataSource {
   // HIBRIT: kullanici Urun Ayarlari'nda degistirince ayarlar cihaza yazilir (kopru OPC UA write yapar)
   setSettings(settings: DeviceSettings): void {
     try { this.ws?.send(JSON.stringify({ type: 'setSettings', settings })) } catch { /* yok */ }
+  }
+
+  // KOMUT (Mehmet abi: ana ekran kutucukları — Standby Input / Force Standby / Isolation) → kopru cihaza BOOLEAN OPC UA write yapar
+  sendCommand(key: CommandKey, on: boolean): void {
+    try { this.ws?.send(JSON.stringify({ type: 'command', key, on })) } catch { /* yok */ }
   }
 }

@@ -22,6 +22,10 @@ export interface NodeIds {
   standbyThreshold?: string
   autoIsolationSec?: string
   valveMode?: string
+  // KOMUT YAZMA düğümleri (Mehmet abi: ana ekrandan cihaz kontrolü — boolean write). Cihazda yoksa köprü sessizce atlar; Ayar'dan düzeltilir.
+  cmdStandby?: string      // Standby Input sinyali (DI)
+  cmdForceStandby?: string // Force Standby
+  cmdIsolation?: string    // Isolation (havayı kes)
 }
 
 export interface ConnSettings {
@@ -37,6 +41,10 @@ export const DEFAULT_NODE_IDS: NodeIds = {
   temperature: 'ns=2;s=AMS.Temperature',
   humidity: 'ns=2;s=AMS.Humidity',
   mode: 'ns=2;s=AMS.Mode',
+  // Komut yazma varsayılanları (cihazda test edilip Ayar'dan netleştirilecek — durum okuma düğümleriyle aynı isimden başlanır)
+  cmdStandby: 'ns=2;s=AMS30_Standby',
+  cmdForceStandby: 'ns=2;s=AMS30_ForcedStandBy',
+  cmdIsolation: 'ns=2;s=AMS30_Isolation',
 }
 
 export const DEFAULT_CONN: ConnSettings = { mode: 'demo', endpoint: 'opc.tcp://192.168.1.50:4840', nodeIds: { ...DEFAULT_NODE_IDS } }

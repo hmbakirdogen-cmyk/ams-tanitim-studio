@@ -78,7 +78,7 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS, started
                 <button
                   key={tb}
                   onClick={() => onTabChange(i)}
-                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                  className={`rounded-full px-3.5 py-1 text-[11px] font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                   style={on ? { background: 'linear-gradient(135deg, rgba(0,114,206,0.5), rgba(0,114,206,0.18))', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : undefined}
                 >
                   {t(tb)}

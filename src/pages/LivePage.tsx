@@ -12,11 +12,11 @@ import { AnimatePresence } from 'framer-motion'
 import { LiveChart2D } from '@/components/LiveChart2D'
 import { ChartOverlay } from '@/components/ChartOverlay'
 import { DeviceFlowChart } from '@/components/DeviceFlowChart'
+import { DeviceCommands } from '@/components/DeviceCommands'
 import { MetricDetailModal } from '@/components/MetricDetailModal'
 import { PipeOverlay } from '@/components/PipeOverlay'
 import { HeroKPI } from '@/components/HeroKPI'
 import { MetricCard } from '@/components/MetricCard'
-import { ModeStrip } from '@/components/ModeStrip'
 import { PageHeader } from '@/components/PageHeader'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useMetrics, type MetricDef, type MetricKey } from '@/data/metrics'
@@ -37,7 +37,7 @@ const CHART_TABS: { label: string; groups: MetricKey[][] }[] = [
 ]
 
 export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState; greetName?: string; theme?: 'dark' | 'light' }) {
-  const { reading, history, setMode, startedAt, trend } = data
+  const { reading, history, startedAt, trend, sendCommand } = data
   // ZAMAN PENCERESI (Mehmet Abi: "15 dk'yi sıfıra doğru kolayca ayarlayabilelim") — 3D grafik bu aralığı gösterir; 15 dk varsayılan.
   const [windowMs, setWindowMs] = useState(15 * 60 * 1000)
   // GRAFİK SEKMESİ (Mehmet abi 2026-06-19): 0 = Hava & Basınç, 1 = Sıcaklık & Nem
@@ -94,7 +94,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
       <PageHeader
         title="Canlı Panel"
         subtitle={subtitle}
-        right={<ModeStrip active={mode} onSelect={setMode} />}
+        right={<DeviceCommands reading={reading} onCommand={sendCommand} />}
       />
 
       {/* BİRLEŞİK SAHNE — SOL (grafikler) + SAĞ (veriler). MOBİL/tablet: dikey YIĞIN + SCROLL (sabit panel yükseklikleri → her şey okunur);

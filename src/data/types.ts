@@ -8,6 +8,9 @@
 // Cihazin uc calisma modu (kullaniciya acik Turkce - kisaltma yok)
 export type Mode = 'normal' | 'standby' | 'isolation'
 
+// Ana ekrandan cihaza gonderilen KOMUTLAR (Mehmet abi: boolean OPC UA write — Standby Input / Force Standby / Isolation)
+export type CommandKey = 'standby' | 'forceStandby' | 'isolation'
+
 export const MODE_LABEL: Record<Mode, string> = {
   normal: 'Normal Çalışma',
   standby: 'Tasarruf Modu',
@@ -61,4 +64,6 @@ export interface DataSource {
   // HIBRIT senkron (donanim gelince): kullanici Urun Ayarlari'nda degistirince cihaza yazilir.
   // Tip cevrimsel bagimliligi onlemek icin parametre gevsek (deviceSettings.DeviceSettings sekli) tutulur.
   setSettings?(settings: { standbyPressure: number; autoIsolationSec: number; standbyThreshold: number; valveMode: 'NC' | 'NO' }): void
+  // KOMUT (Mehmet abi: ana ekran kutucukları) — boolean. Canlıda köprüye OPC UA write; demoda senaryoyu sürer.
+  sendCommand?(key: CommandKey, on: boolean): void
 }

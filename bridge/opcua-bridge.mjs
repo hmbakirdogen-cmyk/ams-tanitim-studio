@@ -543,7 +543,7 @@ export function handleAppConnection(socket) {
       return
     }
     // Yazma komutlari: session yoksa SESSIZCE yutma -> uygulamaya hata bildir
-    if (msg.type === 'setMode' || msg.type === 'setSettings') {
+    if (msg.type === 'setMode' || msg.type === 'setSettings' || msg.type === 'command') {
       if (!session) { send({ type: 'status', error: 'cihaz bagli degil, komut uygulanamadi' }); return }
     }
     if (msg.type === 'setMode') {
@@ -562,6 +562,16 @@ export function handleAppConnection(socket) {
       let err = null
       for (const w of writes) { try { await session.write(w) } catch (e) { err = e.message; console.error('[kopru] ayar yazma hatasi:', e.message) } }
       if (err) send({ type: 'status', error: `ayar yazilamadi: ${err}` }); else console.log('[kopru] ayarlar cihaza yazildi:', s)
+    } else if (msg.type === 'command') {
+      // KOMUT YAZMA (Mehmet abi: ana ekrandan Standby Input / Force Standby / Isolation) — cihaza BOOLEAN write.
+      //   Düğüm tanımsızsa SESSIZCE atla + uygulamaya bildir (yanlış düğüme yazma yok). Düğümler connect ile gelen nodeIds'ten.
+      const CMD_NODE = { standby: nodeIds.cmdStandby, forceStandby: nodeIds.cmdForceStandby, isolation: nodeIds.cmdIsolation }
+      const node = CMD_NODE[msg.key]
+      if (!node) { send({ type: 'status', error: `komut dugumu tanimsiz: ${msg.key}` }); return }
+      try {
+        await session.write({ nodeId: node, attributeId: AttributeIds.Value, value: { value: { dataType: DataType.Boolean, value: !!msg.on } } })
+        console.log('[kopru] komut yazildi:', msg.key, '=', !!msg.on)
+      } catch (e) { console.error('[kopru] komut yazma hatasi:', e.message); send({ type: 'status', error: `komut yazilamadi: ${e.message}` }) }
     }
   })
 

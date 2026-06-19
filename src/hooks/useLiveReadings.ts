@@ -6,7 +6,7 @@
  * YAN ETKI: Tek kaynak ornegi (ref); unmount'ta durdurur. Canli cihaz yoksa uygulama kirilmaz (durum: Baglanti yok).
  */
 import { useEffect, useRef, useState } from 'react'
-import type { DataSource, Mode, Reading } from '@/data/types'
+import type { CommandKey, DataSource, Mode, Reading } from '@/data/types'
 import { DemoDataSource } from '@/data/demoSource'
 import { LiveDataSource } from '@/data/liveSource'
 import { useConnection, setConnStatus } from '@/data/connection'
@@ -28,6 +28,7 @@ export interface LiveState {
   trend: Reading[] // 15 dk seyreltilmis (≈1/sn) — canli 3D grafik (borular) gercek-zaman 15 dk penceresi
   startedAt: number // t=0 aninin duvar saati (epoch ms) -> raporda gercek tarih/saat icin
   setMode: (m: Mode) => void
+  sendCommand: (key: CommandKey, on: boolean) => void // ana ekran kutucukları → cihaza komut (Mehmet abi)
 }
 
 export function useLiveReadings(): LiveState {
@@ -102,5 +103,6 @@ export function useLiveReadings(): LiveState {
   }, [settings.mode, settings.endpoint, settings.nodeIds])
 
   const setMode = (m: Mode) => srcRef.current?.setMode?.(m)
-  return { reading, history, log, trend, startedAt: startedAtRef.current, setMode }
+  const sendCommand = (key: CommandKey, on: boolean) => srcRef.current?.sendCommand?.(key, on)
+  return { reading, history, log, trend, startedAt: startedAtRef.current, setMode, sendCommand }
 }

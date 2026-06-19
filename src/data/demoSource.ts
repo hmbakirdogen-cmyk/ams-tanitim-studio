@@ -5,7 +5,7 @@
  *           Otomatik tur (Normal->Tasarruf->Kesinti) oynar; setMode ile kullanici (butonlar) elle modu degistirebilir.
  * YAN ETKI: Sadece zamana/etkilesime bagli; saf istemci. Gercek cihaz adaptoru ileride ayni DataSource sozlesmesini doldurur.
  */
-import type { DataSource, Mode, Reading } from './types'
+import type { CommandKey, DataSource, Mode, Reading } from './types'
 import { getDeviceSettings } from './deviceSettings'
 import { getActiveModel, defaultsForModel, type AmsModel } from './model'
 
@@ -43,6 +43,7 @@ export class DemoDataSource implements DataSource {
   private cb: ((r: Reading) => void) | null = null
   private cur: Targets = { ...targetsForModel(getActiveModel()).normal }
   private target: Mode = 'normal'
+  private cmd = { standby: false, forceStandby: false, isolation: false } // ana ekran kutucuk durumları (Mehmet abi) — demo görsel
   private autoCycle = true
   private cycleIdx = 0
   private cycleElapsed = 0
@@ -74,6 +75,14 @@ export class DemoDataSource implements DataSource {
       this.cycleElapsed = 0
       this.autoCycle = true
     }, 13000)
+  }
+
+  // KOMUT (Mehmet abi: ana ekran kutucukları) — demo'da senaryoyu sürer (görsel): isolation→hava kes, standby/forceStandby→tasarruf.
+  sendCommand(key: CommandKey, on: boolean): void {
+    this.cmd[key] = on
+    if (key === 'isolation') this.setMode(on ? 'isolation' : 'normal')
+    else if (on) this.setMode('standby')
+    else if (!this.cmd.standby && !this.cmd.forceStandby) this.setMode('normal')
   }
 
   private tick(): void {
@@ -115,6 +124,12 @@ export class DemoDataSource implements DataSource {
       temperature: this.cur.temperature + noise(0.06),
       humidity: this.cur.humidity + noise(0.2),
       mode: this.target,
+      // Kutucuk durumları (Mehmet abi: toggle yanar/söner) — demo'da senaryo + komutlardan türer; canlıda cihazdan gelir.
+      status: {
+        standby: this.target === 'standby' || this.cmd.standby,
+        forcedStandby: this.cmd.forceStandby,
+        valveOpen: this.target !== 'isolation',
+      },
     }
     this.cb?.(reading)
   }
