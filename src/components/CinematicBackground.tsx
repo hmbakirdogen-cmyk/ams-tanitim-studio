@@ -18,6 +18,44 @@ export function CinematicBackground() {
       <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% -10%, #08183a 0%, #050e1d 45%, #02030a 100%)', opacity: 'var(--scene-dark-op, 1)', transition: 'opacity 0.5s ease' }} />
       <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% -10%, #ffffff 0%, #e6eefa 45%, #cfe0f4 100%)', opacity: 'var(--scene-light-op, 0)', transition: 'opacity 0.5s ease' }} />
 
+      {/* DERİN UZAY — çok SEYREK + çok SÖNÜK yıldız tozu (Mehmet abi: "uzay üssü hissi AMA asla şımarıklık YOK; JP SMC"): yalnız üst
+          bölgede, aşağı doğru solarak biter (maske). Minik (1-1.5px), dağınık, soluk → "köprüden derin uzaya bakıyorsun" fısıltısı; gaudy
+          galaksi DEĞİL. Saf statik CSS (radial-gradient noktalar; animasyon/rAF YOK) → RAM/GPU bedava. Gündüz modunda söner (--aurora-op). */}
+      <div
+        className="absolute inset-x-0 top-0 h-[52vh]"
+        style={{
+          opacity: 'var(--aurora-op)',
+          transition: 'opacity 0.5s ease',
+          maskImage: 'linear-gradient(to bottom, black 8%, transparent 86%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 8%, transparent 86%)',
+          backgroundRepeat: 'no-repeat',
+          backgroundImage: [
+            'radial-gradient(1.4px 1.4px at 8% 13%, rgba(255,255,255,0.48), transparent)',
+            'radial-gradient(1px 1px at 17% 33%, rgba(255,255,255,0.30), transparent)',
+            'radial-gradient(1.5px 1.5px at 23% 7%, rgba(200,225,255,0.50), transparent)',
+            'radial-gradient(1px 1px at 31% 22%, rgba(255,255,255,0.26), transparent)',
+            'radial-gradient(1.2px 1.2px at 38% 41%, rgba(255,255,255,0.34), transparent)',
+            'radial-gradient(1.5px 1.5px at 44% 9%, rgba(255,255,255,0.52), transparent)',
+            'radial-gradient(1px 1px at 52% 28%, rgba(190,215,255,0.30), transparent)',
+            'radial-gradient(1.3px 1.3px at 59% 16%, rgba(255,255,255,0.44), transparent)',
+            'radial-gradient(1px 1px at 66% 38%, rgba(255,255,255,0.24), transparent)',
+            'radial-gradient(1.5px 1.5px at 72% 6%, rgba(255,255,255,0.50), transparent)',
+            'radial-gradient(1.1px 1.1px at 79% 25%, rgba(255,255,255,0.32), transparent)',
+            'radial-gradient(1.3px 1.3px at 86% 14%, rgba(205,228,255,0.46), transparent)',
+            'radial-gradient(1px 1px at 93% 31%, rgba(255,255,255,0.26), transparent)',
+            'radial-gradient(1px 1px at 13% 46%, rgba(255,255,255,0.22), transparent)',
+            'radial-gradient(1.1px 1.1px at 27% 49%, rgba(255,255,255,0.24), transparent)',
+            'radial-gradient(1px 1px at 41% 47%, rgba(255,255,255,0.20), transparent)',
+            'radial-gradient(1.2px 1.2px at 62% 47%, rgba(255,255,255,0.22), transparent)',
+            'radial-gradient(1px 1px at 83% 45%, rgba(255,255,255,0.20), transparent)',
+            'radial-gradient(1.3px 1.3px at 5% 28%, rgba(255,255,255,0.40), transparent)',
+            'radial-gradient(1.4px 1.4px at 35% 31%, rgba(195,220,255,0.40), transparent)',
+            'radial-gradient(1.2px 1.2px at 49% 38%, rgba(255,255,255,0.30), transparent)',
+            'radial-gradient(1.5px 1.5px at 90% 38%, rgba(255,255,255,0.34), transparent)',
+          ].join(', '),
+        }}
+      />
+
       {/* (Nokta-matris katmanı KALDIRILDI — Mehmet Abi: "noktalar tüm ekranda olmasın, sadece grafik kartlarının arkasında + rakama göre
           ölçekli olsun" → noktalar artık .dot-bg ile YALNIZ veri kartlarının yüzeyinde, değere göre canlanır; index.css + MetricCard.) */}
 
