@@ -81,11 +81,12 @@ export function ProductPage() {
       {/* Hero — Mehmet Abi: "sidebar rozetindeki gorselin BUYUK ve temiz hali". Metin SOL, gorsel (ams-diagram.jpg = AMS unitesi
           fabrika ortaminda, urunun TAMAMI, yazi yok) SAG. Yan-yana grid; kutu orani GORSELLE birebir -> kesik/bosluk yok. */}
       <Reveal>
-        <Tilt3D className="glass relative grid grid-cols-1 items-center gap-6 overflow-hidden rounded-3xl p-8 lg:grid-cols-[1fr_minmax(300px,380px)]" max={4}>
+        {/* @container hero kartında (Mehmet abi 2026-06-20): büyük başlık pencere/kart daralınca orantılı küçülür (cqw = kart %'si), taşmaz. */}
+        <Tilt3D className="glass @container relative grid grid-cols-1 items-center gap-6 overflow-hidden rounded-3xl p-8 lg:grid-cols-[1fr_minmax(300px,380px)]" max={4}>
           <div className="absolute -left-16 -top-16 h-52 w-52 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--smc)' }} />
           <div style={{ transform: 'translateZ(20px)' }}>
             <SmcLogo size={80} withText={false} />
-            <h2 className="mt-5 text-4xl font-extrabold leading-tight text-white">
+            <h2 className="mt-5 text-[clamp(1.5rem,4.2cqw,2.25rem)] font-extrabold leading-tight text-white">
               {t('Boşa giden havayı')} <span className="text-[var(--c-saving)] glow-text" style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)' }}>{t('%62’ye kadar')}</span> {t('azaltın')}
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--ink-soft)]">
@@ -157,13 +158,14 @@ export function ProductPage() {
 
         {/* Komple unite - EN KALITELI gorsel (ams-system, 2800px) aciklamanin yaninda, elit */}
         <Reveal>
-          <Tilt3D className="glass mb-4 grid grid-cols-1 items-center gap-5 overflow-hidden rounded-2xl p-5 lg:grid-cols-[1.15fr_1fr]" max={4}>
+          {/* @container: "Komple Ünite" başlığı bu kart genişliğine göre ölçeklenir (dar pencerede orantılı küçülür). */}
+          <Tilt3D className="glass @container mb-4 grid grid-cols-1 items-center gap-5 overflow-hidden rounded-2xl p-5 lg:grid-cols-[1.15fr_1fr]" max={4}>
             <div className="overflow-hidden rounded-xl border border-[var(--hair)]" style={{ background: 'radial-gradient(115% 100% at 50% 26%, #173a63 0%, #0b1e37 58%, #06101e 100%)' }}>
               <img src={asset('products/ams-system-hd.png')} alt={t('SMC AMS — komple ünite (resmi SMC CAD, yüksek çözünürlük)')} className="mx-auto max-h-[300px] w-full object-contain p-4" loading="lazy" />
             </div>
             <div style={{ transform: 'translateZ(14px)' }}>
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--smc-bright)]">{t('Komple Ünite')} · {model.code}</div>
-              <h4 className="mt-1 text-2xl font-bold text-white">{t('Tek gövdede tüm sistem')}</h4>
+              <h4 className="mt-1 text-[clamp(1.1rem,3cqw,1.5rem)] font-bold text-white">{t('Tek gövdede tüm sistem')}</h4>
               <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
                 {t('Regülatör, tahliye valfi ve ölçüm/iletişim merkezi tek modüler gövdede birleşir. Dahili ekran anlık basınç, debi ve sıcaklığı gösterir; IO-Link / OPC UA ile üst sisteme doğrudan bağlanır.')}
               </p>

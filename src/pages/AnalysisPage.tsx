@@ -187,8 +187,10 @@ export function AnalysisPage({ data }: { data: LiveState }) {
             </div>
           </div>
 
-          {/* Ozet: mod dagilimi + tasarruf */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* Ozet: mod dagilimi + tasarruf
+              @container (Mehmet abi 2026-06-20): kart İÇİ büyük sayılar artık PENCERE (vw) yerine BU GRİD'in genişliğine (cqw) göre
+              ölçeklenir → panel/pencere küçülünce sayı orantılı küçülür, taşma/çakışma olmaz (Canlı Panel reçetesi). */}
+          <div className="@container grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Tilt3D className="glass rounded-2xl p-5 lg:col-span-2" max={4}>
               <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><Layers size={16} className="text-[var(--smc-bright)]" /> {t('Mod Dağılımı (süre payı)')}</div>
               <div className="space-y-2.5">
@@ -213,21 +215,24 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                 {/* KAYNAK ETIKETI (#6): bu kart CANLI oturum gunlugunden (data.log) hesaplanir; "Tarihsel rapor"daki tasarruf
                     ise kalici DAKIKALIK gecmisten gelir -> ayni donem icin sayilar farkli olabilir. Kullanici karistirmasin diye baslik kaynagi belirtir. */}
                 <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><PiggyBank size={16} className="text-[var(--c-saving)]" /> {t('Tasarruf (canlı oturum)')}</div>
-                <div className="num mt-2 text-3xl font-bold text-[var(--c-saving)]">{fmtMoneyCompact(sv.money)}</div>
+                {/* Dominant sayı cqw clamp (Mehmet abi 2026-06-20): grid daralınca orantılı küçülür; whitespace-nowrap → kısaltma yok, sığar. */}
+                <div className="num mt-2 whitespace-nowrap text-[clamp(1.25rem,5.5cqw,1.875rem)] font-bold text-[var(--c-saving)]">{fmtMoneyCompact(sv.money)}</div>
                 <div className="num mt-1 text-sm text-[var(--ink-soft)]">{fmtCompact(sv.kwh)} kWh · {fmtCompact(sv.co2)} kg CO₂</div>
               </Tilt3D>
               {/* TOPLAM HAVA TÜKETİMİ (Mehmet Abi: "geçmiş analiz sayfasında da toplam hava tüketim verisi olmalı") — seçili dönemde tüketilen toplam hava. */}
               <Tilt3D className="glass relative overflow-hidden rounded-2xl p-5" max={5}>
                 <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full opacity-25 blur-3xl" style={{ background: 'var(--c-flow)' }} />
                 <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-[var(--ink)]"><Wind size={16} style={{ color: 'var(--c-flow)' }} /> {t('Toplam Hava Tüketimi')}</div>
-                <div className="num mt-2 text-3xl font-bold" style={{ color: 'var(--c-flow)' }}>{fmtCompact(consumedL)} <span className="text-base font-semibold text-[var(--ink-soft)]">Litre</span></div>
+                {/* Dominant sayı + birim cqw clamp (grid daralınca orantılı; nowrap → kısaltma yok) */}
+                <div className="num mt-2 whitespace-nowrap text-[clamp(1.25rem,5.5cqw,1.875rem)] font-bold" style={{ color: 'var(--c-flow)' }}>{fmtCompact(consumedL)} <span className="text-[clamp(0.8rem,2.6cqw,1rem)] font-semibold text-[var(--ink-soft)]">Litre</span></div>
                 <div className="num mt-1 text-sm text-[var(--ink-soft)]">{t('seçili dönemde tüketilen hava')}</div>
               </Tilt3D>
             </div>
           </div>
 
-          {/* Her sensor: secili aralik detayli */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Her sensor: secili aralik detayli
+              @container: sensör kartı içindeki anlık değer (büyük sayı) grid genişliğine (cqw) göre ölçeklenir → dar pencerede orantılı. */}
+          <div className="@container grid grid-cols-1 gap-4 md:grid-cols-2">
             {metrics.map((m) => {
               const series = win.map(m.get)
               const s = stats(series)
@@ -247,7 +252,8 @@ export function AnalysisPage({ data }: { data: LiveState }) {
                     <span className="text-sm font-semibold text-[var(--ink)]">{t(m.name)}</span>
                     {m.key === 'pressure' && <PressureUnitToggle color={m.color} />}
                     <span className="ml-auto flex items-baseline gap-1">
-                      <span className="num text-2xl font-bold text-white" style={{ textShadow: `0 0 18px ${m.color}66` }}>{fmt(s.cur, m.digits)}</span>
+                      {/* anlık değer cqw clamp (md:grid 2-kolon → her kart ~%50; dar pencerede sayı orantılı küçülür, nowrap) */}
+                      <span className="num whitespace-nowrap text-[clamp(1rem,3.4cqw,1.5rem)] font-bold text-white" style={{ textShadow: `0 0 18px ${m.color}66` }}>{fmt(s.cur, m.digits)}</span>
                       <span className="text-xs text-[var(--ink-soft)]">{t(m.unitShort)}</span>
                     </span>
                   </div>

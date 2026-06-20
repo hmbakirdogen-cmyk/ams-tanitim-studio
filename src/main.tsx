@@ -19,7 +19,9 @@ import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 // PAKET (offline) build mi, CANLI (Pages) build mi? VITE_NO_PWA paketle-kopru.ps1'de set edilir.
-if (import.meta.env.VITE_NO_PWA === 'true') {
+// DEV de dahil (Mehmet abi 2026-06-20): localhost dev'de vite SW URETMEZ ama onceki preview/build'ten KURULU KALMIS eski SW,
+//   dev sunucunun GUNCEL CSS/JS'ini cache'ten ESKI surumle golgeleyip "icerik kuculmuyor/ayni" yasatiyordu -> dev'de de eski SW/cache TEMIZLE.
+if (import.meta.env.VITE_NO_PWA === 'true' || import.meta.env.DEV) {
   // PAKET: server.mjs zaten offline servis ediyor -> SW gereksiz. Saha makinesinde KURULU KALMIS eski SW, paketin eski surumunu
   // cache'ten veriyordu -> hepsini unregister et + tum cache'leri sil -> her acilista server'dan TAZE (guncel). Eski SW/cache
   // GERCEKTEN varsa BIR kez yenile (sessionStorage guard -> sonsuz reload dongusu YOK; SW yoksa hicbir sey yapmaz).

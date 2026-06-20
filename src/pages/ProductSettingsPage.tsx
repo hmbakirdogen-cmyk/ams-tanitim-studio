@@ -49,8 +49,9 @@ const MODULE_ICON: Record<string, LucideIcon> = {
 }
 
 function SettingCard({ icon: Icon, color, title, desc, children }: { icon: LucideIcon; color: string; title: string; desc: string; children: React.ReactNode }) {
+  // @container kartın KENDİSİNDE (Mehmet abi 2026-06-20): grid daralınca kart içindeki büyük değer (children) cqw ile orantılı küçülür.
   return (
-    <Tilt3D className="glass relative flex flex-col gap-4 overflow-hidden rounded-2xl p-6" max={5}>
+    <Tilt3D className="glass @container relative flex flex-col gap-4 overflow-hidden rounded-2xl p-6" max={5}>
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: color, boxShadow: `0 0 18px ${color}` }} />
       <div className="flex items-center gap-3" style={{ transform: 'translateZ(16px)' }}>
         <span className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: `${color}1f`, color }}>
@@ -168,8 +169,9 @@ export function ProductSettingsPage() {
           })}
         </div>
 
-        {/* Secili modelin ozeti - sayisal degerler (birimli) */}
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {/* Secili modelin ozeti - sayisal degerler (birimli)
+            @container (Mehmet abi 2026-06-20): değer fontları bu grid genişliğine (cqw) göre ölçeklenir → dar pencerede orantılı küçülür, nowrap → kısaltma yok. */}
+        <div className="@container mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
             { label: 'Debi Aralığı', value: `${fmtInt(model.flowMin)} – ${fmtInt(model.flowMax)}`, unit: 'l/dak', color: '#2E9BFF' },
             { label: 'Normal Tüketim', value: fmtInt(model.baselineFlow), unit: 'l/dak', color: '#2E9BFF' },
@@ -177,7 +179,7 @@ export function ProductSettingsPage() {
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-[var(--hair)] bg-white/[0.03] px-3 py-2.5">
               <div className="text-[11px] text-[var(--ink-soft)]">{t(s.label)}</div>
-              <div className="num text-lg font-bold text-white" style={{ textShadow: `0 0 16px ${s.color}55` }}>
+              <div className="num whitespace-nowrap text-[clamp(0.9rem,4.2cqw,1.125rem)] font-bold text-white" style={{ textShadow: `0 0 16px ${s.color}55` }}>
                 {s.value} <span className="text-xs font-medium text-[var(--ink-soft)]">{t(s.unit)}</span>
               </div>
             </div>
@@ -292,7 +294,7 @@ export function ProductSettingsPage() {
         <SettingCard icon={Gauge} color="#36E0C8" title={t('Bekleme Basıncı')} desc={`${t('Tasarruf modunda düşürülen hedef basınç (azami')} ${fmt2(model.pressureMax)} MPa)`}>
           <div className="mb-1 flex items-baseline justify-between">
             <span className="text-xs text-[var(--ink-soft)]">{t('Hedef')}</span>
-            <span className="num text-2xl font-bold text-white">
+            <span className="num whitespace-nowrap text-[clamp(1.05rem,5.5cqw,1.5rem)] font-bold text-white">
               {fmt2(settings.standbyPressure)} <span className="text-sm font-medium text-[var(--ink-soft)]">MPa</span>
             </span>{/* MPa: uluslararasi birim, cevrilmez */}
           </div>
@@ -303,7 +305,7 @@ export function ProductSettingsPage() {
         <SettingCard icon={Timer} color="#FFB04D" title={t('Otomatik Kesinti Süresi')} desc={t('Beklemeden sonra havanın kesilmesine kadar süre')}>
           <div className="mb-1 flex items-baseline justify-between">
             <span className="text-xs text-[var(--ink-soft)]">{t('Süre')}</span>
-            <span className="num text-2xl font-bold text-white">
+            <span className="num whitespace-nowrap text-[clamp(1.05rem,5.5cqw,1.5rem)] font-bold text-white">
               {fmtInt(settings.autoIsolationSec)} <span className="text-sm font-medium text-[var(--ink-soft)]">{t('sn')}</span>
             </span>
           </div>
@@ -314,7 +316,7 @@ export function ProductSettingsPage() {
         <SettingCard icon={Wind} color="#2E9BFF" title={t('Bekleme Eşiği')} desc={`${t('Debi bu değerin altına düşünce bekleme moduna geçilir (azami')} ${fmtInt(model.baselineFlow)} ${t('l/dak')})`}>
           <div className="mb-1 flex items-baseline justify-between">
             <span className="text-xs text-[var(--ink-soft)]">{t('Eşik')}</span>
-            <span className="num text-2xl font-bold text-white">
+            <span className="num whitespace-nowrap text-[clamp(1.05rem,5.5cqw,1.5rem)] font-bold text-white">
               {fmtInt(settings.standbyThreshold)} <span className="text-sm font-medium text-[var(--ink-soft)]">{t('l/dak')}</span>
             </span>
           </div>

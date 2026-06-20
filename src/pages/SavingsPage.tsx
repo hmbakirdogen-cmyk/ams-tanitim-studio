@@ -18,15 +18,17 @@ import type { LiveState } from '@/hooks/useLiveReadings'
 
 function StatCard({ icon: Icon, color, label, value, sub }: { icon: LucideIcon; color: string; label: string; value: string; sub: string }) {
   const { t } = useLang()
+  // @container kartın KENDİSİNDE (Mehmet abi 2026-06-20): grid 2↔4 kolon değişse de kart genişliği baz alınır → değer/ikon
+  //   kart küçülünce orantılı küçülür (cqw = kartın %'si). nowrap → kısaltma yok, sığar.
   return (
-    <Tilt3D className="glass relative flex flex-col gap-2 overflow-hidden rounded-2xl p-5" max={6}>
+    <Tilt3D className="glass @container relative flex flex-col gap-2 overflow-hidden rounded-2xl p-5" max={6}>
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: color, boxShadow: `0 0 18px ${color}` }} />
-      <span className="grid h-10 w-10 place-items-center rounded-xl" style={{ background: `${color}1f`, color }}>
-        <Icon size={20} />
+      <span className="grid h-[clamp(28px,16cqw,40px)] w-[clamp(28px,16cqw,40px)] place-items-center rounded-xl" style={{ background: `${color}1f`, color }}>
+        <Icon className="h-[50%] w-[50%]" />
       </span>
-      <div className="num text-3xl font-bold text-white" style={{ textShadow: `0 0 22px ${color}66` }}>{value}</div>
-      <div className="text-sm font-medium text-[var(--ink)]">{t(label)}</div>
-      <div className="text-xs text-[var(--ink-soft)]">{t(sub)}</div>
+      <div className="num whitespace-nowrap text-[clamp(1.1rem,12cqw,1.875rem)] font-bold text-white" style={{ textShadow: `0 0 22px ${color}66` }}>{value}</div>
+      <div className="text-[clamp(0.72rem,5cqw,0.875rem)] font-medium text-[var(--ink)]">{t(label)}</div>
+      <div className="text-[clamp(0.62rem,4.2cqw,0.75rem)] text-[var(--ink-soft)]">{t(sub)}</div>
     </Tilt3D>
   )
 }
@@ -69,13 +71,14 @@ export function SavingsPage({ data }: { data: LiveState }) {
     <div className="flex h-full flex-col gap-4 overflow-y-auto pr-1 pb-20">
       <PageHeader title="Tasarruf Analizi" subtitle="AMS ile yıllık tahmini enerji, para ve karbon kazancı" />
 
-      <Tilt3D className="glass relative overflow-hidden rounded-3xl p-8" max={4}>
+      {/* @container hero kartında: dev başlık sayısı pencereyle clamp (cqw = kart %'si) → dar pencerede taşmaz, nowrap → kısaltma yok. */}
+      <Tilt3D className="glass @container relative overflow-hidden rounded-3xl p-8" max={4}>
         <div className="absolute -right-12 -top-12 h-44 w-44 rounded-full opacity-25 blur-3xl" style={{ background: 'var(--c-saving)' }} />
         <div className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--ink-soft)]" style={{ transform: 'translateZ(18px)' }}>
           {t('Yıllık Tahmini Tasarruf')}
         </div>
         <div
-          className="num mt-1 text-7xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
+          className="num mt-1 whitespace-nowrap text-[clamp(2.25rem,11cqw,4.5rem)] font-extrabold leading-none text-[var(--c-saving)] glow-text"
           style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)', transform: 'translateZ(28px)' }}
         >
           {fmtMoneyCompact(money)}
