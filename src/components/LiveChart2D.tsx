@@ -13,6 +13,7 @@ import { useEffect, useRef } from 'react'
 import type { Reading } from '@/data/types'
 import type { MetricDef, MetricKey } from '@/data/metrics'
 import { localeOf } from '@/lib/format'
+import { getEco } from '@/data/eco'
 
 const PAD_L = 60, PAD_R = 60, PAD_T = 64, PAD_B = 44 // sol+sağ Y-skala gutter'ları — FERAH (Mehmet abi: skalaları rahatlat); ChartOverlay left/right-[60px] ile EŞLİ tutulur
 const N = 220
@@ -104,7 +105,8 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
     const draw = (ts = 0) => {
       raf = requestAnimationFrame(draw)
       if (typeof document !== 'undefined' && document.hidden) return
-      if (ts - lastFrame < FRAME_MS) return
+      const frameMs = getEco() ? 1000 / 12 : FRAME_MS // Sakin Mod: ~12fps (sürekli GPU yükü iyice düşer)
+      if (ts - lastFrame < frameMs) return
       lastFrame = ts
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, W, H)

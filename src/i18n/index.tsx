@@ -58,6 +58,7 @@ const EN: Record<string, string> = {
   'Bilgisayara kur — sonrası tamamen çevrimdışı çalışır': 'Install on your computer — runs fully offline afterwards',
   'Gündüz': 'Day',
   'Gece': 'Night',
+  'Sakin Mod': 'Calm Mode',
   'Sesi Aç': 'Sound on',
   'Ses Açık': 'Sound on',
   // Veri kaynagi rozeti
@@ -565,6 +566,7 @@ const JA: Record<string, string> = {
   'Bilgisayara kur — sonrası tamamen çevrimdışı çalışır': 'PCにインストール — 以降は完全オフラインで動作',
   'Gündüz': '昼',
   'Gece': '夜',
+  'Sakin Mod': '静音モード',
   'Sesi Aç': '音を入れる',
   'Ses Açık': '音オン',
   // Veri kaynagi rozeti

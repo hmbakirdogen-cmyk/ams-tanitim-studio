@@ -28,6 +28,7 @@ import { getActiveModel } from '@/data/model'
 import { publishTotalizer } from '@/data/totalizer'   // toplam debi (totalizer) -> sag kol "Toplam Tuketim" karti AYNI degeri okur
 import { drawSevenSeg, measureSevenSeg, type RGB } from '@/lib/sevenSeg'
 import { sampleCurl } from '@/lib/flowField'   // curl-noise akış alanı (divergence-free, TAHSİSSİZ) — geri-dönüş sink + egzoz round-jet doğal salınımı
+import { getEco } from '@/data/eco'   // Sakin Mod: açıkken framerate ~12fps'e düşer (pervane/zayıf PC)
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
 // Hermite smoothstep — yumuşak uç-maskesi (sert doğum/ölüm çizgisi YOK). Modül kapsamı → kare-başı alloc YOK.
@@ -413,7 +414,8 @@ export function DeviceFlowChart({
     //   akış HÂLÂ akıcı (yumuşak parçacık akışında 40fps göze pürüzsüz). dt zaman-tabanlı → totalizer/akış HIZI sapmaz, yalnız daha az kare çizilir.
     const FRAME_MS = 1000 / 40
     const draw = (now: number) => {
-      if (now - lastFrame < FRAME_MS) { raf = requestAnimationFrame(draw); return }
+      const frameMs = getEco() ? 1000 / 12 : FRAME_MS // Sakin Mod: ~12fps → parçacık çizimi seyrelir, GPU/fan iyice düşer
+      if (now - lastFrame < frameMs) { raf = requestAnimationFrame(draw); return }
       lastFrame = now
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       const t = targetRef.current

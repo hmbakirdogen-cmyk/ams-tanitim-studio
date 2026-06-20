@@ -7,9 +7,10 @@
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, LineChart, PiggyBank, Package, SlidersHorizontal, Database,
-  Radio, Wifi, Volume2, VolumeX, LogOut, Users, Sun, Moon,
+  Radio, Wifi, Volume2, VolumeX, LogOut, Users, Sun, Moon, Zap, ZapOff,
   type LucideIcon,
 } from 'lucide-react'
+import { useEco, toggleEco } from '@/data/eco'
 import { SmcLogo } from './SmcLogo'
 import { ProductBadge } from './ProductBadge'
 import { InstallButton } from './InstallButton'
@@ -57,6 +58,7 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
   }, [])
   const time = now.toLocaleTimeString(localeOf(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   const { t } = useLang()
+  const eco = useEco() // Sakin Mod (animasyonları kıs → makine soğur)
 
   // Veri kaynagi rozeti - Demo mu Canli cihaz mi (Urun Ayarlari'ndan)
   const { settings: conn, status: connStatus } = useConnection()
@@ -173,6 +175,15 @@ export function Sidebar({ page, onPage, muted, onToggleSound, user, onLogout, on
               className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--hair)] text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-[var(--ink)]"
             >
               {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+            {/* SAKİN MOD — animasyonları kısıp makineyi soğutur (Mehmet abi "pervane"); açıkken yeşil. Veri canlı kalır. */}
+            <button
+              onClick={() => toggleEco()}
+              aria-label={t('Sakin Mod')}
+              title={t('Sakin Mod')}
+              className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg border transition hover:bg-white/5 ${eco ? 'border-[var(--c-saving)]/50 text-[var(--c-saving)]' : 'border-[var(--hair)] text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+            >
+              {eco ? <ZapOff size={15} /> : <Zap size={15} />}
             </button>
           </div>
         </div>

@@ -150,6 +150,9 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
               </div>
             )}
             <ChartOverlay reading={reading} history={shownTrend} startedAt={startedAt} windowMs={windowMs} onWindowChange={setWindowMs} tabs={CHART_TABS.map((c) => c.label)} activeTab={chartTab} onTabChange={setChartTab} showPressureToggle={chartTab === 0} theme={theme} />
+            {/* 3D HAVA (Mehmet abi opsiyonel) — grafik "recessed konsol penceresi" gibi: üstte ince gömük gölge + altta hafif mavi zemin
+                ışıması → derinlik hissi. Ağırbaşlı (JP SMC), saf statik CSS (rAF/RAM yok); pointer geçirir (zaman seçici tıklanır). */}
+            <span aria-hidden className="pointer-events-none absolute inset-0 rounded-[inherit]" style={{ boxShadow: 'inset 0 16px 28px -22px rgba(0,0,0,0.55), inset 0 -34px 50px -46px rgba(46,155,255,0.22)' }} />
           </div>
         </div>
       </section>

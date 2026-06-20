@@ -135,6 +135,12 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
   .smc-logo-glow, .animate-aurora, .live-ring::after, .ams-fade-in { animation: none !important; }
 }
 
+/* SAKİN MOD (Mehmet abi: "pencereyi açınca pervane deli gibi dönüyor") — tek anahtarla SÜREKLİ CSS animasyonlarını durdur (canvas
+   framerate'i kodda ~12fps'e kısılır). Veri/sayılar CANLI kalır; yalnız görsel hareket sakinleşir → makine soğur. Varsayılan KAPALI. */
+:root[data-eco='1'] .smc-logo-glow,
+:root[data-eco='1'] .animate-aurora,
+:root[data-eco='1'] .live-ring::after { animation: none !important; }
+
 /* --- Ince scrollbar (gerekirse) --- */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: rgba(126,170,230,0.25); border-radius: 8px; }
