@@ -31,8 +31,13 @@ if (-not (Test-Path (Join-Path $bridge 'node_modules\node-opcua'))) {
   Push-Location $bridge; npm install --omit=dev --no-audit --no-fund; Pop-Location
 }
 
-# 3) FRESH app build (her Release taze olsun)
-Push-Location $root; npm run build; Pop-Location
+# 3) FRESH app build (her Release taze olsun). PAKET build'i SW'SIZ (VITE_NO_PWA=true): saha makinesinde bir kez kurulan
+#    service worker paketin ESKI surumunu cache'ten serve ediyordu (Efekan "eski hali aciliyor / toplam tuketim 5 L").
+#    Paket offline zaten server.mjs ile servis ediliyor + guncelleme updater.mjs ile -> SW gereksiz. main.tsx VITE_NO_PWA'da
+#    SW kaydetmez + kurulu eski SW/cache'i temizler -> cift tik = HER ZAMAN guncel. (CANLI Pages build'i CI'da VITE_NO_PWA'siz -> PWA korunur.)
+Push-Location $root
+try { $env:VITE_NO_PWA = 'true'; npm run build } finally { Remove-Item Env:\VITE_NO_PWA -ErrorAction SilentlyContinue }
+Pop-Location
 
 # 3b) Surum kimligi (git kisa hash) -> dist/version.json. Updater bunu okur; Release tag'i (app-<hash>) ile AYNI olmali.
 $ver = (git -C $root rev-parse --short HEAD).Trim()

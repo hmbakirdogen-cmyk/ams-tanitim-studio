@@ -17,7 +17,12 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    // NO_PWA (paketle-kopru.ps1 -> VITE_NO_PWA=true): PAKET/offline build. SW kendini-imha-eden (selfDestroying) +
+    //   plugin register script ENJEKTE ETMEZ (injectRegister:false) -> paket SW'siz; eski SW/cache temizligi main.tsx'te.
+    //   CANLI (Pages, CI) build'de VITE_NO_PWA yok -> normal autoUpdate PWA (offline + 'Yukle' korunur).
     VitePWA({
+      selfDestroying: process.env.VITE_NO_PWA === 'true',
+      injectRegister: process.env.VITE_NO_PWA === 'true' ? false : 'auto',
       registerType: 'autoUpdate',
       includeAssets: ['smc-logo.svg', 'icon.svg', 'apple-touch-icon.png'],
       manifest: {
