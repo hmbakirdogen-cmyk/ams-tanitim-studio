@@ -121,9 +121,11 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             </div>
 
             {/* SOL-ALT köşe: Hava Tüketimi + Basınç. Alt kenara sabitlenir; pencere kısalsa da dışarı taşmaz. */}
-            <div className="absolute bottom-12 left-2 z-10 flex items-start gap-[clamp(4px,0.8cqw,12px)] md:bottom-13 md:left-3">
+            <div className="absolute bottom-12 left-2 z-10 flex items-end gap-[clamp(10px,2.4cqw,32px)] md:bottom-13 md:left-3">
+              {/* Flow kartı diğerlerinden TAM 40px uzun (TOPLAM'a yer) + 40px AŞAĞI kaydık (marginBottom -40, küme items-end) → ÜST kenar
+                  diğerleriyle BİREBİR hizalı, fazla boy AŞAĞI uzar (Mehmet abi 2026-06-20: "üstü diğerleriyle hizalı, diğerleri yerinde"). */}
               {byKey.flow && visible.flow && (
-                <div className="h-[clamp(86px,17vh,200px)] w-[clamp(58px,15.5cqw,210px)] min-w-0"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
+                <div className="w-[clamp(58px,15.5cqw,210px)] min-w-0" style={{ height: 'calc(clamp(58px, 15.5vh, 184px) + 40px)', marginBottom: '-40px' }}><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
               )}
               {byKey.pressure && visible.pressure && (
                 <div className="h-[clamp(58px,15.5vh,184px)] w-[clamp(58px,15.5cqw,210px)] min-w-0"><MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} /></div>
@@ -131,7 +133,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             </div>
 
             {/* SAĞ-ALT köşe: Sıcaklık + Nem — alt kenara sabitlenir; pencere kısalsa da dışarı taşmaz. */}
-            <div className="absolute bottom-12 right-2 z-10 flex items-start gap-[clamp(4px,0.8cqw,12px)] md:bottom-13 md:right-3">
+            <div className="absolute bottom-12 right-2 z-10 flex items-end gap-[clamp(10px,2.4cqw,32px)] md:bottom-13 md:right-3">
               {cardDefs.filter((m) => m.key === 'temperature' || m.key === 'humidity').map((m) => (
                 <div key={m.key} className="h-[clamp(58px,15.5vh,184px)] w-[clamp(58px,15.5cqw,210px)] min-w-0"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
               ))}

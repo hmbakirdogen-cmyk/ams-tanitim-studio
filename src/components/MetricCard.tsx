@@ -5,7 +5,7 @@
  * YAN ETKI: history'den son ~60 okuma alinir; metrics.ts'e sensor eklenince App'te karo eklemek yeterli.
  */
 import { useMemo } from 'react'
-import { Maximize2 } from 'lucide-react'
+import { Maximize2, Wind } from 'lucide-react'
 import type { MetricDef } from '@/data/metrics'
 import type { Reading } from '@/data/types'
 import { Tilt3D } from './Tilt3D'
@@ -31,6 +31,8 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
   const totalText = total != null ? (total >= 1_000_000 ? fmtCompact(total) : fmtInt(total)) : null
   // Mini grafik EKSEN ipucu formatı (Mehmet abi: "kendi eksenleri ile") — birim-duyarlı: def (MPa/bar) değişince yeniden kurulur → eksen otomatik doğru.
   const axFmt = (v: number) => new Intl.NumberFormat(localeOf(), { maximumFractionDigits: def.digits }).format(v)
+  // Basınç grafiği TEPESİ = çalışma aralığı (m.max×0.75 = 0,6 MPa / 6 bar) — büyük grafikle (LiveChart2D) BİREBİR scala (Mehmet abi 2026-06-20).
+  const chartMax = def.key === 'pressure' ? def.max * 0.75 : def.max
   // SENKRON (#3): HAM son okuma değeri — useSmoothNumber lerp'i KALDIRILDI. Kart, PipeOverlay ve hub LCD aynı reading'i
   // aynı tikte tükettiği için artık ekranda TEK sayı görünür (eskiden kart geriden gelip "aynı veri farklı sayı" oluyordu).
   // Demo kaynağı zaten ease ile yumuşak akıyor; ekstra lerp gereksiz + tutarsızdı.
@@ -99,7 +101,7 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
             <span className="text-[9px] font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
           </div>
           <div className="relative h-[32px] min-w-0 flex-1">
-            <Sparkline values={series} color={def.color} min={def.min} max={def.max} fill head pulse baseline />
+            <Sparkline values={series} color={def.color} min={def.min} max={chartMax} fill head pulse baseline />
           </div>
         </div>
       </Tilt3D>
@@ -144,9 +146,9 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
           yuvarlak alan+çizgi + canlı nabız noktası. flex-1 → değer ile (varsa) TOPLAM arasını doldurur; kart uzadıkça grafik büyür.
           Saf SVG (rAF YOK; nabız CSS) → RAM bedava. (Eksen rakamları birim-duyarlı olarak sonraki turda eklenecek.) */}
       <div className="relative mt-1.5 min-h-0 flex-1">
-        <Sparkline values={series} color={def.color} min={def.min} max={def.max} fill head pulse baseline />
+        <Sparkline values={series} color={def.color} min={def.min} max={chartMax} fill head pulse baseline />
         {/* KENDİ EKSENİ (Mehmet abi: "her karta kendi eksenleri ile") — üst=max, alt=min; birim-duyarlı (MPa/bar otomatik), kendi renginde, ÇOK sönük (sade). */}
-        <span className="num pointer-events-none absolute left-0.5 top-0 text-[7px] font-semibold leading-none tabular-nums" style={{ color: def.color, opacity: 0.5 }}>{axFmt(def.max)}</span>
+        <span className="num pointer-events-none absolute left-0.5 top-0 text-[7px] font-semibold leading-none tabular-nums" style={{ color: def.color, opacity: 0.5 }}>{axFmt(chartMax)}</span>
         <span className="num pointer-events-none absolute bottom-0 left-0.5 text-[7px] font-semibold leading-none tabular-nums" style={{ color: def.color, opacity: 0.5 }}>{axFmt(def.min)}</span>
       </div>
       {/* TOPLAM (yalnız flow kartı) — PRESTİJLİ (Mehmet abi 2026-06-20): SABİT yükseklik (h-clamp = Hava ile yan kartların yükseklik FARKI)
@@ -156,7 +158,8 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
         <div className={`flex shrink-0 border-t border-white/10 ${compact ? 'mt-1 min-h-[40px] flex-col justify-center gap-1 pt-1.5' : 'h-[clamp(52px,7.2vh,78px)] flex-col justify-center gap-0.5'}`} style={{ transform: 'translateZ(14px)' }}>
           {/* Mehmet abi 2026-06-20: "TOPLAM" yazısı SOLA yaslı (self-start), rakam SAĞA yaslı (self-end) + rakam üstteki anlık değerle
               AYNI BOYUT (NUM_SIZE[size]) ve sağ kenarda TAM HİZALI (ikisi de justify/self-end + aynı birim boyutu). */}
-          <span className={`text-[9px] font-bold uppercase tracking-[0.16em] ${compact ? 'self-start' : 'self-start'}`} style={{ color: TOTAL_AMBER, opacity: 0.82 }}>{t('Toplam')}</span>
+          {/* TOPLAM + küçük hava ikonu (Mehmet abi 2026-06-20: "toplam hava miktarını anlatan küçük ikon") — toplam tüketilen havayı simgeler. */}
+          <span className="flex items-center gap-1 self-start text-[9px] font-bold uppercase tracking-[0.16em]" style={{ color: TOTAL_AMBER, opacity: 0.82 }}><Wind size={9} className="shrink-0" /> {t('Toplam')}</span>
           <div className={`flex w-full items-baseline justify-end gap-1 ${compact ? 'min-w-0' : ''}`}>
             <span className={`num font-bold leading-none tabular-nums ${compact && def.key === 'flow' ? 'text-[clamp(0.54rem,2.625cqw,1.575rem)]' : compact ? 'text-[clamp(0.58rem,2.05cqw,1.02rem)]' : 'text-[clamp(0.62rem,2.9cqw,1.8rem)]'}`} style={{ color: TOTAL_AMBER, textShadow: `0 0 18px ${TOTAL_AMBER}88` }}>{totalText}</span>
             <span className={`font-medium ${compact ? 'text-[clamp(6px,1.5cqw,13px)]' : 'text-[clamp(6px,1.5cqw,13px)]'}`} style={{ color: TOTAL_AMBER }}>Litre</span>

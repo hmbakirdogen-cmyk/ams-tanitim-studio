@@ -74,9 +74,9 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
     if (saveTimeoutRef.current !== null) window.clearTimeout(saveTimeoutRef.current)
   }, [])
 
-  const discover = () => {
+  const discover = (auto = false) => {
     if (scanning) return
-    sound.click()
+    if (!auto) sound.click()
     setScanning(true); setDevices(null); setProgress(null); setScanErr(null); setSelected(null)
     let ws: WebSocket
     try { ws = new WebSocket(BRIDGE_URL) } catch { setScanning(false); setScanErr('bridge'); return }
@@ -105,8 +105,8 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
   }
 
   // Cihaz secildi -> endpoint'i doldur + olcum dugumlerini ISIMDEN tahmin et (browse)
-  const selectDevice = (dev: FoundDevice) => {
-    sound.click()
+  const selectDevice = (dev: FoundDevice, auto = false) => {
+    if (!auto) sound.click()
     setSelected(dev.endpoint)
     setEpDraft(dev.endpoint)
     setBrowsing(true)
@@ -131,6 +131,17 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
       browseTimeoutRef.current = null
     }, 15000)
   }
+
+  // OTOMATIK BAĞLANMA (Mehmet abi: "kabloyu tak cihaza bağlan kadar kolay olsun"):
+  //   (1) Kılavuz AÇILIR AÇILMAZ cihazı kendiliğinden ara → kullanıcı "Otomatik Bul"a basmak zorunda değil (ilk tık gitti).
+  //   (2) TEK cihaz bulununca kendiliğinden seç + sensör kimliklerini doldur → kullanıcıya yalnız "Canlı Moda Geç" kalır.
+  //   Mevcut (test edilmiş) discover()/selectDevice() yeniden kullanılır — yeni bağlantı mantığı YOK (köprü çekirdeği korunur).
+  const autoRan = useRef(false)
+  useEffect(() => { if (!autoRan.current) { autoRan.current = true; discover(true) } }, [])
+  useEffect(() => {
+    if (devices && devices.length === 1 && !selected && !browsing) selectDevice(devices[0], true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [devices])
 
   const save = () => {
     setEndpoint(epDraft.trim() || settings.endpoint)
@@ -188,7 +199,7 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
           <Step n={2} icon={Radar} title={t('Cihazı otomatik bulun')}>
             <div>{t('Aşağıdaki butona basın; aynı ağdaki SMC cihazını biz arayalım. Bulununca tıklayın — adres ve sensör kimlikleri kendiliğinden dolar.')}</div>
             <button
-              onClick={discover}
+              onClick={() => discover()}
               disabled={scanning}
               className="keep-white flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
               style={{ background: 'linear-gradient(135deg,#0072CE,#2E9BFF)' }}
