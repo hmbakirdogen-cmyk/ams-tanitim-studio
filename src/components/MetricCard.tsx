@@ -97,20 +97,21 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: def.color, boxShadow: `0 0 18px ${def.color}` }} />
       {onClick && <Maximize2 size={13} className="pointer-events-none absolute right-2.5 top-2.5 text-[var(--ink-soft)] opacity-50" style={{ transform: 'translateZ(20px)' }} />}
 
-      {/* Başlık — SABİT (shrink-0): kart sıkışsa bile küçülmez/kaybolmaz; uzun ad truncate ile taşmaz → ölçü oynamaz. */}
-      <div className="flex shrink-0 items-center gap-2" style={{ transform: 'translateZ(22px)' }}>
-        <span className={`grid shrink-0 place-items-center rounded-lg ${tight ? 'h-6 w-6' : 'h-8 w-8'}`} style={{ background: `${def.color}1f`, color: def.color }}>
-          <Icon size={tight ? 14 : 17} />
+      {/* Başlık — RESPONSIVE (Mehmet abi 2026-06-20: "sayı/yazı büyüklükleri + kart ölçüleri OTOMATİK, üst üste binmesin"): ikon kutusu +
+          ad fontu pencereyle clamp; ad truncate + min-w-0 → dar pencerede taşmaz/çakışmaz. shrink-0 (kart sıkışsa kaybolmaz). */}
+      <div className="flex min-w-0 shrink-0 items-center gap-1.5" style={{ transform: 'translateZ(22px)' }}>
+        <span className={`grid shrink-0 place-items-center rounded-lg ${tight ? 'h-6 w-6' : 'h-[clamp(22px,2.3vw,32px)] w-[clamp(22px,2.3vw,32px)]'}`} style={{ background: `${def.color}1f`, color: def.color }}>
+          <Icon size={tight ? 14 : 16} />
         </span>
-        <span className="truncate text-sm font-semibold text-[var(--ink)]">{t(def.name)}</span>
+        <span className="whitespace-nowrap text-[clamp(8.5px,1.05vw,14px)] font-semibold text-[var(--ink)]">{t(def.name)}</span>
         {def.key === 'pressure' && <PressureUnitToggle color={def.color} />}
       </div>
 
-      {/* BÜYÜK anlık değer (dominant) SAĞA YASLI — başlığın hemen ALTINDA, SABİT konum → TÜM kartlarda (kısa/uzun fark etmez) anlık
-          değerler AYNI yatay hizada (Mehmet abi 2026-06-20: "hava tüketim anlık verisini yanındaki kartlarla aynı yatay hizaya çek"). */}
-      <div className="mt-2 flex min-w-0 shrink-0 items-baseline justify-end gap-1.5" style={{ transform: 'translateZ(14px)' }}>
+      {/* BÜYÜK anlık değer (dominant) SAĞA YASLI — başlığın hemen ALTINDA, SABİT konum → tüm kartlarda anlık değerler AYNI yatay hizada.
+          Değer + birim pencereyle clamp (otomatik) + min-w-0/tabular-nums → küçük pencerede çakışmaz. */}
+      <div className="mt-2 flex min-w-0 shrink-0 items-baseline justify-end gap-1" style={{ transform: 'translateZ(14px)' }}>
         <span className={`num ${NUM_SIZE[size]} font-bold leading-none text-white tabular-nums`} style={{ textShadow: `0 0 24px ${def.color}66` }}>{text}</span>
-        <span className="shrink-0 text-sm font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
+        <span className="shrink-0 text-[clamp(9px,0.95vw,13px)] font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
       </div>
       {/* esnek boşluk → TOPLAM'ı (varsa) kartın ALTINA iter; anlık değer üstte sabit kalır */}
       <div className="min-h-0 flex-1" />
