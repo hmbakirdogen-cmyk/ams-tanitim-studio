@@ -22,9 +22,9 @@ export function HeroKPI({ percent }: { percent: number; mode: Mode }) {
         style={{ background: 'radial-gradient(120% 90% at 88% -10%, rgba(65,224,138,0.16), transparent 60%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -22px 40px -24px rgba(0,0,0,0.55)' }}
       />
       {/* SOL: yazılar (etiket + açıklama) sola hizalı — Mehmet abi 2026-06-20: KISALTMA YOK (truncate/line-clamp kaldırıldı → tam metin). */}
-      <div className="relative min-w-0" style={{ transform: 'translateZ(22px)' }}>
-        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-soft)]">{t('Anlık Tasarruf')}</div>
-        <div className="mt-0.5 text-[10px] leading-snug text-[var(--ink-soft)]">{t('Normal çalışmaya göre daha az hava tüketimi')}</div>
+      <div className="relative min-w-0 flex-1" style={{ transform: 'translateZ(22px)' }}>
+        <div className="truncate text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-soft)]">{t('Anlık Tasarruf')}</div>
+        <div className="truncate text-[9px] leading-snug text-[var(--ink-soft)]">{t('Normal çalışmaya göre daha az hava tüketimi')}</div>
       </div>
       {/* SAĞ: % değeri — Mehmet abi 2026-06-20: % sembolü rakama YAPIŞIK; sabit-genişlik alan KALDIRILDI → sembol-rakam mesafesi rakam
           genişliğine göre OTOMATIK (rakam değiştikçe sembol yapışık kalır). tabular-nums → rakamlar eşit genişlik (zıplamaz). */}

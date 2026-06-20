@@ -123,17 +123,17 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             {/* SOL-ALT köşe: Hava Tüketimi + Basınç. Alt kenara sabitlenir; pencere kısalsa da dışarı taşmaz. */}
             <div className="absolute bottom-12 left-2 z-10 flex items-start gap-[clamp(4px,0.8cqw,12px)] md:bottom-13 md:left-3">
               {byKey.flow && visible.flow && (
-                <div className="h-[clamp(86px,14.8vh,170px)] w-[clamp(58px,15.5cqw,200px)] min-w-0"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
+                <div className="h-[clamp(86px,17vh,200px)] w-[clamp(58px,15.5cqw,210px)] min-w-0"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
               )}
               {byKey.pressure && visible.pressure && (
-                <div className="h-[clamp(58px,13.2vh,156px)] w-[clamp(58px,15.5cqw,200px)] min-w-0"><MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} /></div>
+                <div className="h-[clamp(58px,15.5vh,184px)] w-[clamp(58px,15.5cqw,210px)] min-w-0"><MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} /></div>
               )}
             </div>
 
             {/* SAĞ-ALT köşe: Sıcaklık + Nem — alt kenara sabitlenir; pencere kısalsa da dışarı taşmaz. */}
             <div className="absolute bottom-12 right-2 z-10 flex items-start gap-[clamp(4px,0.8cqw,12px)] md:bottom-13 md:right-3">
               {cardDefs.filter((m) => m.key === 'temperature' || m.key === 'humidity').map((m) => (
-                <div key={m.key} className="h-[clamp(58px,13.2vh,156px)] w-[clamp(58px,15.5cqw,200px)] min-w-0"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
+                <div key={m.key} className="h-[clamp(58px,15.5vh,184px)] w-[clamp(58px,15.5cqw,210px)] min-w-0"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
               ))}
             </div>
           </div>

@@ -408,8 +408,13 @@ export function DeviceFlowChart({
     //   NASIL: Her karede sig.valve ile farkı alınıp valveRate hesaplanır. YAN ETKİ: effect-scoped (kare-başı alloc YOK, sadece sayı).
     let prevValveSig = 0
 
-    let raf = 0, last = performance.now()
+    let raf = 0, last = performance.now(), lastFrame = 0
+    // KARE SINIRI (Mehmet abi 2026-06-20: "pencereyi açınca pervane deli gibi dönüyor"): ~40fps tavanı → sürekli GPU/CPU yükü ~%33 düşer,
+    //   akış HÂLÂ akıcı (yumuşak parçacık akışında 40fps göze pürüzsüz). dt zaman-tabanlı → totalizer/akış HIZI sapmaz, yalnız daha az kare çizilir.
+    const FRAME_MS = 1000 / 40
     const draw = (now: number) => {
+      if (now - lastFrame < FRAME_MS) { raf = requestAnimationFrame(draw); return }
+      lastFrame = now
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       const t = targetRef.current
       // TOPLAM debi (totalizer) KAYNAGI:

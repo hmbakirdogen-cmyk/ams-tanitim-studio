@@ -79,7 +79,8 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
     if (!cv || !wrap) return
     const ctx = cv.getContext('2d')
     if (!ctx) return
-    let raf = 0, W = 0, H = 0, dpr = 1
+    let raf = 0, W = 0, H = 0, dpr = 1, lastFrame = 0
+    const FRAME_MS = 1000 / 40 // ~40fps tavanı (Mehmet abi "pervane" → sürekli GPU yükü düşür; çizgi akışı akıcı kalır)
     const resize = () => {
       const r = wrap.getBoundingClientRect()
       dpr = Math.min(2, window.devicePixelRatio || 1)
@@ -100,9 +101,11 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
     }
 
     const ptsBuf: number[][] = Array.from({ length: N }, () => [0, 0]) // PERF: kalıcı nokta tamponu (şeritler SIRAYLA çizilir → paylaşım güvenli) → kare-başı new Array(N) tahsisi yok (GC churn azalır)
-    const draw = () => {
+    const draw = (ts = 0) => {
       raf = requestAnimationFrame(draw)
       if (typeof document !== 'undefined' && document.hidden) return
+      if (ts - lastFrame < FRAME_MS) return
+      lastFrame = ts
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, W, H)
       const { history: hist, reading: rd, metrics: mets, groups: grps } = dataRef.current

@@ -29,6 +29,8 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
   const series = useMemo(() => history.slice(-60).map(def.get), [history, def])
   // TOPLAM (totalizer) — yalniz verildiginde (Canli Panel'de flow karti) gosterilir. Buyukse kompakt (1,2 Mn), degilse binlik ayracli.
   const totalText = total != null ? (total >= 1_000_000 ? fmtCompact(total) : fmtInt(total)) : null
+  // Mini grafik EKSEN ipucu formatı (Mehmet abi: "kendi eksenleri ile") — birim-duyarlı: def (MPa/bar) değişince yeniden kurulur → eksen otomatik doğru.
+  const axFmt = (v: number) => new Intl.NumberFormat(localeOf(), { maximumFractionDigits: def.digits }).format(v)
   // SENKRON (#3): HAM son okuma değeri — useSmoothNumber lerp'i KALDIRILDI. Kart, PipeOverlay ve hub LCD aynı reading'i
   // aynı tikte tükettiği için artık ekranda TEK sayı görünür (eskiden kart geriden gelip "aynı veri farklı sayı" oluyordu).
   // Demo kaynağı zaten ease ile yumuşak akıyor; ekstra lerp gereksiz + tutarsızdı.
@@ -138,8 +140,15 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
         <span className={`num min-w-0 ${NUM_SIZE[size]} font-bold leading-none text-white tabular-nums`} style={{ textShadow: `0 0 24px ${def.color}66` }}>{text}</span>
         <span className="shrink-0 text-[clamp(6px,1.5cqw,13px)] font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
       </div>
-      {/* esnek boşluk → TOPLAM'ı (varsa) kartın ALTINA iter; anlık değer üstte sabit kalır */}
-      <div className="min-h-0 flex-1" />
+      {/* KENDİ MİNİ GRAFİĞİ (Mehmet abi 2026-06-20: "her karta kendi eksenleri ile grafik akışını koyalım"): sensörün son okumaları —
+          yuvarlak alan+çizgi + canlı nabız noktası. flex-1 → değer ile (varsa) TOPLAM arasını doldurur; kart uzadıkça grafik büyür.
+          Saf SVG (rAF YOK; nabız CSS) → RAM bedava. (Eksen rakamları birim-duyarlı olarak sonraki turda eklenecek.) */}
+      <div className="relative mt-1.5 min-h-0 flex-1">
+        <Sparkline values={series} color={def.color} min={def.min} max={def.max} fill head pulse baseline />
+        {/* KENDİ EKSENİ (Mehmet abi: "her karta kendi eksenleri ile") — üst=max, alt=min; birim-duyarlı (MPa/bar otomatik), kendi renginde, ÇOK sönük (sade). */}
+        <span className="num pointer-events-none absolute left-0.5 top-0 text-[7px] font-semibold leading-none tabular-nums" style={{ color: def.color, opacity: 0.5 }}>{axFmt(def.max)}</span>
+        <span className="num pointer-events-none absolute bottom-0 left-0.5 text-[7px] font-semibold leading-none tabular-nums" style={{ color: def.color, opacity: 0.5 }}>{axFmt(def.min)}</span>
+      </div>
       {/* TOPLAM (yalnız flow kartı) — PRESTİJLİ (Mehmet abi 2026-06-20): SABİT yükseklik (h-clamp = Hava ile yan kartların yükseklik FARKI)
           → üstündeki AYRAÇ çizgisi yandaki kısa kartların ALT kenarıyla yatayda HİZALI. Dikey şık dizilim: etiket (harf aralıklı) üstte,
           sayı + birim altta — birim (Litre) sayıyla AYNI renk (turuncu). Flow kartında sayı = anlık değer sayısıyla AYNI BOYUT (NUM_SIZE[size]). */}
