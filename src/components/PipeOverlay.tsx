@@ -64,7 +64,7 @@ export function PipeOverlay({
             <span className="shrink-0 text-[11px] font-bold tracking-wide" style={{ color: modeColor }}>{t('CANLI')}</span>
             <span className="whitespace-nowrap text-sm font-bold text-white">{t(MODE_LABEL[mode])}</span>
           </div>
-          <div className="truncate text-[11px] text-[var(--ink-soft)]">{t(MODE_DESC[mode])}</div>
+          <div className="whitespace-nowrap text-[11px] text-[var(--ink-soft)]">{t(MODE_DESC[mode])}</div>
         </div>
       </div>
 
