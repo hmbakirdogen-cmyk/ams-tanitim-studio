@@ -919,11 +919,11 @@ export function DeviceFlowChart({
         const tStr = ro2.temp != null ? ro2.temp.toFixed(1) : '---'           // sıcaklık 26.5
         // GUARD: accumL non-finite olursa (NaN) 7-seg cizemez → sag-alt BOS gorunur (saha "gorunmuyor" sikayetinin olasi kaynagi).
         //   → daima sonlu bir string; en kotu halde "0". Boylece totalizer ASLA bos kalmaz.
-        const aStr = Number.isFinite(lastPub) ? String(Math.floor(lastPub) % 100000) : '0'   // LCD = EN SON YAYINLANAN değer (lastPub) → kart TOPLAM ile BİREBİR (lag yok). totalizer ≤5 hane → taşmaz/küçültmez
-        // RAKAM BOYU — SABİT referanstan (tüm 7-seg AYNI boyut, gerçek cihaz). SOL en geniş "0.200", SAĞ en geniş 5-hane "88888".
+        const aStr = Number.isFinite(lastPub) ? String(Math.floor(lastPub) % 10000000) : '0'   // LCD = EN SON YAYINLANAN değer (lastPub) → kart TOPLAM ile BİREBİR (lag yok). totalizer ≤7 hane (Mehmet abi 2026-06-20: gerçek PF3A büyük-debi → 5 hane dakikalarda taşardı; 7 hane gerçeğe yakın)
+        // RAKAM BOYU — SABİT referanstan (tüm 7-seg AYNI boyut, gerçek cihaz). SOL en geniş "0.200", SAĞ en geniş 7-hane "8888888".
         //   → digH artık canlı veriye bağlı DEĞİL → zamanla küçülmez/oynamaz (kararlı/sabit görünüm).
         const REF_L = measureSevenSeg('0.200', 1)    // sol sütun en geniş sabit referans
-        const REF_R = measureSevenSeg('88888', 1)    // sağ sütun (totalizer) en geniş sabit referans
+        const REF_R = measureSevenSeg('8888888', 1)    // sağ sütun (totalizer) en geniş sabit referans — 7 hane (gerçek PF3A büyük-debi; rakamlar buna göre ölçülür, taşmaz)
         const centerCh = iw * 0.05                   // merkez kanal (sığdırma payı) DARALTILDI → sütunlar genişler → rakam BÜYÜR (ayrım köşe-yaslamadan gelir)
         const colTotal = iw - edge * 2 - centerCh    // iki sütunun paylaştığı genişlik (referans oranında bölünür → eşit digH)
         const leftColW = colTotal * REF_L / (REF_L + REF_R)

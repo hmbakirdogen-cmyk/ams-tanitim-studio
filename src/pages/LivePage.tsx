@@ -106,6 +106,32 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
               @container (Mehmet abi 2026-06-20): kartlar/içerik artık PENCERE (vw) yerine BU SAHNENIN genişliğine (cqw) göre ölçeklenir →
               sol menü olsun olmasin, pencere kuculunce sahne kuculur, her sey GERCEKTEN orantili kuculur (cihaza binme/tasma biter). */}
           <div className="glass @container relative h-[46vh] min-h-[260px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2.7]">
+            {/* AMS ARKASI YILDIZ TOZU (Mehmet abi 2026-06-20: "amsnin arkasına da bir yıldız tozu at"): üst boşlukta SOLUK yıldızlar; DeviceFlowChart
+                scrim'i (yarı saydam) üstüne biner → yıldızlar arkadan SÜZÜLEREK görünür ("uzayda duran cihaz"). Statik CSS (rAF/RAM yok), aşağı solar. */}
+            <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[58%]" style={{
+              maskImage: 'linear-gradient(to bottom, black 5%, transparent 88%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, black 5%, transparent 88%)',
+              backgroundRepeat: 'no-repeat',
+              backgroundImage: [
+                'radial-gradient(1.4px 1.4px at 10% 14%, rgba(255,255,255,0.55), transparent)',
+                'radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.38), transparent)',
+                'radial-gradient(1.5px 1.5px at 28% 9%, rgba(205,228,255,0.6), transparent)',
+                'radial-gradient(1px 1px at 37% 24%, rgba(255,255,255,0.32), transparent)',
+                'radial-gradient(1.3px 1.3px at 45% 40%, rgba(255,255,255,0.4), transparent)',
+                'radial-gradient(1.5px 1.5px at 53% 11%, rgba(255,255,255,0.6), transparent)',
+                'radial-gradient(1px 1px at 61% 27%, rgba(190,215,255,0.38), transparent)',
+                'radial-gradient(1.4px 1.4px at 69% 17%, rgba(255,255,255,0.52), transparent)',
+                'radial-gradient(1px 1px at 77% 36%, rgba(255,255,255,0.3), transparent)',
+                'radial-gradient(1.5px 1.5px at 85% 10%, rgba(255,255,255,0.6), transparent)',
+                'radial-gradient(1px 1px at 93% 25%, rgba(255,255,255,0.34), transparent)',
+                'radial-gradient(1.3px 1.3px at 6% 32%, rgba(255,255,255,0.46), transparent)',
+                'radial-gradient(1px 1px at 16% 46%, rgba(255,255,255,0.28), transparent)',
+                'radial-gradient(1.1px 1.1px at 41% 47%, rgba(255,255,255,0.3), transparent)',
+                'radial-gradient(1px 1px at 58% 45%, rgba(255,255,255,0.28), transparent)',
+                'radial-gradient(1.2px 1.2px at 80% 45%, rgba(255,255,255,0.3), transparent)',
+                'radial-gradient(1.4px 1.4px at 34% 33%, rgba(200,222,255,0.5), transparent)',
+              ].join(', '),
+            }} />
             {heavyReady && (
               <div className="ams-fade-in absolute inset-0">
                 {/* ARKA PLAN SADELEŞTİ (2026-06-19): AmbientScene kaldırıldı; space-derinlik ızgarası DeviceFlowChart içinde. */}
