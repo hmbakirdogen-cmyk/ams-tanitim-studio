@@ -98,9 +98,8 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
         right={<DeviceCommands reading={reading} onCommand={sendCommand} />}
       />
 
-      {/* BİRLEŞİK SAHNE — TEK SÜTUN (Mehmet abi 2026-06-20): ÜRÜN tam genişlik (anlık veri kartları cihazın BOŞ ALT KÖŞELERİNDE) +
-          GRAFİK tam genişlik altta. SAĞ KOLON KALDIRILDI → cihaz + grafik tüm genişliğe yayılır (cihaz belirgin büyür) + cihazın yatay
-          yapısından doğan alt köşe boşlukları kartlarla DOLAR (atıl alan → işlevsel kokpit). Mobil: dikey yığın. */}
+        {/* BİRLEŞİK SAHNE — TEK SÜTUN (Mehmet abi 2026-06-20): ÜRÜN tam genişlik (anlık veri kartları cihazın BOŞ ALT KÖŞELERİNDE) +
+          GRAFİK tam genişlik altta. Responsive güvenlik: düzen DEĞİŞMEDEN kartlar dar pencerede otomatik küçülür/konumlanır. */}
       <section className="relative rounded-3xl lg:min-h-0 lg:flex-1 lg:overflow-hidden">
         <div className="flex flex-col gap-3 p-1 lg:absolute lg:inset-0 lg:gap-3 lg:p-2">
           {/* ÜRÜN — tam genişlik; anlık veri KARTLARI cihazın boş alt köşelerinde.
@@ -116,27 +115,25 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             {/* Cihaz üstü: mod rozeti + giriş/çıkış KALIR; sol-alt veri readout'ları KAPALI (kartlar devraldı → tekrar yok) */}
             <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} theme={theme} showReadouts={false} />
 
-            {/* SOL-ÜST köşe (Mehmet abi 2026-06-20): Tasarruf % — KONUM OPTİMİZE: en üst köşe + KISA yatay kart (h-[78px]) → akış
-                animasyonunun ÜZERİNE BASMAZ (akış orta yükseklikte, kart üstte boş alanda kalır). Yazılar sol + % sağ (HeroKPI içinde). */}
-            <div className="absolute left-3 top-3 z-10 h-[clamp(54px,7.6vh,82px)] w-[clamp(150px,22cqw,340px)]">
+            {/* SOL-ÜST köşe: Tasarruf % — düzen sabit, genişlik/yükseklik dar pencerede otomatik küçülür. */}
+            <div className="absolute left-2 top-2 z-10 h-[clamp(44px,6.2vh,82px)] w-[clamp(120px,26cqw,340px)] md:left-3 md:top-3 md:h-[clamp(50px,7vh,82px)] md:w-[clamp(138px,24cqw,340px)]">
               <HeroKPI percent={percent} mode={mode} />
             </div>
 
-            {/* SOL-ALT köşe (Mehmet abi 2026-06-20): Hava Tüketimi + Basınç. ÜST HİZALI (items-start, 4 kart aynı top-[%]) → Hava Tüketimi
-                TOPLAM gösterdiği için DAHA UZUN (aşağı), diğerleri kısa. Genişlik responsive (dar pencerede cihaza binmez). */}
-            <div className="absolute left-3 top-[51%] z-10 flex w-[clamp(224px,31cqw,500px)] items-start justify-between">
+            {/* SOL-ALT köşe: Hava Tüketimi + Basınç. Alt kenara sabitlenir; pencere kısalsa da dışarı taşmaz. */}
+            <div className="absolute bottom-12 left-2 z-10 flex items-start gap-[clamp(4px,0.8cqw,12px)] md:bottom-13 md:left-3">
               {byKey.flow && visible.flow && (
-                <div className="h-[clamp(156px,21.5vh,226px)] w-[clamp(108px,14.5cqw,200px)] min-w-0"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
+                <div className="h-[clamp(110px,14.8vh,170px)] w-[clamp(78px,15.5cqw,200px)] min-w-0"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
               )}
               {byKey.pressure && visible.pressure && (
-                <div className="h-[clamp(90px,12.5vh,132px)] w-[clamp(108px,14.5cqw,200px)] min-w-0"><MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} /></div>
+                <div className="h-[clamp(96px,13.2vh,156px)] w-[clamp(78px,15.5cqw,200px)] min-w-0"><MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} /></div>
               )}
             </div>
 
-            {/* SAĞ-ALT köşe (Mehmet abi 2026-06-20): Sıcaklık + Nem — KISA (tek değer), 4 kartla ÜST HİZALI (aynı top-[%]). Responsive. */}
-            <div className="absolute right-3 top-[51%] z-10 flex w-[clamp(224px,31cqw,500px)] items-start justify-between">
+            {/* SAĞ-ALT köşe: Sıcaklık + Nem — alt kenara sabitlenir; pencere kısalsa da dışarı taşmaz. */}
+            <div className="absolute bottom-12 right-2 z-10 flex items-start gap-[clamp(4px,0.8cqw,12px)] md:bottom-13 md:right-3">
               {cardDefs.filter((m) => m.key === 'temperature' || m.key === 'humidity').map((m) => (
-                <div key={m.key} className="h-[clamp(90px,12.5vh,132px)] w-[clamp(108px,14.5cqw,200px)] min-w-0"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
+                <div key={m.key} className="h-[clamp(96px,13.2vh,156px)] w-[clamp(78px,15.5cqw,200px)] min-w-0"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
               ))}
             </div>
           </div>

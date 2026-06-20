@@ -38,6 +38,8 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
     maximumFractionDigits: def.digits,
   }).format(v)
   const Icon = def.icon
+  const compact = size === 'sm' || tight
+  const compactPressureToggle = def.key === 'pressure' && compact
 
   // HAFİF ÇİZGİLERLE DERİNLİK (Mehmet Abi: "dot'ları boşver sevmedim; hafif çizgilerle derinlik hissi ver yeter"):
   //   kart yüzeyine 2 ince cam-parıltısı ışık bandı (diyagonal) → yüzey "ışığı yakalayan cam" gibi derinlik/eğim kazanır.
@@ -92,41 +94,50 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
   // GRAFİK KALDIRILDI (Mehmet abi 2026-06-20: "kartlardaki grafik akışlarını kaldır") → sade premium: başlık ÜSTTE (ikincil),
   //   BÜYÜK değer ALTTA (dominant, göze hitap). justify-between → dikey denge. Sabit ölçü (h dışarıdan) + tabular-nums → oynamaz.
   return (
-    <Tilt3D onClick={onClick} className={`glass relative flex h-full flex-col overflow-hidden rounded-2xl ${tight ? 'p-3' : 'p-4'} ${onClick ? 'cursor-pointer transition hover:brightness-110' : ''}`}>
+    // NE      : Kart ic iskeleti dar pencerede de bozulmadan kalir: baslik tasmaz, deger-birim hizasi korunur, toplam satiri carpismadan akar.
+    // NEDEN   : Mehmet abi geri bildirimi: pencere daralinca kart ici yazi/rakam yapisi dagiliyordu.
+    // NASIL   : sm/tight modda daha kompakt bosluklar, truncate baslik, deger satirinda min-w-0 + tabular hiza; toplam satiri daha guvenli.
+    // YAN ETKI: Gorsel dil korunur; yalnizca ic yerlesim daha stabil hale gelir.
+    <Tilt3D onClick={onClick} className={`glass relative flex h-full flex-col overflow-hidden rounded-2xl ${compact ? 'p-2.5' : 'p-4'} ${onClick ? 'cursor-pointer transition hover:brightness-110' : ''}`}>
       {depthLayer}
       {/* Ust renk seridi - grafikteki cizgiyle BIREBIR ayni renk */}
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: def.color, boxShadow: `0 0 18px ${def.color}` }} />
       {onClick && <Maximize2 size={13} className="pointer-events-none absolute right-2.5 top-2.5 text-[var(--ink-soft)] opacity-50" style={{ transform: 'translateZ(20px)' }} />}
+      {compactPressureToggle && (
+        <div className="absolute right-2 top-2 z-[2]" style={{ transform: 'translateZ(24px)' }}>
+          <PressureUnitToggle color={def.color} />
+        </div>
+      )}
 
       {/* Başlık — RESPONSIVE (Mehmet abi 2026-06-20: "sayı/yazı büyüklükleri + kart ölçüleri OTOMATİK, üst üste binmesin"): ikon kutusu +
           ad fontu pencereyle clamp; ad truncate + min-w-0 → dar pencerede taşmaz/çakışmaz. shrink-0 (kart sıkışsa kaybolmaz). */}
       <div className="flex min-w-0 shrink-0 items-center gap-1.5" style={{ transform: 'translateZ(22px)' }}>
-        <span className={`grid shrink-0 place-items-center rounded-lg ${tight ? 'h-6 w-6' : 'h-[clamp(14px,3.4cqw,32px)] w-[clamp(14px,3.4cqw,32px)]'}`} style={{ background: `${def.color}1f`, color: def.color }}>
+        <span className={`grid shrink-0 place-items-center rounded-lg ${compact ? 'h-5 w-5' : 'h-[clamp(14px,3.4cqw,32px)] w-[clamp(14px,3.4cqw,32px)]'}`} style={{ background: `${def.color}1f`, color: def.color }}>
           <Icon className={tight ? 'h-3.5 w-3.5' : 'h-[58%] w-[58%]'} />
         </span>
-        <span className="whitespace-nowrap text-[clamp(6px,1.7cqw,14px)] font-semibold text-[var(--ink)]">{t(def.name)}</span>
-        {def.key === 'pressure' && <PressureUnitToggle color={def.color} />}
+        <span className="min-w-0 truncate text-[clamp(7px,1.7cqw,14px)] font-semibold text-[var(--ink)]">{t(def.name)}</span>
+        {def.key === 'pressure' && !compact && <PressureUnitToggle color={def.color} />}
       </div>
 
       {/* BÜYÜK anlık değer (dominant) SAĞA YASLI — başlığın hemen ALTINDA, SABİT konum → tüm kartlarda anlık değerler AYNI yatay hizada.
           Değer + birim pencereyle clamp (otomatik) + min-w-0/tabular-nums → küçük pencerede çakışmaz. */}
-      <div className="mt-2 flex min-w-0 shrink-0 items-baseline justify-end gap-1" style={{ transform: 'translateZ(14px)' }}>
-        <span className={`num ${NUM_SIZE[size]} font-bold leading-none text-white tabular-nums`} style={{ textShadow: `0 0 24px ${def.color}66` }}>{text}</span>
+      <div className={`flex min-w-0 shrink-0 items-baseline justify-end gap-1 ${compact ? 'mt-1 min-h-[15px]' : 'mt-2'}`} style={{ transform: 'translateZ(14px)' }}>
+        <span className={`num min-w-0 ${NUM_SIZE[size]} font-bold leading-none text-white tabular-nums`} style={{ textShadow: `0 0 24px ${def.color}66` }}>{text}</span>
         <span className="shrink-0 text-[clamp(6px,1.5cqw,13px)] font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
       </div>
       {/* esnek boşluk → TOPLAM'ı (varsa) kartın ALTINA iter; anlık değer üstte sabit kalır */}
       <div className="min-h-0 flex-1" />
       {/* TOPLAM (yalnız flow kartı) — PRESTİJLİ (Mehmet abi 2026-06-20): SABİT yükseklik (h-clamp = Hava ile yan kartların yükseklik FARKI)
           → üstündeki AYRAÇ çizgisi yandaki kısa kartların ALT kenarıyla yatayda HİZALI. Dikey şık dizilim: etiket (harf aralıklı) üstte,
-          sayı + birim altta — birim (Litre) sayıyla AYNI renk (turuncu). Sayı KÜÇÜLMEDİ (clamp aynı). */}
+          sayı + birim altta — birim (Litre) sayıyla AYNI renk (turuncu). Flow kartında sayı = anlık değer sayısıyla AYNI BOYUT (NUM_SIZE[size]). */}
       {totalText != null && (
-        <div className="flex h-[clamp(52px,7.2vh,78px)] shrink-0 flex-col justify-center gap-0.5 border-t border-white/10" style={{ transform: 'translateZ(14px)' }}>
+        <div className={`flex shrink-0 border-t border-white/10 ${compact ? 'mt-1 min-h-[40px] flex-col justify-center gap-1 pt-1.5' : 'h-[clamp(52px,7.2vh,78px)] flex-col justify-center gap-0.5'}`} style={{ transform: 'translateZ(14px)' }}>
           {/* Mehmet abi 2026-06-20: "TOPLAM" yazısı SOLA yaslı (self-start), rakam SAĞA yaslı (self-end) + rakam üstteki anlık değerle
               AYNI BOYUT (NUM_SIZE[size]) ve sağ kenarda TAM HİZALI (ikisi de justify/self-end + aynı birim boyutu). */}
-          <span className="self-start text-[9px] font-bold uppercase tracking-[0.22em]" style={{ color: TOTAL_AMBER, opacity: 0.82 }}>{t('Toplam')}</span>
-          <div className="flex items-baseline gap-1.5 self-end">
-            <span className="num text-[clamp(0.62rem,2.9cqw,1.8rem)] font-bold leading-none tabular-nums" style={{ color: TOTAL_AMBER, textShadow: `0 0 18px ${TOTAL_AMBER}88` }}>{totalText}</span>
-            <span className="text-[clamp(6px,1.5cqw,13px)] font-medium" style={{ color: TOTAL_AMBER }}>Litre</span>
+          <span className={`text-[9px] font-bold uppercase tracking-[0.16em] ${compact ? 'self-start' : 'self-start'}`} style={{ color: TOTAL_AMBER, opacity: 0.82 }}>{t('Toplam')}</span>
+          <div className={`flex w-full items-baseline justify-end gap-1 ${compact ? 'min-w-0' : ''}`}>
+            <span className={`num font-bold leading-none tabular-nums ${compact && def.key === 'flow' ? 'text-[clamp(0.54rem,2.625cqw,1.575rem)]' : compact ? 'text-[clamp(0.58rem,2.05cqw,1.02rem)]' : 'text-[clamp(0.62rem,2.9cqw,1.8rem)]'}`} style={{ color: TOTAL_AMBER, textShadow: `0 0 18px ${TOTAL_AMBER}88` }}>{totalText}</span>
+            <span className={`font-medium ${compact ? 'text-[clamp(6px,1.5cqw,13px)]' : 'text-[clamp(6px,1.5cqw,13px)]'}`} style={{ color: TOTAL_AMBER }}>Litre</span>
           </div>
         </div>
       )}
