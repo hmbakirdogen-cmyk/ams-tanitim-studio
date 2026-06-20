@@ -7,7 +7,7 @@
  *           -> "tesekkurler" + liste tazelenir. Mesaj bos ise gondermez.
  * YAN ETKI: Saf UI; ses (tikla). Veri data/feedback.ts'te.
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { X, Send, Bug, Lightbulb, MessageSquare, CheckCircle2 } from 'lucide-react'
 import { addFeedback, listFeedback, type Feedback, type FeedbackTur } from '@/data/feedback'
@@ -36,8 +36,12 @@ export function FeedbackDrawer({ onClose, sayfa }: { onClose: () => void; sayfa:
   const [gonderiliyor, setGonderiliyor] = useState(false)
   const [basarili, setBasarili] = useState(false)
   const [liste, setListe] = useState<Feedback[]>([])
+  const successTimerRef = useRef<number | null>(null)
 
   useEffect(() => { setListe(listFeedback()) }, [])
+  useEffect(() => () => {
+    if (successTimerRef.current !== null) window.clearTimeout(successTimerRef.current)
+  }, [])
 
   const gonder = async () => {
     const text = mesaj.trim()
@@ -48,7 +52,11 @@ export function FeedbackDrawer({ onClose, sayfa }: { onClose: () => void; sayfa:
     setMesaj(''); setTur('hata'); setBasarili(true)
     setListe(listFeedback())
     setGonderiliyor(false)
-    window.setTimeout(() => setBasarili(false), 2800)
+    if (successTimerRef.current !== null) window.clearTimeout(successTimerRef.current)
+    successTimerRef.current = window.setTimeout(() => {
+      setBasarili(false)
+      successTimerRef.current = null
+    }, 2800)
   }
 
   const field = 'force-dark-surface w-full rounded-xl border border-[var(--hair)] bg-[#0a1424] px-3 py-2.5 text-[13px] text-white outline-none transition focus:border-[var(--smc-bright)] resize-none'

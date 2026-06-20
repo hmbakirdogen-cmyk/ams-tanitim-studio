@@ -62,9 +62,17 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState<string | null>(null)
   const [browsing, setBrowsing] = useState(false)
   const wsRef = useRef<WebSocket | null>(null)
+  const discoverTimeoutRef = useRef<number | null>(null)
+  const browseTimeoutRef = useRef<number | null>(null)
+  const saveTimeoutRef = useRef<number | null>(null)
 
   // Bilesen kapanirken acik ws'i kapat (sizinti yok)
-  useEffect(() => () => { try { wsRef.current?.close() } catch { /* yok */ } }, [])
+  useEffect(() => () => {
+    try { wsRef.current?.close() } catch { /* yok */ }
+    if (discoverTimeoutRef.current !== null) window.clearTimeout(discoverTimeoutRef.current)
+    if (browseTimeoutRef.current !== null) window.clearTimeout(browseTimeoutRef.current)
+    if (saveTimeoutRef.current !== null) window.clearTimeout(saveTimeoutRef.current)
+  }, [])
 
   const discover = () => {
     if (scanning) return
@@ -74,7 +82,12 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
     try { ws = new WebSocket(BRIDGE_URL) } catch { setScanning(false); setScanErr('bridge'); return }
     wsRef.current = ws
     let finished = false
-    const finish = () => { finished = true; setScanning(false); try { ws.close() } catch { /* yok */ } }
+    const finish = () => {
+      finished = true
+      setScanning(false)
+      if (discoverTimeoutRef.current !== null) { window.clearTimeout(discoverTimeoutRef.current); discoverTimeoutRef.current = null }
+      try { ws.close() } catch { /* yok */ }
+    }
     ws.onopen = () => { try { ws.send(JSON.stringify({ type: 'discover' })) } catch { /* yok */ } }
     ws.onmessage = (ev) => {
       try {
@@ -84,7 +97,11 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
       } catch { /* bozuk mesaj */ }
     }
     ws.onerror = () => { if (!finished) { setScanErr('bridge'); finish() } }
-    window.setTimeout(() => { if (!finished) { setScanErr('timeout'); finish() } }, 30000)
+    if (discoverTimeoutRef.current !== null) window.clearTimeout(discoverTimeoutRef.current)
+    discoverTimeoutRef.current = window.setTimeout(() => {
+      if (!finished) { setScanErr('timeout'); finish() }
+      discoverTimeoutRef.current = null
+    }, 30000)
   }
 
   // Cihaz secildi -> endpoint'i doldur + olcum dugumlerini ISIMDEN tahmin et (browse)
@@ -108,7 +125,11 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
       } catch { /* yok */ }
     }
     ws.onerror = () => { if (!finished) { setBrowsing(false); try { ws.close() } catch { /* yok */ } } }
-    window.setTimeout(() => { if (!finished) { setBrowsing(false); try { ws.close() } catch { /* yok */ } } }, 15000)
+    if (browseTimeoutRef.current !== null) window.clearTimeout(browseTimeoutRef.current)
+    browseTimeoutRef.current = window.setTimeout(() => {
+      if (!finished) { setBrowsing(false); try { ws.close() } catch { /* yok */ } }
+      browseTimeoutRef.current = null
+    }, 15000)
   }
 
   const save = () => {
@@ -116,7 +137,11 @@ export function LiveSetupGuide({ onClose }: { onClose: () => void }) {
     setNodeIds(ids)
     sound.click()
     setSaved(true)
-    window.setTimeout(() => setSaved(false), 1600)
+    if (saveTimeoutRef.current !== null) window.clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = window.setTimeout(() => {
+      setSaved(false)
+      saveTimeoutRef.current = null
+    }, 1600)
   }
 
   const ui = CONN_UI[status]
