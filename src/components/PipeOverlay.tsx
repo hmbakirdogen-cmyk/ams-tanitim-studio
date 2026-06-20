@@ -55,7 +55,7 @@ export function PipeOverlay({
       {/* UST SAG: calisma modu + NEDEN — SABİT ÖLÇÜ (Mehmet abi 2026-06-20: "mod değiştikçe kartın ölçüsü değişmesin"):
           sabit genişlik (clamp) + truncate (MODE_LABEL/MODE_DESC uzunlugu oynamaz) + mod'a göre belirip kaybolan ÇİPLER KALDIRILDI
           (yükseklik hep 2 satır → sabit). force-dark-surface = açık metin. Konum right-3 → üstteki kontrol butonlarıyla sağ kenar hizalı. */}
-      <div className="force-dark-surface absolute right-3 top-3 flex w-[clamp(200px,19vw,300px)] items-center gap-2.5 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3.5 py-2 backdrop-blur-md">
+      <div className="force-dark-surface absolute right-[6px] top-3 flex w-[270px] max-w-[calc(100%-24px)] items-center gap-2.5 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3.5 py-2 backdrop-blur-md">
         <span className="relative grid h-2.5 w-2.5 shrink-0 place-items-center">
           <span className="live-ring absolute h-2.5 w-2.5 rounded-full" style={{ background: modeColor }} />
         </span>

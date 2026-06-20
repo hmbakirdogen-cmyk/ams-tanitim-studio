@@ -106,22 +106,28 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
         {def.key === 'pressure' && <PressureUnitToggle color={def.color} />}
       </div>
 
-      {/* BÜYÜK değer (dominant) DİKEY ORTALI (flex-1 justify-center → başlık-alt arası boşluk dengeli, Mehmet abi 2026-06-20 "kart içi optimize").
-          TOPLAM varsa ALTINDA, yatay tek satır → üst üste binmez. tabular-nums → ölçü sabit. */}
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5" style={{ transform: 'translateZ(14px)' }}>
-        <div className="flex items-baseline gap-1.5">
-          <span className={`num ${NUM_SIZE[size]} font-bold leading-none text-white tabular-nums`} style={{ textShadow: `0 0 24px ${def.color}66` }}>{text}</span>
-          <span className="shrink-0 text-sm font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
-        </div>
-        {totalText != null && (
-          // TOPLAM debi (Mehmet abi: iri turuncu, göze batar) — anlık değerin ALTINDA, yatay tek satır.
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: TOTAL_AMBER }}>{t('Toplam')}</span>
-            <span className="num text-[clamp(1.05rem,1.7vw,1.5rem)] font-bold leading-none tabular-nums" style={{ color: TOTAL_AMBER, textShadow: `0 0 16px ${TOTAL_AMBER}77` }}>{totalText}</span>
-            <span className="text-[11px] font-medium text-[var(--ink-soft)]">Litre</span>
-          </div>
-        )}
+      {/* BÜYÜK anlık değer (dominant) SAĞA YASLI — başlığın hemen ALTINDA, SABİT konum → TÜM kartlarda (kısa/uzun fark etmez) anlık
+          değerler AYNI yatay hizada (Mehmet abi 2026-06-20: "hava tüketim anlık verisini yanındaki kartlarla aynı yatay hizaya çek"). */}
+      <div className="mt-2 flex min-w-0 shrink-0 items-baseline justify-end gap-1.5" style={{ transform: 'translateZ(14px)' }}>
+        <span className={`num ${NUM_SIZE[size]} font-bold leading-none text-white tabular-nums`} style={{ textShadow: `0 0 24px ${def.color}66` }}>{text}</span>
+        <span className="shrink-0 text-sm font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
       </div>
+      {/* esnek boşluk → TOPLAM'ı (varsa) kartın ALTINA iter; anlık değer üstte sabit kalır */}
+      <div className="min-h-0 flex-1" />
+      {/* TOPLAM (yalnız flow kartı) — PRESTİJLİ (Mehmet abi 2026-06-20): SABİT yükseklik (h-clamp = Hava ile yan kartların yükseklik FARKI)
+          → üstündeki AYRAÇ çizgisi yandaki kısa kartların ALT kenarıyla yatayda HİZALI. Dikey şık dizilim: etiket (harf aralıklı) üstte,
+          sayı + birim altta — birim (Litre) sayıyla AYNI renk (turuncu). Sayı KÜÇÜLMEDİ (clamp aynı). */}
+      {totalText != null && (
+        <div className="flex h-[clamp(52px,7.2vh,78px)] shrink-0 flex-col justify-center gap-0.5 border-t border-white/10" style={{ transform: 'translateZ(14px)' }}>
+          {/* Mehmet abi 2026-06-20: "TOPLAM" yazısı SOLA yaslı (self-start), rakam SAĞA yaslı (self-end) + rakam üstteki anlık değerle
+              AYNI BOYUT (NUM_SIZE[size]) ve sağ kenarda TAM HİZALI (ikisi de justify/self-end + aynı birim boyutu). */}
+          <span className="self-start text-[9px] font-bold uppercase tracking-[0.22em]" style={{ color: TOTAL_AMBER, opacity: 0.82 }}>{t('Toplam')}</span>
+          <div className="flex items-baseline gap-1.5 self-end">
+            <span className={`num ${NUM_SIZE[size]} font-bold leading-none tabular-nums`} style={{ color: TOTAL_AMBER, textShadow: `0 0 18px ${TOTAL_AMBER}88` }}>{totalText}</span>
+            <span className="text-sm font-medium" style={{ color: TOTAL_AMBER }}>Litre</span>
+          </div>
+        </div>
+      )}
 
     </Tilt3D>
   )

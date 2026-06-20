@@ -12,8 +12,11 @@ const UNITS: PressureUnit[] = ['MPa', 'bar']
 export function PressureUnitToggle({ color = '#FF453A' }: { color?: string }) {
   const { unit, setUnit } = usePressureUnit()
   return (
+    // PREMIUM segment (Mehmet abi 2026-06-20): pill formu + gömük (inset) cam zemin + aktif birim IŞIYAN gradient (üst-iç highlight + glow)
+    //   + yumuşak geçiş. Pasif birim soluk, hover'da beyaza akar.
     <div
-      className="inline-flex shrink-0 items-center gap-0.5 rounded-md border border-[var(--hair)] bg-[#050b18]/60 p-0.5"
+      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-[#050b18]/70 p-[3px] backdrop-blur-sm"
+      style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.05)' }}
       onClick={(e) => e.stopPropagation()}
     >
       {UNITS.map((u) => {
@@ -24,8 +27,8 @@ export function PressureUnitToggle({ color = '#FF453A' }: { color?: string }) {
             type="button"
             onClick={(e) => { e.stopPropagation(); setUnit(u) }}
             aria-pressed={on}
-            className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wide transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
-            style={on ? { background: `linear-gradient(135deg, ${color}cc, ${color}66)`, boxShadow: `0 0 8px ${color}55` } : undefined}
+            className={`rounded-full px-2 py-[3px] text-[10px] font-bold uppercase leading-none tracking-wider transition-all duration-200 ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
+            style={on ? { background: `linear-gradient(135deg, ${color}, ${color}aa)`, boxShadow: `0 0 12px ${color}66, inset 0 1px 0 rgba(255,255,255,0.3)` } : undefined}
           >
             {u}
           </button>

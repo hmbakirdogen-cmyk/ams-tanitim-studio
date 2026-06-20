@@ -33,7 +33,7 @@ export function DeviceCommands({ reading, onCommand }: { reading: Reading | null
   return (
     // Başlık sağında SADE kontrol şeridi. 2026-06-20 (Mehmet abi): kutucuklar DİKDÖRTGEN (ikon üstte + 2-satır etiket alt) — kare değil,
     //   biraz yüksek. AÇIK/KAPALI yazısı KALDIRILDI → buton zaten AKTİFKEN YANIYOR (renk+glow durumu gösterir). Dar ekranda dikey, sm+ yatay.
-    <div className="glass flex flex-col gap-1 rounded-2xl p-1 sm:flex-row">
+    <div className="glass flex flex-col gap-1 rounded-2xl p-1 sm:mr-3 sm:flex-row">
       {CMDS.map(({ key, label, icon: Icon, color }) => {
         const on = isOn(key, reading)
         return (
