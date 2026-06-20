@@ -21,7 +21,8 @@ const TOTAL_AMBER = '#FF761E'
 // 2026-06-20: kart grafiği kaldırılınca değer DOMINANT (büyük). sm RESPONSIVE (Mehmet abi: "sayfa küçülünce kart ölçüleri de o derece
 //   küçülsün") → clamp(min, vw, max): geniş ekranda iri, pencere küçülünce orantılı küçülür (kart h clamp ile uyumlu, taşma yok).
 type Size = 'lg' | 'md' | 'sm' | 'xs'
-const NUM_SIZE: Record<Size, string> = { lg: 'text-5xl', md: 'text-4xl', sm: 'text-[clamp(1.35rem,2.3vw,2.1rem)]', xs: 'text-[1.45rem]' }
+// sm değeri cqw (container query) — Canlı Panel kartları SAHNE genişliğine göre küçülür (vw=pencere değil; sol menü/dar alan sorunu çözülür).
+const NUM_SIZE: Record<Size, string> = { lg: 'text-5xl', md: 'text-4xl', sm: 'text-[clamp(1.05rem,3.3cqw,2.1rem)]', xs: 'text-[1.45rem]' }
 
 export function MetricCard({ def, history, size = 'md', total, onClick, tight = false }: { def: MetricDef; history: Reading[]; size?: Size; total?: number; onClick?: () => void; tight?: boolean }) {
   const { t } = useLang()
@@ -100,10 +101,10 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
       {/* Başlık — RESPONSIVE (Mehmet abi 2026-06-20: "sayı/yazı büyüklükleri + kart ölçüleri OTOMATİK, üst üste binmesin"): ikon kutusu +
           ad fontu pencereyle clamp; ad truncate + min-w-0 → dar pencerede taşmaz/çakışmaz. shrink-0 (kart sıkışsa kaybolmaz). */}
       <div className="flex min-w-0 shrink-0 items-center gap-1.5" style={{ transform: 'translateZ(22px)' }}>
-        <span className={`grid shrink-0 place-items-center rounded-lg ${tight ? 'h-6 w-6' : 'h-[clamp(22px,2.3vw,32px)] w-[clamp(22px,2.3vw,32px)]'}`} style={{ background: `${def.color}1f`, color: def.color }}>
+        <span className={`grid shrink-0 place-items-center rounded-lg ${tight ? 'h-6 w-6' : 'h-[clamp(20px,3.2cqw,32px)] w-[clamp(20px,3.2cqw,32px)]'}`} style={{ background: `${def.color}1f`, color: def.color }}>
           <Icon size={tight ? 14 : 16} />
         </span>
-        <span className="whitespace-nowrap text-[clamp(8.5px,1.05vw,14px)] font-semibold text-[var(--ink)]">{t(def.name)}</span>
+        <span className="whitespace-nowrap text-[clamp(8px,1.6cqw,14px)] font-semibold text-[var(--ink)]">{t(def.name)}</span>
         {def.key === 'pressure' && <PressureUnitToggle color={def.color} />}
       </div>
 
@@ -111,7 +112,7 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
           Değer + birim pencereyle clamp (otomatik) + min-w-0/tabular-nums → küçük pencerede çakışmaz. */}
       <div className="mt-2 flex min-w-0 shrink-0 items-baseline justify-end gap-1" style={{ transform: 'translateZ(14px)' }}>
         <span className={`num ${NUM_SIZE[size]} font-bold leading-none text-white tabular-nums`} style={{ textShadow: `0 0 24px ${def.color}66` }}>{text}</span>
-        <span className="shrink-0 text-[clamp(9px,0.95vw,13px)] font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
+        <span className="shrink-0 text-[clamp(8px,1.4cqw,13px)] font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
       </div>
       {/* esnek boşluk → TOPLAM'ı (varsa) kartın ALTINA iter; anlık değer üstte sabit kalır */}
       <div className="min-h-0 flex-1" />

@@ -103,8 +103,10 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
           yapısından doğan alt köşe boşlukları kartlarla DOLAR (atıl alan → işlevsel kokpit). Mobil: dikey yığın. */}
       <section className="relative rounded-3xl lg:min-h-0 lg:flex-1 lg:overflow-hidden">
         <div className="flex flex-col gap-3 p-1 lg:absolute lg:inset-0 lg:gap-3 lg:p-2">
-          {/* ÜRÜN — tam genişlik; anlık veri KARTLARI cihazın boş alt köşelerinde */}
-          <div className="glass relative h-[46vh] min-h-[260px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2.7]">
+          {/* ÜRÜN — tam genişlik; anlık veri KARTLARI cihazın boş alt köşelerinde.
+              @container (Mehmet abi 2026-06-20): kartlar/içerik artık PENCERE (vw) yerine BU SAHNENIN genişliğine (cqw) göre ölçeklenir →
+              sol menü olsun olmasin, pencere kuculunce sahne kuculur, her sey GERCEKTEN orantili kuculur (cihaza binme/tasma biter). */}
+          <div className="glass @container relative h-[46vh] min-h-[260px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2.7]">
             {heavyReady && (
               <div className="ams-fade-in absolute inset-0">
                 {/* ARKA PLAN SADELEŞTİ (2026-06-19): AmbientScene kaldırıldı; space-derinlik ızgarası DeviceFlowChart içinde. */}
@@ -116,25 +118,25 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
 
             {/* SOL-ÜST köşe (Mehmet abi 2026-06-20): Tasarruf % — KONUM OPTİMİZE: en üst köşe + KISA yatay kart (h-[78px]) → akış
                 animasyonunun ÜZERİNE BASMAZ (akış orta yükseklikte, kart üstte boş alanda kalır). Yazılar sol + % sağ (HeroKPI içinde). */}
-            <div className="absolute left-3 top-3 z-10 h-[clamp(54px,7.6vh,82px)] w-[clamp(158px,15vw,340px)]">
+            <div className="absolute left-3 top-3 z-10 h-[clamp(54px,7.6vh,82px)] w-[clamp(150px,22cqw,340px)]">
               <HeroKPI percent={percent} mode={mode} />
             </div>
 
             {/* SOL-ALT köşe (Mehmet abi 2026-06-20): Hava Tüketimi + Basınç. ÜST HİZALI (items-start, 4 kart aynı top-[%]) → Hava Tüketimi
                 TOPLAM gösterdiği için DAHA UZUN (aşağı), diğerleri kısa. Genişlik responsive (dar pencerede cihaza binmez). */}
-            <div className="absolute left-3 top-[51%] z-10 flex w-[clamp(268px,28vw,584px)] items-start justify-between">
+            <div className="absolute left-3 top-[51%] z-10 flex w-[clamp(224px,31cqw,500px)] items-start justify-between">
               {byKey.flow && visible.flow && (
-                <div className="h-[clamp(156px,21.5vh,226px)] w-[clamp(144px,14.4vw,216px)] min-w-0"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
+                <div className="h-[clamp(156px,21.5vh,226px)] w-[clamp(108px,14.5cqw,200px)] min-w-0"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
               )}
               {byKey.pressure && visible.pressure && (
-                <div className="h-[clamp(90px,12.5vh,132px)] w-[clamp(144px,14.4vw,216px)] min-w-0"><MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} /></div>
+                <div className="h-[clamp(90px,12.5vh,132px)] w-[clamp(108px,14.5cqw,200px)] min-w-0"><MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} /></div>
               )}
             </div>
 
             {/* SAĞ-ALT köşe (Mehmet abi 2026-06-20): Sıcaklık + Nem — KISA (tek değer), 4 kartla ÜST HİZALI (aynı top-[%]). Responsive. */}
-            <div className="absolute right-3 top-[51%] z-10 flex w-[clamp(268px,28vw,584px)] items-start justify-between">
+            <div className="absolute right-3 top-[51%] z-10 flex w-[clamp(224px,31cqw,500px)] items-start justify-between">
               {cardDefs.filter((m) => m.key === 'temperature' || m.key === 'humidity').map((m) => (
-                <div key={m.key} className="h-[clamp(90px,12.5vh,132px)] w-[clamp(144px,14.4vw,216px)] min-w-0"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
+                <div key={m.key} className="h-[clamp(90px,12.5vh,132px)] w-[clamp(108px,14.5cqw,200px)] min-w-0"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
               ))}
             </div>
           </div>
