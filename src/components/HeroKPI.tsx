@@ -1,51 +1,39 @@
 /*
- * NE      : Mesaj kahramani panel - anlik tasarruf yuzdesi (buyuk) + o anki calisma modu rozeti. 3D derinlikli (Tilt3D).
- * NEDEN   : Onem hiyerarsisi: tasarruf mesaji ferah, prominent, koseye sikismadan; "her yerde 3D".
- * NASIL   : useSmoothNumber ile akan %; mod rengine gore rozet; Tilt3D ile fareyle egilir, ic elemanlar translateZ ile one cikar.
- *           % rakami SABIT GENISLIKTE (Mehmet Abi: "yazi degisince olcusu degismesin"): tabular-nums + min-genislik -> ziplamaz.
- *           MOD BLOGU da SABIT YUKSEKLIKTE (Mehmet Abi: "mode degisince kartin olcusu degismesin"): mod aciklamasi (MODE_DESC)
- *           modlar arasi 1-2 satir degisebiliyordu -> kart yuksekligi oynuyordu; alt blok h-[fixed]+overflow-hidden -> kart HEP ayni olcu.
- *           Arka planda hafif 3D DERINLIK: radyal vurgu + ust-ic isik + alt-ic golge (Tilt3D ile birlikte panel "yuzer" hisseder.
- * YAN ETKI: Saf gorsel; deger App'ten (reading.flow -> savingPercent).
+ * NE      : Anlik tasarruf yuzdesi karosu (sol-ust kose) — SOL'da yazilar (etiket + aciklama), SAG'da buyuk % degeri; ikisi dikey HIZALI. 3D (Tilt3D).
+ * NEDEN   : 2026-06-20 (Mehmet abi): "yuzdelik veri SAGDA, yazilar SOLDA olsun ama birbirine gore hizalansin" -> yatay flex + items-center.
+ *           Kart akis animasyonunun uzerine BASMASIN (kisa kalir). Mod bilgisi sag-ust ayri kartta -> burada TEKRAR YOK.
+ * NASIL   : flex-row + items-center + justify-between. SOL blok: etiket(ust) + kisa aciklama(alt). SAG blok: % (iri, tabular-nums -> ziplamaz).
+ * YAN ETKI: Saf gorsel; deger App'ten (reading.flow -> savingPercent). mode prop tip imzasinda kalir (cagri uyumu) ama gorselde kullanilmaz.
  */
 import { useSmoothNumber } from '@/hooks/useSmoothNumber'
-import { MODE_LABEL, MODE_DESC, MODE_COLOR, type Mode } from '@/data/types'
+import type { Mode } from '@/data/types'
 import { fmt1 } from '@/lib/format'
 import { Tilt3D } from './Tilt3D'
 import { useLang } from '@/i18n'
 
-export function HeroKPI({ percent, mode }: { percent: number; mode: Mode }) {
+export function HeroKPI({ percent }: { percent: number; mode: Mode }) {
   const { t } = useLang()
   const p = useSmoothNumber(percent, 0.1)
-  const c = MODE_COLOR[mode]
   return (
-    <Tilt3D className="glass relative flex h-full flex-col justify-between overflow-hidden rounded-2xl p-4">
+    <Tilt3D className="glass relative flex h-full flex-row items-center justify-between gap-3 overflow-hidden rounded-2xl p-3.5">
       {/* 3D DERİNLİK arka planı: radyal tasarruf-yeşili vurgu + ust-ic isik / alt-ic golge (panel boşlukta yüzer hissi) */}
       <div
         className="pointer-events-none absolute inset-0"
-        style={{ background: 'radial-gradient(120% 90% at 78% -10%, rgba(65,224,138,0.16), transparent 60%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -22px 40px -24px rgba(0,0,0,0.55)' }}
+        style={{ background: 'radial-gradient(120% 90% at 88% -10%, rgba(65,224,138,0.16), transparent 60%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -22px 40px -24px rgba(0,0,0,0.55)' }}
       />
-      <div className="relative" style={{ transform: 'translateZ(22px)' }}>
-        <div className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--ink-soft)]">{t('Anlık Tasarruf')}</div>
-        <div
-          className="num mt-1 inline-flex items-baseline text-4xl font-extrabold leading-none text-[var(--c-saving)] glow-text"
-          style={{ ['--glow' as string]: 'rgba(65,224,138,0.5)' }}
-        >
-          {/* SABİT GENİŞLİK: % işareti + sağa hizalı sabit-genişlik rakam alanı → ondalık/hane değişince blok ZIPLAMAZ */}
-          <span>%</span>
-          <span className="inline-block text-right tabular-nums" style={{ minWidth: '2.6ch' }}>{fmt1(p)}</span>
-        </div>
-        <div className="mt-1.5 text-xs text-[var(--ink-soft)]">{t('Normal çalışmaya göre daha az hava tüketimi')}</div>
+      {/* SOL: yazılar (etiket + açıklama) sola hizalı — Mehmet abi 2026-06-20: KISALTMA YOK (truncate/line-clamp kaldırıldı → tam metin). */}
+      <div className="relative min-w-0" style={{ transform: 'translateZ(22px)' }}>
+        <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--ink-soft)]">{t('Anlık Tasarruf')}</div>
+        <div className="mt-0.5 text-[10px] leading-snug text-[var(--ink-soft)]">{t('Normal çalışmaya göre daha az hava tüketimi')}</div>
       </div>
-      {/* MOD BLOĞU SABİT YÜKSEKLİK (Mehmet Abi: mod değişince kart boyu DEĞİŞMESİN → alttaki kartlar kaymasın):
-          MODE_DESC modlar arası 1-2 satır oynuyordu; sabit yükseklik+overflow-hidden ile blok hep aynı → kart HEP aynı ölçü.
-          2026-06-19: kart küçültüldü (Mehmet abi: Sıcaklık/Nem'e yer aç) → h-[3.6em]→h-[3em]. */}
-      <div className="h-[3em] overflow-hidden" style={{ transform: 'translateZ(12px)' }}>
-        <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c, boxShadow: `0 0 10px ${c}` }} />
-          <span className="truncate text-base font-semibold text-white">{t(MODE_LABEL[mode])}</span>
-        </div>
-        <div className="mt-0.5 text-xs leading-snug text-[var(--ink-soft)]">{t(MODE_DESC[mode])}</div>
+      {/* SAĞ: % değeri — Mehmet abi 2026-06-20: % sembolü rakama YAPIŞIK; sabit-genişlik alan KALDIRILDI → sembol-rakam mesafesi rakam
+          genişliğine göre OTOMATIK (rakam değiştikçe sembol yapışık kalır). tabular-nums → rakamlar eşit genişlik (zıplamaz). */}
+      <div
+        className="num relative inline-flex shrink-0 items-baseline gap-0.5 text-[clamp(1.3rem,2.4vw,2.05rem)] font-extrabold leading-none text-[var(--c-saving)] glow-text"
+        style={{ transform: 'translateZ(22px)', ['--glow' as string]: 'rgba(65,224,138,0.5)' }}
+      >
+        <span>%</span>
+        <span className="tabular-nums">{fmt1(p)}</span>
       </div>
     </Tilt3D>
   )

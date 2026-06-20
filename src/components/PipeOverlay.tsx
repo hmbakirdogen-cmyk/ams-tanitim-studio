@@ -25,12 +25,16 @@ export function PipeOverlay({
   mode,
   thresholds = {},
   theme = 'dark',
+  showReadouts = true,
 }: {
   reading: Reading | null
   metrics: MetricDef[]
   mode: Mode
   thresholds?: Record<string, { value: number; label: string } | undefined>
   theme?: 'dark' | 'light'
+  // 2026-06-20 (Mehmet abi): Canli Panel'de anlik degerler artik cihazin bos alt kosesindeki KARTLARDA gosteriliyor →
+  //   cihaz uzerindeki sol-alt readout TEKRARI kapatilir (showReadouts=false). Mod rozeti + giris/cikis etiketleri KALIR.
+  showReadouts?: boolean
 }) {
   const { t } = useLang()
   const modeColor = MODE_COLOR[mode]
@@ -48,51 +52,30 @@ export function PipeOverlay({
       {/* Mod tonu - ust kenarda cok hafif renk (neyin surdugunu ima eder) */}
       <div className="absolute inset-x-0 top-0 h-24" style={{ background: `linear-gradient(to bottom, ${modeColor}22, transparent)` }} />
 
-      {/* UST SOL: calisma modu + NEDEN (artip azalmanin sebebi) — koyu zemin → force-dark-surface (acik metin) */}
-      <div className="force-dark-surface absolute left-3 top-3 flex items-center gap-2.5 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3.5 py-2 backdrop-blur-md">
-        <span className="relative grid h-2.5 w-2.5 place-items-center">
+      {/* UST SAG: calisma modu + NEDEN — SABİT ÖLÇÜ (Mehmet abi 2026-06-20: "mod değiştikçe kartın ölçüsü değişmesin"):
+          sabit genişlik (clamp) + truncate (MODE_LABEL/MODE_DESC uzunlugu oynamaz) + mod'a göre belirip kaybolan ÇİPLER KALDIRILDI
+          (yükseklik hep 2 satır → sabit). force-dark-surface = açık metin. Konum right-3 → üstteki kontrol butonlarıyla sağ kenar hizalı. */}
+      <div className="force-dark-surface absolute right-3 top-3 flex w-[clamp(200px,19vw,300px)] items-center gap-2.5 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3.5 py-2 backdrop-blur-md">
+        <span className="relative grid h-2.5 w-2.5 shrink-0 place-items-center">
           <span className="live-ring absolute h-2.5 w-2.5 rounded-full" style={{ background: modeColor }} />
         </span>
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-bold tracking-wide" style={{ color: modeColor }}>{t('CANLI')}</span>
-            <span className="text-sm font-bold text-white">{t(MODE_LABEL[mode])}</span>
+            <span className="shrink-0 text-[11px] font-bold tracking-wide" style={{ color: modeColor }}>{t('CANLI')}</span>
+            <span className="truncate text-sm font-bold text-white">{t(MODE_LABEL[mode])}</span>
           </div>
-          <div className="text-[11px] text-[var(--ink-soft)]">{t(MODE_DESC[mode])}</div>
-          {/* Hangi bilesen DEVREDE: Tasarruf=oransal regulator, Kesinti=tahliye valfi.
-              NE: Cipleri saran kabi force-dark-surface ile sariyoruz + cip zemini koyu tabanli (0.18->0.28). NEDEN: Mehmet Abi —
-              kok force-dark-surface KALKTIGI icin gunduzde acik glass uzerinde soluk cipler dusuk kontrast/zor okunuyordu. NASIL: ust mod
-              rozeti gibi force-dark-surface daima koyu zemin verir + renkli ton koyu #050b18 taban uzerine biner. YAN ETKI: gece gorunum
-              neredeyse ayni (zaten koyuydu), gunduz net okunur; cip parlak metin rengi korunur. */}
-          {(mode === 'standby' || mode === 'isolation') && (
-            <div className="force-dark-surface mt-1.5 flex flex-wrap gap-1.5">
-              {mode === 'standby' && (
-                <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'linear-gradient(rgba(54,224,200,0.28), rgba(54,224,200,0.28)), #050b18', color: '#36E0C8' }}>
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#36E0C8', boxShadow: '0 0 6px #36E0C8' }} /> {t('Regülatör devrede')}
-                </span>
-              )}
-              {mode === 'isolation' && (
-                <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: 'linear-gradient(rgba(255,176,77,0.28), rgba(255,176,77,0.28)), #050b18', color: '#FFB04D' }}>
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: '#FFB04D', boxShadow: '0 0 6px #FFB04D' }} /> {t('Valf devrede')}
-                </span>
-              )}
-            </div>
-          )}
+          <div className="truncate text-[11px] text-[var(--ink-soft)]">{t(MODE_DESC[mode])}</div>
         </div>
       </div>
 
-      {/* UST SAG: kisa anahtar aciklama — koyu zemin → force-dark-surface (acik metin) */}
-      <div className="force-dark-surface absolute right-3 top-3 rounded-2xl border border-white/10 bg-[#050b18]/75 px-3 py-2 text-right backdrop-blur-md">
-        <div className="text-[11px] font-semibold text-white">{t('Pnömatik Hat')}</div>
-        <div className="text-[10px] text-[var(--ink-soft)]">{t('akış hızı + dolum = anlık değer')}</div>
-      </div>
+      {/* (Mehmet abi 2026-06-20: sag-ust "Pnömatik Hat" aciklamasi KALDIRILDI — yeri mod kartina acildi; aciklama zaten alt giris/cikis etiketlerinde.) */}
 
       {/* SOL-ALT anlık değerler (Mehmet Abi: akışın ALTINDA temiz bölgede → DIŞ ÇERÇEVE YOK; değerler HİYERARŞİK/İRİ yüzer.
           2 sütun grid; ad küçük (ikincil) + İRİ beyaz değer (birincil) + birim/eşik küçük. text-shadow → çerçevesiz okunaklı. */}
       {/* NE: Mobilde tek sutun + sikistirilmis konum. NEDEN: Mehmet Abi — dar Akis penceresinde 2-sutun izgara cihaz gorseli+ust rozetle
           ust uste biniyordu. NASIL: mobile ? tek sutun (grid-cols-1) + daha sıkı bottom/gap, masaustunde AYNEN grid-cols-2/gap-x-6. YAN ETKI:
           masaustu (lg+) gorunum DEGISMEZ; mobilde izgara daralip cakisma cozulur. */}
-      <div className={`absolute left-3 grid gap-y-2.5 ${mobile ? 'bottom-6 grid-cols-1 gap-x-0' : 'bottom-7 grid-cols-2 gap-x-6'}`}>
+      <div className={`absolute left-3 grid gap-y-2.5 ${mobile ? 'bottom-6 grid-cols-1 gap-x-0' : 'bottom-7 grid-cols-2 gap-x-6'} ${showReadouts ? '' : 'hidden'}`}>
         {metrics.map((m) => {
           const v = reading ? m.get(reading) : m.min
           const thr = thresholds[m.key]

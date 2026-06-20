@@ -13,10 +13,11 @@ import { useLang } from '@/i18n'
 import { sound } from '@/lib/sound'
 
 // Etiket = TÜRKÇE anahtar (i18n kuralı); EN/JA çevirisi i18n sözlüğünde. TR "Bekleme/İzolasyon", EN "Standby/Isolation", JA Japonca.
+// Etiketler = cihazın GERÇEK OPC UA sinyal isimleri (Mehmet abi 2026-06-20): saha mühendisi hangi sinyali yolladığını birebir görsün.
 const CMDS: { key: CommandKey; label: string; icon: LucideIcon; color: string }[] = [
-  { key: 'standby', label: 'Tasarrufa Al', icon: Leaf, color: '#41E08A' },           // tasarruf yeşili (mod: Tasarruf Modu ile tutarlı)
-  { key: 'forceStandby', label: 'Zorunlu Tasarruf', icon: Lock, color: '#2E9BFF' },  // zorlanmış — mavi
-  { key: 'isolation', label: 'Havayı Kes', icon: PowerOff, color: '#FF453A' },        // hava kes — uyarı kırmızısı (mod: Hava Kesintisi)
+  { key: 'standby', label: 'Standby Input Sinyali', icon: Leaf, color: '#41E08A' },   // tasarruf yeşili (mod: Tasarruf Modu ile tutarlı)
+  { key: 'forceStandby', label: 'Force Standby', icon: Lock, color: '#2E9BFF' },       // zorlanmış — mavi
+  { key: 'isolation', label: 'İzolasyon Sinyali', icon: PowerOff, color: '#FF453A' },  // hava kes/izolasyon — uyarı kırmızısı
 ]
 
 // Durum CİHAZDAN: standby/forcedStandby BOOL; isolation = valve KAPALI (valveOpen=false) ya da mod isolation
@@ -30,8 +31,9 @@ function isOn(key: CommandKey, reading: Reading | null): boolean {
 export function DeviceCommands({ reading, onCommand }: { reading: Reading | null; onCommand: (key: CommandKey, on: boolean) => void }) {
   const { t } = useLang()
   return (
-    // Başlık sağında SADE kontrol şeridi (Mehmet abi: aradaki kutucukları yukarı aldık, ekran ferah). Dar ekranda dikey, sm+ yatay.
-    <div className="glass flex flex-col gap-1.5 rounded-2xl p-1.5 sm:flex-row">
+    // Başlık sağında SADE kontrol şeridi. 2026-06-20 (Mehmet abi): kutucuklar DİKDÖRTGEN (ikon üstte + 2-satır etiket alt) — kare değil,
+    //   biraz yüksek. AÇIK/KAPALI yazısı KALDIRILDI → buton zaten AKTİFKEN YANIYOR (renk+glow durumu gösterir). Dar ekranda dikey, sm+ yatay.
+    <div className="glass flex flex-col gap-1 rounded-2xl p-1 sm:flex-row">
       {CMDS.map(({ key, label, icon: Icon, color }) => {
         const on = isOn(key, reading)
         return (
@@ -41,7 +43,7 @@ export function DeviceCommands({ reading, onCommand }: { reading: Reading | null
             onClick={() => { sound.click(); onCommand(key, !on) }}
             aria-pressed={on}
             title={t(label)}
-            className={`relative flex w-[94px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-3 text-center text-[11px] font-semibold leading-tight transition ${
+            className={`relative flex w-[86px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1.5 text-center text-[9.5px] font-semibold leading-tight transition ${
               on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'
             }`}
             style={
@@ -50,11 +52,8 @@ export function DeviceCommands({ reading, onCommand }: { reading: Reading | null
                 : { background: 'var(--glass-bg)', boxShadow: 'inset 0 0 0 1px var(--hair)' }
             }
           >
-            <Icon size={18} style={{ color: on ? '#fff' : color }} />
+            <Icon size={15} style={{ color: on ? '#fff' : color }} />
             <span>{t(label)}</span>
-            <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${on ? 'bg-white/20 text-white' : 'text-[var(--ink-soft)]'}`}>
-              {on ? t('AÇIK') : t('KAPALI')}
-            </span>
           </button>
         )
       })}

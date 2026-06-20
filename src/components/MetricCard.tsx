@@ -18,10 +18,12 @@ import { localeOf, fmtInt, fmtCompact } from '@/lib/format'
 const TOTAL_AMBER = '#FF761E'
 
 // 'xs' = birleşik Canlı Panel sağ kolonu için KOMPAKT karo (Mehmet Abi: kartlar büyük olmasın) — sıkı, hiyerarşik düzen.
+// 2026-06-20: kart grafiği kaldırılınca değer DOMINANT (büyük). sm RESPONSIVE (Mehmet abi: "sayfa küçülünce kart ölçüleri de o derece
+//   küçülsün") → clamp(min, vw, max): geniş ekranda iri, pencere küçülünce orantılı küçülür (kart h clamp ile uyumlu, taşma yok).
 type Size = 'lg' | 'md' | 'sm' | 'xs'
-const NUM_SIZE: Record<Size, string> = { lg: 'text-5xl', md: 'text-4xl', sm: 'text-3xl', xs: 'text-[1.45rem]' }
+const NUM_SIZE: Record<Size, string> = { lg: 'text-5xl', md: 'text-4xl', sm: 'text-[clamp(1.35rem,2.3vw,2.1rem)]', xs: 'text-[1.45rem]' }
 
-export function MetricCard({ def, history, size = 'md', total, onClick }: { def: MetricDef; history: Reading[]; size?: Size; total?: number; onClick?: () => void }) {
+export function MetricCard({ def, history, size = 'md', total, onClick, tight = false }: { def: MetricDef; history: Reading[]; size?: Size; total?: number; onClick?: () => void; tight?: boolean }) {
   const { t } = useLang()
   const series = useMemo(() => history.slice(-60).map(def.get), [history, def])
   // TOPLAM (totalizer) — yalniz verildiginde (Canli Panel'de flow karti) gosterilir. Buyukse kompakt (1,2 Mn), degilse binlik ayracli.
@@ -86,40 +88,41 @@ export function MetricCard({ def, history, size = 'md', total, onClick }: { def:
     )
   }
 
+  // GRAFİK KALDIRILDI (Mehmet abi 2026-06-20: "kartlardaki grafik akışlarını kaldır") → sade premium: başlık ÜSTTE (ikincil),
+  //   BÜYÜK değer ALTTA (dominant, göze hitap). justify-between → dikey denge. Sabit ölçü (h dışarıdan) + tabular-nums → oynamaz.
   return (
-    <Tilt3D onClick={onClick} className={`glass relative flex h-full flex-col gap-2 overflow-hidden rounded-2xl p-4 ${onClick ? 'cursor-pointer transition hover:brightness-110' : ''}`}>
+    <Tilt3D onClick={onClick} className={`glass relative flex h-full flex-col overflow-hidden rounded-2xl ${tight ? 'p-3' : 'p-4'} ${onClick ? 'cursor-pointer transition hover:brightness-110' : ''}`}>
       {depthLayer}
       {/* Ust renk seridi - grafikteki cizgiyle BIREBIR ayni renk */}
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: def.color, boxShadow: `0 0 18px ${def.color}` }} />
       {onClick && <Maximize2 size={13} className="pointer-events-none absolute right-2.5 top-2.5 text-[var(--ink-soft)] opacity-50" style={{ transform: 'translateZ(20px)' }} />}
 
-      {/* Başlık */}
-      <div className="flex items-center gap-2" style={{ transform: 'translateZ(22px)' }}>
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg" style={{ background: `${def.color}1f`, color: def.color }}>
-          <Icon size={17} />
+      {/* Başlık — SABİT (shrink-0): kart sıkışsa bile küçülmez/kaybolmaz; uzun ad truncate ile taşmaz → ölçü oynamaz. */}
+      <div className="flex shrink-0 items-center gap-2" style={{ transform: 'translateZ(22px)' }}>
+        <span className={`grid shrink-0 place-items-center rounded-lg ${tight ? 'h-6 w-6' : 'h-8 w-8'}`} style={{ background: `${def.color}1f`, color: def.color }}>
+          <Icon size={tight ? 14 : 17} />
         </span>
-        <span className="text-sm font-semibold text-[var(--ink)]">{t(def.name)}</span>
+        <span className="truncate text-sm font-semibold text-[var(--ink)]">{t(def.name)}</span>
         {def.key === 'pressure' && <PressureUnitToggle color={def.color} />}
       </div>
 
-      {/* ANLIK değer + TOPLAM AYNI SATIRDA (Mehmet Abi: kartta da grafik görünmez oluyordu) → dikey yer açılır, grafik HER ZAMAN sığar. */}
-      <div className="flex items-end justify-between gap-2" style={{ transform: 'translateZ(14px)' }}>
+      {/* BÜYÜK değer (dominant) DİKEY ORTALI (flex-1 justify-center → başlık-alt arası boşluk dengeli, Mehmet abi 2026-06-20 "kart içi optimize").
+          TOPLAM varsa ALTINDA, yatay tek satır → üst üste binmez. tabular-nums → ölçü sabit. */}
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5" style={{ transform: 'translateZ(14px)' }}>
         <div className="flex items-baseline gap-1.5">
-          <span className={`num ${NUM_SIZE[size]} font-bold leading-none text-white`} style={{ textShadow: `0 0 24px ${def.color}66` }}>{text}</span>
-          <span className="text-xs font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
+          <span className={`num ${NUM_SIZE[size]} font-bold leading-none text-white tabular-nums`} style={{ textShadow: `0 0 24px ${def.color}66` }}>{text}</span>
+          <span className="shrink-0 text-sm font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
         </div>
         {totalText != null && (
-          <div className="flex flex-col items-end leading-tight">
-            <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: TOTAL_AMBER }}>{t('Toplam')}</span>
-            <span className="num text-base font-bold leading-none text-white tabular-nums" style={{ textShadow: `0 0 14px ${TOTAL_AMBER}55` }}>{totalText} <span className="text-[9px] font-medium text-[var(--ink-soft)]">Litre</span></span>
+          // TOPLAM debi (Mehmet abi: iri turuncu, göze batar) — anlık değerin ALTINDA, yatay tek satır.
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: TOTAL_AMBER }}>{t('Toplam')}</span>
+            <span className="num text-[clamp(1.05rem,1.7vw,1.5rem)] font-bold leading-none tabular-nums" style={{ color: TOTAL_AMBER, textShadow: `0 0 16px ${TOTAL_AMBER}77` }}>{totalText}</span>
+            <span className="text-[11px] font-medium text-[var(--ink-soft)]">Litre</span>
           </div>
         )}
       </div>
 
-      {/* Kendi mini canli grafigi — kalan alanı DOLDURUR + GARANTİ min yükseklik (kart kısa olsa bile HER ZAMAN görünür) */}
-      <div className="mt-0.5 min-h-[44px] flex-1">
-        <Sparkline values={series} color={def.color} min={def.min} max={def.max} fill head pulse baseline />
-      </div>
     </Tilt3D>
   )
 }

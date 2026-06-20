@@ -90,73 +90,65 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   ) as MetricDef[]
 
   return (
-    <div className="flex flex-col gap-4 lg:h-full">
+    <div className="flex flex-col gap-2 lg:h-full lg:gap-1">
       <PageHeader
         title="Canlı Panel"
         subtitle={subtitle}
+        dense
         right={<DeviceCommands reading={reading} onCommand={sendCommand} />}
       />
 
-      {/* BİRLEŞİK SAHNE — SOL (grafikler) + SAĞ (veriler). MOBİL/tablet: dikey YIĞIN + SCROLL (sabit panel yükseklikleri → her şey okunur);
-          lg+: tek-ekran flex-row (masaüstü ferah grid). 3D sahne SADECE cihazın hemen arkasında (Mehmet Abi). */}
+      {/* BİRLEŞİK SAHNE — TEK SÜTUN (Mehmet abi 2026-06-20): ÜRÜN tam genişlik (anlık veri kartları cihazın BOŞ ALT KÖŞELERİNDE) +
+          GRAFİK tam genişlik altta. SAĞ KOLON KALDIRILDI → cihaz + grafik tüm genişliğe yayılır (cihaz belirgin büyür) + cihazın yatay
+          yapısından doğan alt köşe boşlukları kartlarla DOLAR (atıl alan → işlevsel kokpit). Mobil: dikey yığın. */}
       <section className="relative rounded-3xl lg:min-h-0 lg:flex-1 lg:overflow-hidden">
-        {/* lg: absolute fill + row; mobilde: statik dikey yığın (doğal yükseklik → main scroll eder) */}
-        <div className="flex flex-col gap-4 p-1 lg:absolute lg:inset-0 lg:flex-row lg:p-4">
-          {/* SOL ANA BLOK: Akış (üst) + Klasik (alt) */}
-          <div className="flex flex-col gap-4 lg:min-h-0 lg:min-w-0 lg:flex-1">
-            {/* AKIŞ — mobilde sabit yükseklik (okunur); lg'de flex-[3]. 3D AmbientScene cihaz arkasında → DeviceFlowChart şeffaf üstte. */}
-            {/* NE: Mobil/taban yükseklik 46vh/300px → 42vh/240px küçültüldü. NEDEN: Mehmet Abi — küçük telefonda Akış+Klasik alt alta ekranı taşırıyordu, içerik sığmıyordu. NASIL: yalnız taban sınıflar düşürüldü; lg:* AYNEN korundu. YAN ETKİ: masaüstü (lg+) görünüm değişmez; sadece mobilde paneller kısalır. */}
-            <div className="glass relative h-[42vh] min-h-[240px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[3]">
-              {heavyReady && (
-                <div className="ams-fade-in absolute inset-0">
-                  {/* ARKA PLAN SADELEŞTİ (Mehmet abi 2026-06-19): 60fps AmbientScene KALDIRILDI (sistemi yoruyordu). Hafif "space derinliği"
-                      ızgarası artık DeviceFlowChart İÇİNDE — koyu scrim'in ÜSTÜNE, cihazın ALTINA çiziliyor (yoksa scrim bastırıyordu). Burada ek katman yok. */}
-                  <DeviceFlowChart reading={reading} metrics={metrics} mode={mode} theme={theme} />
-                </div>
-              )}
-              <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} theme={theme} />
+        <div className="flex flex-col gap-3 p-1 lg:absolute lg:inset-0 lg:gap-3 lg:p-2">
+          {/* ÜRÜN — tam genişlik; anlık veri KARTLARI cihazın boş alt köşelerinde */}
+          <div className="glass relative h-[46vh] min-h-[260px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2.7]">
+            {heavyReady && (
+              <div className="ams-fade-in absolute inset-0">
+                {/* ARKA PLAN SADELEŞTİ (2026-06-19): AmbientScene kaldırıldı; space-derinlik ızgarası DeviceFlowChart içinde. */}
+                <DeviceFlowChart reading={reading} metrics={metrics} mode={mode} theme={theme} />
+              </div>
+            )}
+            {/* Cihaz üstü: mod rozeti + giriş/çıkış KALIR; sol-alt veri readout'ları KAPALI (kartlar devraldı → tekrar yok) */}
+            <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} theme={theme} showReadouts={false} />
+
+            {/* SOL-ÜST köşe (Mehmet abi 2026-06-20): Tasarruf % — KONUM OPTİMİZE: en üst köşe + KISA yatay kart (h-[78px]) → akış
+                animasyonunun ÜZERİNE BASMAZ (akış orta yükseklikte, kart üstte boş alanda kalır). Yazılar sol + % sağ (HeroKPI içinde). */}
+            <div className="absolute left-3 top-3 z-10 h-[clamp(58px,8.2vh,82px)] w-[clamp(180px,18vw,340px)]">
+              <HeroKPI percent={percent} mode={mode} />
             </div>
-            {/* KLASİK — mobilde sabit yükseklik; lg'de flex-[2]. */}
-            {/* NE: Mobil/taban yükseklik 34vh/230px → 30vh/190px küçültüldü. NEDEN: Mehmet Abi — Akış paneliyle birlikte küçük telefonda toplam yükseklik ekranı taşırıyordu. NASIL: yalnız taban sınıflar düşürüldü; lg:* AYNEN korundu. YAN ETKİ: masaüstü (lg+) görünüm değişmez; sadece mobilde panel kısalır. */}
-            <div className="glass relative h-[30vh] min-h-[190px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2]">
-              {heavyReady && (
-                <div className="ams-fade-in absolute inset-0">
-                  {/* ARKA PLAN SADELEŞTİ (Mehmet abi 2026-06-19): grafiğin arkasındaki AmbientScene (zaten "çoğu görünmez"di) KALDIRILDI →
-                      sistemi boşa yormayan sade arka plan; glass yüzey grafiğe net/odaklı zemin verir, veri öne çıkar. */}
-                  <ErrorBoundary variant="inline" label={t('Grafik')}>
-                    <LiveChart2D history={shownTrend} reading={reading} metrics={visibleMetrics} theme={theme} groups={CHART_TABS[chartTab].groups} />
-                  </ErrorBoundary>
-                </div>
+
+            {/* SOL-ALT köşe (Mehmet abi 2026-06-20): Hava Tüketimi (iri TOPLAM) + Basınç. Genişlik RESPONSIVE — dar pencerede agresif küçülür
+                (vw düşük) → cihaz görselinin üzerine BİNMEZ (Mehmet abi ekran görüntüsü). */}
+            <div className="absolute bottom-12 left-3 z-10 flex w-[clamp(212px,23vw,460px)] gap-2">
+              {byKey.flow && visible.flow && (
+                <div className="h-[clamp(98px,14vh,142px)] flex-1"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
               )}
-              <ChartOverlay reading={reading} history={shownTrend} metrics={visibleMetrics} startedAt={startedAt} windowMs={windowMs} onWindowChange={setWindowMs} tabs={CHART_TABS.map((c) => c.label)} activeTab={chartTab} onTabChange={setChartTab} showPressureToggle={chartTab === 0} theme={theme} />
+              {byKey.pressure && visible.pressure && (
+                <div className="h-[clamp(98px,14vh,142px)] flex-1"><MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} /></div>
+              )}
+            </div>
+
+            {/* SAĞ-ALT köşe (Mehmet abi 2026-06-20): Sıcaklık + Nem. Genişlik RESPONSIVE — dar pencerede küçülür → cihaza binmez. */}
+            <div className="absolute bottom-12 right-3 z-10 flex w-[clamp(200px,22vw,430px)] gap-2">
+              {cardDefs.filter((m) => m.key === 'temperature' || m.key === 'humidity').map((m) => (
+                <div key={m.key} className="h-[clamp(98px,14vh,142px)] flex-1"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
+              ))}
             </div>
           </div>
 
-          {/* SAĞ KOLON: Tasarruf + BÜYÜK Hava Tüketimi kartı + 3 kompakt kart. lg: sabit dikey kolon (biraz genişletildi → büyük kart sığar). */}
-          <div className="flex flex-col gap-3 lg:min-h-0 lg:w-[clamp(200px,17vw,242px)] lg:shrink-0">
-            <div className="shrink-0">
-              <HeroKPI percent={percent} mode={mode} />
-            </div>
-            {/* ÖNEM HİYERARŞİSİ (Mehmet abi 2026-06-19): Tasarruf(üst) > HAVA TÜKETİMİ (hero, ana ölçüm + toplam) > Basınç (kontrol) > Sıcaklık/Nem (ortam).
-                HAVA TÜKETİMİ — en büyük metrik kartı (sm + TOPLAM satırı). */}
-            {byKey.flow && visible.flow && (
-              <div className="lg:min-h-0 lg:flex-[1.18]">
-                <MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} />
+          {/* GRAFİK — tam genişlik (sağ kolon kalktı → boydan boya) */}
+          <div className="glass relative h-[30vh] min-h-[190px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2.2]">
+            {heavyReady && (
+              <div className="ams-fade-in absolute inset-0">
+                <ErrorBoundary variant="inline" label={t('Grafik')}>
+                  <LiveChart2D history={shownTrend} reading={reading} metrics={visibleMetrics} theme={theme} groups={CHART_TABS[chartTab].groups} />
+                </ErrorBoundary>
               </div>
             )}
-            {/* BASINÇ — ikinci önemli (kontrol değişkeni): kendi hücresinde sm (Sıcaklık/Nem'den büyük), Hava Tüketimi'nin biraz altında. */}
-            {byKey.pressure && visible.pressure && (
-              <div className="lg:min-h-0 lg:flex-[1.0]">
-                <MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} />
-              </div>
-            )}
-            {/* Sıcaklık + Nem — ortam: Mehmet abi 2026-06-19 BİRAZ BÜYÜTÜLDÜ (Tasarruf kartından açılan yerle); xs'te değer + grafik YAN YANA →
-                veri ASLA görünmez olmaz. Mobil 2 sütun, lg dikey. */}
-            <div className="grid grid-cols-2 gap-3 lg:min-h-0 lg:flex-[1.3] lg:grid-cols-1 lg:auto-rows-fr">
-              {cardDefs.filter((m) => m.key !== 'flow' && m.key !== 'pressure').map((m) => (
-                <MetricCard key={m.key} def={m} history={history} size="xs" onClick={() => setDetailKey(m.key)} />
-              ))}
-            </div>
+            <ChartOverlay reading={reading} history={shownTrend} metrics={visibleMetrics} startedAt={startedAt} windowMs={windowMs} onWindowChange={setWindowMs} tabs={CHART_TABS.map((c) => c.label)} activeTab={chartTab} onTabChange={setChartTab} showPressureToggle={chartTab === 0} theme={theme} />
           </div>
         </div>
       </section>

@@ -35,14 +35,17 @@ const sstep = (x: number) => { x = x < 0 ? 0 : x > 1 ? 1 : x; return x * x * (3 
 // sampleCurl çıktı tamponu — TEK paylaşılan 2'li tuple (geri-dönüş + egzoz ardışık kullanır; değer anında okunur → çakışma yok, alloc yok).
 const _cv: [number, number] = [0, 0]
 
-// Cihaz canvas'i neredeyse doldurur (kirpilmis icerik → cok BUYUK)
-const DEV_FILL = 0.985
+// Cihaz canvas'i KIRPMADAN panele en buyuk oturur (contain-fit). 2026-06-20: 0.985 -> 1.0 (Mehmet abi "urunu kirpma" + buyuk olsun) —
+// ZOOM=1.0 ile birlikte cihaz panel kenarina tam dayar ama TASMAZ/kirpilmaz. Buyutme yan/dikey bosluk panel oraniyla kapanir.
+const DEV_FILL = 1.0
 // KABLO KIRPMA (Mehmet Abi): alttan sarkan kabloyu kes → cihaza yer açılır. Çizilen kaynak yükseklik oranı (üst kısım).
 const CABLE_CROP = 0.74
 // CİHAZI AŞAĞI AL (Mehmet Abi: bu kadar yukarıda olmasın). Görünen bölge dikey ORTALANIR + bu kadar (H oranı) aşağı kayar.
 const DEV_DROP = 0.02
-// DEBİMETRE ODAKLI hafif zoom (Mehmet Abi): dış çerçeve/oranlar SABİT, içerik LCD'ye doğru birazcık büyür
-const ZOOM = 1.12
+// DEBİMETRE ODAKLI zoom (Mehmet Abi): dış çerçeve/oranlar SABİT, içerik LCD'ye doğru büyür.
+// 2026-06-20: 1.0→1.16→1.20 (Mehmet abi: "ürünü biraz daha büyült") — cihaz yatay, contain'de YAN boşluk vardı; bu zoom o boşluğu
+//   yiyerek cihazı büyütür, esas gövde kırpılmaz (kenar boşluğu kapanır). Fazlası kenar kırpar → ekran kanıtıyla sınırda tut.
+const ZOOM = 1.20
 const FOCUS_U = 0.49, FOCUS_V = 0.205   // debimetre LCD merkezi (zoom odağı; image #1)
 // Fallback port ekseni/capi/uclari (olcum tutmazsa)
 const FB_AXIS = 0.19, FB_PIPE = 0.06, FB_IN = 0.03, FB_OUT = 0.95  // image #1 (AMS40A): hava yolu ÜSTTE (yatay manifold)
