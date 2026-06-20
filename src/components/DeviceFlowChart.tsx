@@ -403,7 +403,8 @@ export function DeviceFlowChart({
     // TOTALIZER (toplam debi L) — kalıcı; ilk açılışta model debisinden tohumlanır (inandırıcı 4 haneli başlangıç).
     let accumL = loadAccum(Math.round(getActiveModel().baselineFlow))
     let accumSaveT = 0   // periyodik kalıcılaştırma sayacı (saniye)
-    let pubT = 0         // "Toplam Tüketim" kartı yayın sayacı (saniye) — ~1sn'de bir publishTotalizer (60fps'te her kare DEĞİL)
+    let pubT = 0         // "Toplam Tüketim" kartı yayın sayacı (saniye) — ~0,25sn'de bir publishTotalizer (LCD ile BİREBİR senkron; 60fps'te her kare DEĞİL)
+    let lastPub = accumL // EN SON YAYINLANAN totalizer (Mehmet abi 2026-06-20: "LCD'deki rakam ≠ penceredeki toplam"). LCD bunu çizer → kart TOPLAM ile AYNI sayı, lag YOK.
     publishTotalizer(accumL)  // ilk değer: kart 0 yerine gerçek başlangıcı göstersin (cihaz bağlandığında ilk tikle gerçeğe güncellenir)
     // NE: Önceki karenin valf sinyali. NEDEN: Egzoz, valfin KAPANMA HIZINA bağlanacak (sürekli fışkırma değil, geçişte fışkırma).
     //   NASIL: Her karede sig.valve ile farkı alınıp valveRate hesaplanır. YAN ETKİ: effect-scoped (kare-başı alloc YOK, sadece sayı).
@@ -430,7 +431,7 @@ export function DeviceFlowChart({
       accumSaveT += dt
       if (accumSaveT >= 3) { saveAccum(accumL); accumSaveT = 0 }
       pubT += dt
-      if (pubT >= 1) { publishTotalizer(accumL); pubT = 0 }   // sağ kol "Toplam Tüketim" kartı ~1sn'de bir güncellenir (LCD ile AYNI değer)
+      if (pubT >= 0.25) { publishTotalizer(accumL); lastPub = accumL; pubT = 0 }   // ~0,25sn'de bir yayınla + LCD AYNI snapshot'ı (lastPub) çizer → kart ile BİREBİR (lag yok)
       const k = Math.min(1, dt * 4)
       sig.flow += (t.flow - sig.flow) * k; sig.pressure += (t.pressure - sig.pressure) * k
       sig.temp += (t.temp - sig.temp) * k; sig.hum += (t.hum - sig.hum) * k
@@ -918,7 +919,7 @@ export function DeviceFlowChart({
         const tStr = ro2.temp != null ? ro2.temp.toFixed(1) : '---'           // sıcaklık 26.5
         // GUARD: accumL non-finite olursa (NaN) 7-seg cizemez → sag-alt BOS gorunur (saha "gorunmuyor" sikayetinin olasi kaynagi).
         //   → daima sonlu bir string; en kotu halde "0". Boylece totalizer ASLA bos kalmaz.
-        const aStr = Number.isFinite(accumL) ? String(Math.floor(accumL) % 100000) : '0'   // toplam debi (totalizer; ≤5 hane → taşmaz/küçültmez)
+        const aStr = Number.isFinite(lastPub) ? String(Math.floor(lastPub) % 100000) : '0'   // LCD = EN SON YAYINLANAN değer (lastPub) → kart TOPLAM ile BİREBİR (lag yok). totalizer ≤5 hane → taşmaz/küçültmez
         // RAKAM BOYU — SABİT referanstan (tüm 7-seg AYNI boyut, gerçek cihaz). SOL en geniş "0.200", SAĞ en geniş 5-hane "88888".
         //   → digH artık canlı veriye bağlı DEĞİL → zamanla küçülmez/oynamaz (kararlı/sabit görünüm).
         const REF_L = measureSevenSeg('0.200', 1)    // sol sütun en geniş sabit referans

@@ -12,6 +12,7 @@ import { LiveDataSource } from '@/data/liveSource'
 import { useConnection, setConnStatus } from '@/data/connection'
 import { appendReading } from '@/data/history'
 import { applyDeviceSettingsFromDevice, getDeviceSettings, subscribeDeviceSettings, wasLastChangeFromDevice } from '@/data/deviceSettings'
+import { useModel } from '@/data/model'
 
 const MAX_POINTS = 620 // grafikte tutulan son okuma sayisi (akan grafik; L=600 → ~48 sn pencere icin yeterli tampon)
 const LOG_MAX = 4500 // analiz/kayit icin daha uzun gunluk (~6 dk @80ms tik)
@@ -33,6 +34,7 @@ export interface LiveState {
 
 export function useLiveReadings(): LiveState {
   const { settings } = useConnection()
+  const { model } = useModel() // MODEL değişince geçmiş SIFIRLANIR (Mehmet abi 2026-06-20: AMS30 seçince detay penceresi 0-4000 görünüyordu — eski modelin yüksek verisi kalıyordu)
   const [reading, setReading] = useState<Reading | null>(null)
   const [history, setHistory] = useState<Reading[]>([])
   const [log, setLog] = useState<Reading[]>([])
@@ -100,7 +102,7 @@ export function useLiveReadings(): LiveState {
     })
     return () => { unsubSettings(); src.stop() }
     // nodeIds degisince (kilavuzdan) canli kaynak yeniden kurulur -> yeni dugumlerle okur
-  }, [settings.mode, settings.endpoint, settings.nodeIds])
+  }, [settings.mode, settings.endpoint, settings.nodeIds, model.code]) // model.code → model değişince effect yeniden kurulur, geçmiş sıfırlanır, demo yeni modelle taze başlar
 
   const setMode = (m: Mode) => srcRef.current?.setMode?.(m)
   const sendCommand = (key: CommandKey, on: boolean) => srcRef.current?.sendCommand?.(key, on)

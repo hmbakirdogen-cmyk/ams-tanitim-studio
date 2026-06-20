@@ -39,7 +39,7 @@ function niceAxis(maxV: number): { hi: number; step: number } {
   const raw = maxV / 3
   const mag = Math.pow(10, Math.floor(Math.log10(raw)))
   const norm = raw / mag
-  const step = (norm <= 1.5 ? 1 : norm <= 3 ? 2 : norm <= 7 ? 5 : 10) * mag
+  const step = (norm <= 1.5 ? 1 : norm <= 3.5 ? 2 : norm <= 7 ? 5 : 10) * mag // Mehmet abi 2026-06-20: 1000'de eşik 3→3.5 → step 500 yerine 200 (0/200/…/1000; "sadece 500 görünüyor" düzeldi). Basınç 0,6 (norm 2) AYNI kalır (0/0,2/0,4/0,6).
   // EPSILON (Mehmet abi 2026-06-19): 0,8×0,75=0,6 ama float 0,6000000001 → ceil yukarı kaçıp 0,8 yapıyordu. −1e-9 ile tam katlarda DOĞRU yuvarlanır.
   const hi = Math.max(step, Math.ceil(maxV / step - 1e-9) * step)
   return { hi, step }
@@ -157,7 +157,10 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
             //   Debi ekseni = ÜRÜN max debisi (m.max=flowMax). niceAxis ikisinde de yuvarlak adım verir (MPa 0,2 · bar 2 · debi 500). SABİT 0…hi (gauge gibi).
             const axisMax = m.key === 'pressure' ? m.max * 0.75 : m.max
             const ax = niceAxis(axisMax)
-            lo = 0; hi = ax.hi; step = ax.step
+            // BASINÇ ekseni HASSAS tick (Mehmet abi 2026-06-20: bar'da 1'er, MPa'da da AYNI sıklık): bar → 1'er (0/1/…/6), MPa → 0,1'er (0/0,1/…/0,6).
+            //   1 bar = 0,1 MPa → iki birimde de 7 çizgi, aynı sıklık. (Sadece basınç; debi niceAxis ile yuvarlak kalır.)
+            if (m.key === 'pressure') { const isBar = m.unitShort === 'bar'; lo = 0; step = isBar ? 1 : 0.1; hi = Math.max(step, Math.ceil(axisMax / step - 1e-9) * step) }
+            else { lo = 0; hi = ax.hi; step = ax.step }
           }
           const denom = Math.max(hi - lo, 1e-6) // auto-range'de band genişliği, sabitte hi (lo=0)
           const subH = h * (1 - off), subTop = top + (group.length > 1 ? gi * (h * off) : 0)
