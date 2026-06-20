@@ -57,12 +57,25 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
     />
   )
 
+  // UZAY KONSOLU dokunuşu — AĞIRBAŞLI (Mehmet abi 2026-06-20: "uzay üssü hissi AMA asla şımarıklık YOK; JP SMC'ye gidiyor"):
+  //   Kartın 4 köşesinde FISILTI gibi ince L işaretleri → "hassas gösterge/enstrüman" çerçevesi. Parlak/gamer HUD DEĞİL: çok sönük
+  //   (opacity ~0.2), küçük, metrik renginde (kartın kimliğiyle uyumlu ama bağırmayan). Scanline vb. gösterişli doku YOK.
+  //   Saf CSS statik katman (kare-başı tahsis/rAF YOK; GPU compositor) → RAM bedava, perf işiyle uyumlu.
+  const hudLayer = (
+    <span aria-hidden className="pointer-events-none absolute inset-2" style={{ color: def.color }}>
+      <span className="absolute left-0 top-0 h-2 w-2 border-l border-t" style={{ borderColor: 'currentColor', opacity: 0.2 }} />
+      <span className="absolute right-0 top-0 h-2 w-2 border-r border-t" style={{ borderColor: 'currentColor', opacity: 0.2 }} />
+      <span className="absolute bottom-0 left-0 h-2 w-2 border-b border-l" style={{ borderColor: 'currentColor', opacity: 0.2 }} />
+      <span className="absolute bottom-0 right-0 h-2 w-2 border-b border-r" style={{ borderColor: 'currentColor', opacity: 0.2 }} />
+    </span>
+  )
+
   // KOMPAKT (xs) — Mehmet Abi: "küçük kartlarda grafik görünmüyor." KÖK ÇÖZÜM: değer ile grafik YAN YANA → kart kısa olsa bile
   //   grafik SABİT yükseklikte, ASLA çökmez/gizlenmez. Üstte ad (ikincil), altta solda değer + sağda akan grafik. Detay = TIKLA.
   if (size === 'xs') {
     return (
       <Tilt3D onClick={onClick} className={`glass relative flex h-full flex-col justify-center overflow-hidden rounded-xl px-3 py-2 ${onClick ? 'cursor-pointer transition hover:brightness-110' : ''}`}>
-        {depthLayer}
+        {depthLayer}{hudLayer}
         <span className="absolute inset-x-0 top-0 h-0.5" style={{ background: def.color, boxShadow: `0 0 12px ${def.color}` }} />
         {onClick && <Maximize2 size={11} className="pointer-events-none absolute right-2 top-2 text-[var(--ink-soft)] opacity-50" style={{ transform: 'translateZ(20px)' }} />}
         {/* 3D DERİNLİK: köşeden metrik renginde hafif radyal vurgu + ust-ic isik / alt-ic golge → kart boşlukta yüzer */}
@@ -99,7 +112,7 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
     // NASIL   : sm/tight modda daha kompakt bosluklar, truncate baslik, deger satirinda min-w-0 + tabular hiza; toplam satiri daha guvenli.
     // YAN ETKI: Gorsel dil korunur; yalnizca ic yerlesim daha stabil hale gelir.
     <Tilt3D onClick={onClick} className={`glass relative flex h-full flex-col overflow-hidden rounded-2xl ${compact ? 'p-2.5' : 'p-4'} ${onClick ? 'cursor-pointer transition hover:brightness-110' : ''}`}>
-      {depthLayer}
+      {depthLayer}{hudLayer}
       {/* Ust renk seridi - grafikteki cizgiyle BIREBIR ayni renk */}
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: def.color, boxShadow: `0 0 18px ${def.color}` }} />
       {onClick && <Maximize2 size={13} className="pointer-events-none absolute right-2.5 top-2.5 text-[var(--ink-soft)] opacity-50" style={{ transform: 'translateZ(20px)' }} />}

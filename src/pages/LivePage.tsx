@@ -116,24 +116,24 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             <PipeOverlay reading={reading} metrics={visibleMetrics} mode={mode} thresholds={thrInfo} theme={theme} showReadouts={false} />
 
             {/* SOL-ÜST köşe: Tasarruf % — düzen sabit, genişlik/yükseklik dar pencerede otomatik küçülür. */}
-            <div className="absolute left-2 top-2 z-10 h-[clamp(44px,6.2vh,82px)] w-[clamp(120px,26cqw,340px)] md:left-3 md:top-3 md:h-[clamp(50px,7vh,82px)] md:w-[clamp(138px,24cqw,340px)]">
+            <div className="absolute left-2 top-2 z-10 h-[clamp(34px,6.2vh,82px)] w-[clamp(100px,26cqw,340px)] md:left-3 md:top-3 md:h-[clamp(38px,7vh,82px)] md:w-[clamp(112px,24cqw,340px)]">
               <HeroKPI percent={percent} mode={mode} />
             </div>
 
             {/* SOL-ALT köşe: Hava Tüketimi + Basınç. Alt kenara sabitlenir; pencere kısalsa da dışarı taşmaz. */}
             <div className="absolute bottom-12 left-2 z-10 flex items-start gap-[clamp(4px,0.8cqw,12px)] md:bottom-13 md:left-3">
               {byKey.flow && visible.flow && (
-                <div className="h-[clamp(110px,14.8vh,170px)] w-[clamp(78px,15.5cqw,200px)] min-w-0"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
+                <div className="h-[clamp(86px,14.8vh,170px)] w-[clamp(58px,15.5cqw,200px)] min-w-0"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
               )}
               {byKey.pressure && visible.pressure && (
-                <div className="h-[clamp(96px,13.2vh,156px)] w-[clamp(78px,15.5cqw,200px)] min-w-0"><MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} /></div>
+                <div className="h-[clamp(58px,13.2vh,156px)] w-[clamp(58px,15.5cqw,200px)] min-w-0"><MetricCard def={byKey.pressure} history={history} size="sm" onClick={() => setDetailKey('pressure')} /></div>
               )}
             </div>
 
             {/* SAĞ-ALT köşe: Sıcaklık + Nem — alt kenara sabitlenir; pencere kısalsa da dışarı taşmaz. */}
             <div className="absolute bottom-12 right-2 z-10 flex items-start gap-[clamp(4px,0.8cqw,12px)] md:bottom-13 md:right-3">
               {cardDefs.filter((m) => m.key === 'temperature' || m.key === 'humidity').map((m) => (
-                <div key={m.key} className="h-[clamp(96px,13.2vh,156px)] w-[clamp(78px,15.5cqw,200px)] min-w-0"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
+                <div key={m.key} className="h-[clamp(58px,13.2vh,156px)] w-[clamp(58px,15.5cqw,200px)] min-w-0"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
               ))}
             </div>
           </div>

@@ -67,6 +67,9 @@ async function jget(path) {
     console.log('tikla2:', r2?.result?.value)
     await sleep(2400) // modal açılış (yağ gibi spring) + canlı çizim
   }
+  // SHOT_ZOOM (ops.): tarayıcı yakınlaştırmasını taklit et (CSS zoom kökte) → "kullanıcı Ctrl+ ile zoom yaptı" senaryosunda yerleşim/çakışma testi.
+  const ZOOM = process.env.SHOT_ZOOM
+  if (ZOOM) { await cmd('Runtime.evaluate', { expression: `document.documentElement.style.zoom='${ZOOM}'` }); await sleep(1000) }
   const shot = await cmd('Page.captureScreenshot', { format: 'png' })
   fs.writeFileSync(OUT, Buffer.from(shot.data, 'base64'))
   console.log('SHOT OK:', OUT)
