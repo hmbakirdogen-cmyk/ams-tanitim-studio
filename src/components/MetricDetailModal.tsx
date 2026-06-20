@@ -89,6 +89,7 @@ export function MetricDetailModal({ def, series, reading, startedAt, total, onCl
       const pos = frac * (m - 1), i0 = Math.floor(pos), i1 = Math.min(m - 1, i0 + 1), fr = pos - i0
       return def.get(s[i0]) * (1 - fr) + def.get(s[i1]) * fr
     }
+    const ptsBuf: number[][] = Array.from({ length: N }, () => [0, 0]) // PERF: kalıcı nokta tamponu → kare-başı new Array(N) tahsisi yok (GC churn azalır)
     const draw = () => {
       raf = requestAnimationFrame(draw)
       const r = wrap.getBoundingClientRect()
@@ -160,8 +161,8 @@ export function MetricDetailModal({ def, series, reading, startedAt, total, onCl
         let disp = dispRef.current
         if (!disp || disp.length !== N) { disp = new Float32Array(N); for (let i = 0; i < N; i++) disp[i] = clamp01((sampleVal(i / (N - 1)) - aMin) / denom); dispRef.current = disp }
         for (let i = 0; i < N; i++) { const tg = clamp01((sampleVal(i / (N - 1)) - aMin) / denom); disp[i] += (tg - disp[i]) * 0.09 }
-        const pts: number[][] = new Array(N)
-        for (let i = 0; i < N; i++) pts[i] = [px + (i / (N - 1)) * pw, py + ph - disp[i] * ph]
+        const pts = ptsBuf // PERF: kalıcı tampon (her kare yeni dizi değil); aşağıda smooth() pts[i][0]/[1] okur
+        for (let i = 0; i < N; i++) { pts[i][0] = px + (i / (N - 1)) * pw; pts[i][1] = py + ph - disp[i] * ph }
         // ORTALAMA referans çizgisi (kesik, sensör renginde) + etiket → "iyice detay"
         const ay = yOf(avgD)
         ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = `rgba(${cr},${cg},${cb},0.45)`; ctx.lineWidth = 1

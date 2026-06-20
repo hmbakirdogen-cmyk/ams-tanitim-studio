@@ -85,13 +85,6 @@ function notify() {
   listeners.forEach((l) => l())
 }
 
-export function getConnection(): ConnSettings {
-  return settings
-}
-export function getConnStatus(): ConnStatus {
-  return status
-}
-
 export function setConnMode(mode: ConnMode): void {
   if (mode === settings.mode) return
   settings = { ...settings, mode }

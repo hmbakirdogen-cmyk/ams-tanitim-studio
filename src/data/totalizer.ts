@@ -19,10 +19,6 @@ export function publishTotalizer(v: number): void {
   listeners.forEach((l) => l())
 }
 
-export function getTotalizer(): number {
-  return totalL
-}
-
 // Kart bu hook ile reaktif okur — yalniz deger degisince (en fazla ~1sn'de bir) yeniden render olur.
 export function useTotalizer(): number {
   return useSyncExternalStore(

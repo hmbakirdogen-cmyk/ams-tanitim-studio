@@ -81,7 +81,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
   const hour = new Date().getHours()
   const greet = hour < 11 ? 'Günaydın' : hour < 18 ? 'İyi günler' : 'İyi akşamlar'
   const subtitle = greetName
-    ? `${t(greet)}, ${greetName} Bey — ${t('tüm sensörler canlı akıyor')}`
+    ? `${t(greet)}, ${`${greetName} ${t('Bey')}`.trim()} — ${t('tüm sensörler canlı akıyor')}`
     : `${t(greet)} — ${t('tüm sensörler tek ekranda, gerçek zamanlı akıyor')}`
 
   // Sağ kolon kompakt kartları (Tasarruf'un altında, hiyerarşik) — yalnız görünür sensörler
@@ -143,11 +143,11 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             {heavyReady && (
               <div className="ams-fade-in absolute inset-0">
                 <ErrorBoundary variant="inline" label={t('Grafik')}>
-                  <LiveChart2D history={shownTrend} reading={reading} metrics={visibleMetrics} theme={theme} groups={CHART_TABS[chartTab].groups} />
+                  <LiveChart2D history={shownTrend} reading={reading} metrics={visibleMetrics} groups={CHART_TABS[chartTab].groups} />
                 </ErrorBoundary>
               </div>
             )}
-            <ChartOverlay reading={reading} history={shownTrend} metrics={visibleMetrics} startedAt={startedAt} windowMs={windowMs} onWindowChange={setWindowMs} tabs={CHART_TABS.map((c) => c.label)} activeTab={chartTab} onTabChange={setChartTab} showPressureToggle={chartTab === 0} theme={theme} />
+            <ChartOverlay reading={reading} history={shownTrend} startedAt={startedAt} windowMs={windowMs} onWindowChange={setWindowMs} tabs={CHART_TABS.map((c) => c.label)} activeTab={chartTab} onTabChange={setChartTab} showPressureToggle={chartTab === 0} theme={theme} />
           </div>
         </div>
       </section>

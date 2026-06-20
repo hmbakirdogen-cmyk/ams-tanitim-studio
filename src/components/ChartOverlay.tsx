@@ -8,7 +8,6 @@
  *           Saat = startedAt + gösterilen pencere (LivePage'de seçili aralığa kırpılmış trend) göreli t.
  * YAN ETKI: Arkadaki 3D boru görünümünü etkilemez (üstte, şeffaf). i18n korunur.
  */
-import { METRICS, type MetricDef } from '@/data/metrics'
 import { PressureUnitToggle } from './PressureUnitToggle'
 import { useLang } from '@/i18n'
 import { localeOf } from '@/lib/format'
@@ -36,11 +35,10 @@ function fmtElapsed(ms: number): string {
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(ss)}` : `${pad(m)}:${pad(ss)}`
 }
 
-export function ChartOverlay({ reading, history = [], metrics = METRICS, startedAt = 0, windowMs, onWindowChange, tabs, activeTab = 0, onTabChange, showPressureToggle = true, theme = 'dark' }: { reading: Reading | null; history?: Reading[]; metrics?: MetricDef[]; startedAt?: number; windowMs?: number; onWindowChange?: (ms: number) => void; tabs?: string[]; activeTab?: number; onTabChange?: (i: number) => void; showPressureToggle?: boolean; theme?: 'dark' | 'light' }) {
+export function ChartOverlay({ reading, history = [], startedAt = 0, windowMs, onWindowChange, tabs, activeTab = 0, onTabChange, showPressureToggle = true, theme = 'dark' }: { reading: Reading | null; history?: Reading[]; startedAt?: number; windowMs?: number; onWindowChange?: (ms: number) => void; tabs?: string[]; activeTab?: number; onTabChange?: (i: number) => void; showPressureToggle?: boolean; theme?: 'dark' | 'light' }) {
   const { t } = useLang()
   const shadow = theme === 'light' ? shadowLight : shadowDark // gündüz/gece okunurluk (Mehmet abi)
   const elapsed = fmtElapsed(reading?.t ?? 0)
-  const nf = (v: number, d = 0) => new Intl.NumberFormat(localeOf(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
   // GERÇEK SAAT (Efekan Bey): history = gösterilen pencere → X tikinin duvar saati = startedAt + göreli t.
   const win = history
   const hasWin = win.length > 1

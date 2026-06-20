@@ -42,10 +42,6 @@ function load(): ModuleState {
 let current: ModuleState = load()
 const listeners = new Set<() => void>()
 
-export function getModules(): ModuleState {
-  return current
-}
-
 // Secili (acik) modullerin tanimlarini verir - vitrinde gostermek icin
 export function enabledModules(): ModuleDef[] {
   return MODULES.filter((m) => current[m.id])

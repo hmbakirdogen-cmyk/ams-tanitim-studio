@@ -179,7 +179,7 @@ function scheduleMode(d: Date): Mode {
   return 'normal' // mesai
 }
 
-function syntheticAt(absMs: number, model: AmsModel, targets: Record<Mode, T>): Sample {
+function syntheticAt(absMs: number, _model: AmsModel, targets: Record<Mode, T>): Sample {
   const d = new Date(absMs)
   const mode = scheduleMode(d)
   const base = targets[mode]

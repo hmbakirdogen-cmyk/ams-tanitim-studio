@@ -60,11 +60,10 @@ function autoRange(minV: number, maxV: number): { lo: number; hi: number; step: 
 }
 const AUTO_RANGE_KEYS = new Set<MetricKey>(['temperature', 'humidity']) // SADECE bunlar zoom'lanır; flow/pressure gauge gibi SABİT 0…max kalır
 
-export function LiveChart2D({ history = [], reading = null, metrics, theme = 'dark', groups = [['flow'], ['pressure']] }: {
+export function LiveChart2D({ history = [], reading = null, metrics, groups = [['flow'], ['pressure']] }: {
   history?: Reading[]
   reading?: Reading | null
   metrics: MetricDef[]
-  theme?: 'dark' | 'light'
   groups?: MetricKey[][] // Mehmet abi 2026-06-19: sekme → hangi 2 sensör (Hava&Basınç / Sıcaklık&Nem)
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -100,6 +99,7 @@ export function LiveChart2D({ history = [], reading = null, metrics, theme = 'da
       ctx.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1])
     }
 
+    const ptsBuf: number[][] = Array.from({ length: N }, () => [0, 0]) // PERF: kalıcı nokta tamponu (şeritler SIRAYLA çizilir → paylaşım güvenli) → kare-başı new Array(N) tahsisi yok (GC churn azalır)
     const draw = () => {
       raf = requestAnimationFrame(draw)
       if (typeof document !== 'undefined' && document.hidden) return
@@ -177,9 +177,11 @@ export function LiveChart2D({ history = [], reading = null, metrics, theme = 'da
         const tips: { m: MetricDef; tipY: number; vTxt: string }[] = []
         for (const s of subs) {
           const m = s.m, [r, g, b] = hexRgb(m.color)
-          const pts: number[][] = new Array(N)
-          for (let i = 0; i < N; i++) pts[i] = [px + (i / (N - 1)) * pw, s.subTop + (1 - s.disp[i]) * s.subH]
-          ctx.beginPath(); strokeSmooth(pts); ctx.strokeStyle = m.color; ctx.lineWidth = 6; ctx.shadowColor = m.color; ctx.shadowBlur = 9; ctx.stroke(); ctx.shadowBlur = 0
+          const pts = ptsBuf // PERF: kalıcı tampon; şerit sırayla doldurup hemen çizer (çizim senkron → paylaşım güvenli)
+          for (let i = 0; i < N; i++) { pts[i][0] = px + (i / (N - 1)) * pw; pts[i][1] = s.subTop + (1 - s.disp[i]) * s.subH }
+          // PERF: shadowBlur (Canvas'ın en pahalı işlemi) yalnız YÜKSEK-DPR/4K'da hafifletilir (9→5). Normal ekranda (dpr<1.75) BİREBİR 9 kalır →
+          //   görünüş Mehmet abi'nin ekranında aynı; 4K TV'de fill-rate maliyeti düşer (TV mesafesinde fark hissedilmez), "kasma" riski biter.
+          ctx.beginPath(); strokeSmooth(pts); ctx.strokeStyle = m.color; ctx.lineWidth = 6; ctx.shadowColor = m.color; ctx.shadowBlur = dpr >= 1.75 ? 5 : 9; ctx.stroke(); ctx.shadowBlur = 0
           ctx.beginPath(); strokeSmooth(pts); ctx.strokeStyle = `rgb(${r},${g},${b})`; ctx.lineWidth = 4.5; ctx.stroke()
           ctx.beginPath()
           for (let i = 0; i < N; i++) { const p = pts[i]; if (i) ctx.lineTo(p[0], p[1] - 1.3); else ctx.moveTo(p[0], p[1] - 1.3) }

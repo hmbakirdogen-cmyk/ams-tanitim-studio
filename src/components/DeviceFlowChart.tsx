@@ -443,6 +443,13 @@ export function DeviceFlowChart({
       const exTarget = clamp01(valveRate * 0.6 + sig.valve * 0.30) // GEÇİŞTE güçlü fışkırma + izolasyonda SÜREKLİ GÖRÜNÜR hafif tahliye (Mehmet abi: egzoz net görünsün)
       sig.exhaust += (exTarget - sig.exhaust) * Math.min(1, dt * 2.2)
 
+      // NE: Sekme/pencere GİZLİYKEN (document.hidden) pahalı canvas çizimini atla; rAF yine zamanlanır.
+      // NEDEN: Bu en ağır canvas (~520 parçacık + LCD + LED + çok sayıda gradyan/kare). Gizliyken boşa CPU/GPU yakması "kasma/ısınma" riski.
+      // NASIL: Guard, totalizer + sinyal lerp matematiğinin (satır ~413-444) HEMEN ARDINA konuldu → o stateful değerler her karede işler
+      //        (toplam tüketim/akış sapmaz), yalnızca görsel çizim atlanır. LiveChart2D/MetricDetailModal ile AYNI kalıp.
+      // YAN ETKİ: YOK — davranış birebir aynı; sadece görünmezken bedava is yapılmaz.
+      if (typeof document !== 'undefined' && document.hidden) { raf = requestAnimationFrame(draw); return }
+
       const fc = colorRef.current.flow, pc = colorRef.current.pressure, hc = colorRef.current.hum
       // ISI RANGE GENİŞLETME: dar sensör bandını orta etrafında AÇ → soğukta daha mavi, sıcakta daha kırmızı (fark net)
       // + SICAK BIAS (Mehmet Abi: daha da kırmızıya) — +0.24 ile rampa belirgin şekilde ısıya kayar

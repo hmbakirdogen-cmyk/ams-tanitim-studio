@@ -42,9 +42,6 @@ function persist(): void {
   listeners.forEach((l) => l())
 }
 
-export function getEconomy(): Economy {
-  return current
-}
 export function updateEconomy(patch: Partial<Economy>): void {
   current = { ...current, ...patch }
   persist()

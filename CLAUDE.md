@@ -6,7 +6,7 @@
 SMC **AMS** (Air Management System; ünite AMS40A/AMS30B, EXA1 hub) için offline, sinematik, foto-gerçek 3D saha satış/fuar demosu. SMC personeli müşteride cihazı bağlayıp canlı tasarrufu gösterir; cihaz gelince gerçek **OPC UA** verisiyle çalışır. İş hedefi: SMC'ye yazılım satan iş kolunun vitrini.
 
 ## Teknik yığın (package.json)
-React + TypeScript + Vite (dev **5180**, strictPort) + Tailwind v4 + framer-motion. 3D: `three` + `@react-three/fiber`+`drei`+`postprocessing` (gerçek WebGL + bloom). Font `@fontsource-variable/inter` **gömülü (offline)**. Canlı cihaz: **OPC UA** (`node-opcua`) + ayrı Node köprüsü (`bridge/`, WebSocket `ws://localhost:4841`). PWA (offline-first, precache). i18n TR/EN/JA. Deploy: **GitHub Pages** (repo public, master, Actions otomatik). Doğrulama: `npm run typecheck` + `npm run build` (test runner yok).
+React + TypeScript + Vite (dev **5180**, strictPort) + Tailwind v4 + framer-motion. **Grafikler + cihaz akışı: saf Canvas 2D** (`LiveChart2D`, `DeviceFlowChart`, `MetricDetailModal`). ⚠️ `three`/R3F/`postprocessing` (eski `Hero3DChart` WebGL grafiği) **2026-06-20'de söküldü** — uygulama 2D'ye geçmişti, ölü yük + 71 paket temizlendi (RAM/boyut kazancı); 3D'ye dönülürse yeniden eklenir. Font `@fontsource-variable/inter` **gömülü (offline)**. Canlı cihaz: **OPC UA** (`node-opcua`) + ayrı Node köprüsü (`bridge/`, WebSocket `ws://localhost:4841`). PWA (offline-first, precache). i18n TR/EN/JA. Deploy: **GitHub Pages** (repo public, master, Actions otomatik). Doğrulama: `npm run typecheck` + `npm run build` (test runner yok).
 
 ## Bu repo NEDİR / NE DEĞİLDİR
 - ✅ Bağımsız SMC ürün tanıtım/demo uygulaması + ürün-bağımsız platform.

@@ -64,16 +64,10 @@ export default defineConfig({
       output: {
         manualChunks(id: string) {
           if (!id.includes('node_modules')) return
-          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) return 'vendor-react'
-          if (/[\\/]node_modules[\\/](antd|@ant-design|rc-[^\\/]+|@rc-component)[\\/]/.test(id)) return 'vendor-antd'
-          if (/[\\/]node_modules[\\/](three|@react-three|@react-spring|postprocessing|maath)[\\/]/.test(id)) return 'vendor-three'
-          if (/[\\/]node_modules[\\/](recharts|d3-[^\\/]+|victory[^\\/]*|internmap)[\\/]/.test(id)) return 'vendor-charts'
-          if (/[\\/]node_modules[\\/](ag-grid[^\\/]*)[\\/]/.test(id)) return 'vendor-grid'
+          // Yalnız GERÇEKTEN kurulu büyük kütüphaneler ayrı parçada (react, framer-motion). Gerisini 'return undefined' ile Vite
+          //   otomatik/döngüsüz böler — zorla tek 'vendor'da toplamak eskiden circular-chunk hatası verip paket build'ini durduruyordu.
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) return 'vendor-react'
           if (/[\\/]node_modules[\\/](framer-motion|motion)[\\/]/.test(id)) return 'vendor-motion'
-          if (/[\\/]node_modules[\\/]exceljs[\\/]/.test(id)) return 'vendor-excel'
-          // Geri kalan node_modules'i ZORLA tek 'vendor'da toplama → 'vendor-three ↔ vendor' DÖNGÜSÜ (circular chunk) çıkıyordu
-          //   (paketle-kopru build'ini durduruyordu). undefined bırak → Vite otomatik/döngüsüz böler; büyük kütüphaneler (react/three/
-          //   charts/grid/motion/excel) yukarıda AYRI kaldığı için optimizasyon korunur.
           return undefined
         },
       },

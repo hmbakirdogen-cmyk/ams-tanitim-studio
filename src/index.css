@@ -90,7 +90,6 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
 
 /* --- Isiltili metin / kenar --- */
 .glow-text { text-shadow: 0 0 24px var(--glow, rgba(46,155,255,0.55)); }
-.glow-soft { box-shadow: 0 0 32px -4px var(--glow, rgba(46,155,255,0.45)); }
 
 /* --- Animasyonlar --- */
 @keyframes aurora-drift {
@@ -98,22 +97,10 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
   50%  { transform: translate3d(6%, 5%, 0) scale(1.18); }
   100% { transform: translate3d(-6%, -4%, 0) scale(1.05); }
 }
-@keyframes live-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.45; transform: scale(0.78); }
-}
 @keyframes ring-pulse {
   0%   { transform: scale(0.9); opacity: 0.7; }
   70%  { transform: scale(2.2); opacity: 0; }
   100% { opacity: 0; }
-}
-@keyframes sheen {
-  0%   { background-position: -160% 0; }
-  100% { background-position: 260% 0; }
-}
-@keyframes float-soft {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-10px); }
 }
 /* SMC logosu (yazi+simge) ISIK SACSIN - beyaz cekirdek + mavi hale, nazik yavas nabiz (elit, abartisiz) */
 @keyframes smc-logo-glow {
@@ -127,8 +114,6 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
    bu yüzden KALDIRILDI (ölü kod). */
 
 .animate-aurora { animation: aurora-drift 22s ease-in-out infinite; }
-.animate-live   { animation: live-pulse 1.6s ease-in-out infinite; }
-.animate-float  { animation: float-soft 7s ease-in-out infinite; }
 
 /* Canli Panel agir katmanlari (3D/akis/ambient) sayfa GECISINDEN SONRA mount edilince yumusak belirir (gecis akiciligi; "kirlilik/takilma" yok). */
 @keyframes ams-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -147,7 +132,7 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
 /* --- Hareket azaltma (a11y / WCAG 2.3.3): kullanici "reduced motion" istediyse SONSUZ CSS animasyonlarini durdur --- */
 /* (sinif-hedefli → transition/tema-gecisi BOZULMAZ; r3f WebGL sahne ayri katman, bu media query onu etkilemez.) */
 @media (prefers-reduced-motion: reduce) {
-  .smc-logo-glow, .animate-aurora, .animate-live, .animate-float, .live-ring::after, .ams-fade-in { animation: none !important; }
+  .smc-logo-glow, .animate-aurora, .live-ring::after, .ams-fade-in { animation: none !important; }
 }
 
 /* --- Ince scrollbar (gerekirse) --- */
@@ -199,3 +184,4 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
   .no-print { display: none !important; }
 }
 @page { margin: 12mm; }
+
