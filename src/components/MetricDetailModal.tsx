@@ -237,19 +237,23 @@ export function MetricDetailModal({ def, series, reading, startedAt, total, onCl
                 <span className="num text-3xl font-extrabold leading-none text-white" style={{ textShadow: `0 0 22px ${def.color}66` }}>{nf(cur)}</span>
                 <span className="text-xs font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
               </div>
-              {/* TOPLAM tüketim (totalizer) — flow kartından açılınca (Mehmet Abi: "detay penceresinde de toplam görünsün"). Cihaz LCD'siyle aynı turuncu. */}
-              {totalText != null && (
-                <div className="mt-1 flex items-baseline gap-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#FF761E' }}>{t('Toplam')}</span>
-                  <span className="num text-lg font-bold leading-none text-white" style={{ textShadow: '0 0 14px #FF761E55' }}>{totalText}</span>
-                  <span className="text-[10px] font-medium text-[var(--ink-soft)]">Litre</span>
-                </div>
-              )}
             </div>
           </div>
-          <button onClick={onClose} aria-label={t('Kapat')} className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--hair)] text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-white">
-            <X size={17} />
-          </button>
+          {/* SAĞ ÜST: TOPLAM tüketim (Mehmet abi 2026-06-20: detay penceresinde toplam değeri sağ üste) + kapat butonu */}
+          <div className="flex items-start gap-3">
+            {totalText != null && (
+              <div className="flex flex-col items-end leading-tight">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: '#FF761E', opacity: 0.85 }}>{t('Toplam')}</span>
+                <div className="mt-0.5 flex items-baseline gap-1">
+                  <span className="num text-xl font-bold leading-none tabular-nums" style={{ color: '#FF761E', textShadow: '0 0 16px #FF761E66' }}>{totalText}</span>
+                  <span className="text-[11px] font-semibold" style={{ color: '#FF761E' }}>Litre</span>
+                </div>
+              </div>
+            )}
+            <button onClick={onClose} aria-label={t('Kapat')} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-[var(--hair)] text-[var(--ink-soft)] transition hover:bg-white/5 hover:text-white">
+              <X size={17} />
+            </button>
+          </div>
         </div>
 
         {/* Büyük grafik (eksenli) */}

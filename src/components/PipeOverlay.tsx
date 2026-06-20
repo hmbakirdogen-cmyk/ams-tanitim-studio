@@ -103,15 +103,17 @@ export function PipeOverlay({
 
       {/* ALT: zaman/akis aciklamasi. OKUNABILIRLIK (Mehmet Abi: "yazi urunun beyazina gelince okunmuyor"): her etikete
           KOYU CAM PILL -> beyaz urun ustunde de, koyu sahnede de NET okunur (askeri nizam = tutarli muamele). */}
-      <div className="absolute inset-x-3 bottom-2 flex items-center justify-between text-[10px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
+      {/* GİRİŞ / ÇIKIŞ — boru hizasının hemen altında (Mehmet abi 2026-06-20: borunun altına/yakınına al), sol & sağ köşeler */}
+      <div className="absolute inset-x-3 top-[42.5%] flex items-center justify-between text-[10px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
         <span className="rounded-md bg-[#06101e]/55 px-1.5 py-[2px] backdrop-blur-[3px]">{t('giriş')} →</span>
-        {/* NE: Ortadaki uzun aciklamayi mobilde gizle (yan giris/cikis etiketleri kalir). NEDEN: Mehmet Abi — dar mobil pencerede orta metin
-            sıkışıp diger etiketlere/izgaraya biniyor + eskiden CSS hidden sm:block (640px) ile gizleniyordu, izgara/rakam ise JS mobile
-            bayragiyla -> dar masaustunde ayrisiyordu. NASIL: ayni mobile (isMobileDevice) bayragina baglandi -> TEK tutarli mobil olcut.
-            YAN ETKI: masaustu (lg+) AYNEN gorunur; sadece mobil/masaustu ayrismasi giderilir. */}
-        {!mobile && <span className="rounded-md bg-[#06101e]/55 px-1.5 py-[2px] backdrop-blur-[3px]">{t('hava soldan sağa akıyor · sağ uç = anlık çıkış')}</span>}
         <span className="rounded-md bg-[#06101e]/55 px-1.5 py-[2px] backdrop-blur-[3px]">→ {t('çıkış')}</span>
       </div>
+      {/* Ortadaki akış açıklaması — ESKİ konumunda (en alt, ortada) — Mehmet abi 2026-06-20. Mobilde gizli (dar pencerede sıkışmasın). */}
+      {!mobile && (
+        <div className="absolute inset-x-3 bottom-2 flex justify-center text-[10px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
+          <span className="rounded-md bg-[#06101e]/55 px-1.5 py-[2px] backdrop-blur-[3px]">{t('hava soldan sağa akıyor · sağ uç = anlık çıkış')}</span>
+        </div>
+      )}
     </div>
   )
 }
