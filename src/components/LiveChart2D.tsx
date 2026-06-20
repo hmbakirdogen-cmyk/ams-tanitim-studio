@@ -24,7 +24,11 @@ function hexRgb(hex: string): [number, number, number] {
   return [parseInt(h.slice(0, 2), 16) || 0, parseInt(h.slice(2, 4), 16) || 0, parseInt(h.slice(4, 6), 16) || 0]
 }
 const fmt = (v: number, d: number) => new Intl.NumberFormat(localeOf(), { minimumFractionDigits: d, maximumFractionDigits: d }).format(v)
-const axf = (v: number) => fmt(v, Math.abs(v) < 10 && v !== 0 ? 1 : 0)
+// Tick ondalık basamağı STEP'e göre (Mehmet abi 2026-06-20: "scalalarda rakamlar TEKRAR etmesin; en azından 1 ondalık"):
+//   step>=1 -> 0 ondalık (0,500,1000 / 23,24,25) · step 0.1..1 -> 1 ondalık (22,5 23,0 23,5) · daha küçük -> 2. Ardışık tick'ler
+//   yuvarlanıp AYNI rakama düşmez (eski axf >=10'da 0 ondalık verince 23,5->24 tekrar ediyordu).
+const decFor = (step: number): number => (step >= 1 ? 0 : step >= 0.1 ? 1 : 2)
+const axf = (v: number, step: number) => fmt(v, decFor(step))
 
 // NICE EKSEN (Mehmet abi 2026-06-19: "0 0,2 0,4 0,6 çizgileriyle" + hava tüketimini de optimize): verilen tepeye göre 0'dan başlayan
 //   YUVARLAK adım (1/2/5 ×10ⁿ) seçer → mutlak, okunaklı skala (basınç 0…0,6 adım 0,2 · debi 0…2500 adım 500). ~3 aralık hedefi (sade).
@@ -40,6 +44,22 @@ function niceAxis(maxV: number): { hi: number; step: number } {
   return { hi, step }
 }
 
+// AUTO-RANGE eksen (Mehmet abi 2026-06-20: sıcaklık 23-25°C / nem 45-47% → 0…max bandında DARALIP kayboluyordu):
+//   pencere min..max'ını saran YUVARLAK alt/üst sınır üretir (0-tabanlı DEĞİL → band DOLAR, hareket belirgin). Önce yuvarlak step seçilir,
+//   sonra lo aşağı / hi yukarı yuvarlanır + bir tık pad. Gerçek veri bandı aşarsa o yönde otomatik genişler (her döngüde yeniden hesaplanır).
+function autoRange(minV: number, maxV: number): { lo: number; hi: number; step: number } {
+  let span = maxV - minV
+  if (!(span > 0)) span = Math.max(Math.abs(maxV) * 0.1, 1) // düz çizgi/tek değer korunağı
+  const raw = span / 3 // ~3-4 tick hedefi (sade okunur skala)
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)))
+  const norm = raw / mag
+  const step = (norm <= 1.5 ? 1 : norm <= 3 ? 2 : norm <= 7 ? 5 : 10) * mag
+  const lo = Math.floor((minV - step * 0.25) / step + 1e-9) * step // alt pad + step'e yuvarla
+  const hi = Math.ceil((maxV + step * 0.25) / step - 1e-9) * step  // üst pad + step'e yuvarla
+  return { lo, hi: hi > lo ? hi : lo + step, step }
+}
+const AUTO_RANGE_KEYS = new Set<MetricKey>(['temperature', 'humidity']) // SADECE bunlar zoom'lanır; flow/pressure gauge gibi SABİT 0…max kalır
+
 export function LiveChart2D({ history = [], reading = null, metrics, theme = 'dark', groups = [['flow'], ['pressure']] }: {
   history?: Reading[]
   reading?: Reading | null
@@ -52,6 +72,8 @@ export function LiveChart2D({ history = [], reading = null, metrics, theme = 'da
   const dataRef = useRef({ history, reading, metrics, groups })
   dataRef.current = { history, reading, metrics, groups }
   const dispRef = useRef<Record<string, Float32Array>>({})
+  // AUTO-RANGE yumuşak eksen havuzu (Mehmet abi 2026-06-20) — her auto-range sensörü için { lo, hi } yumuşak kayar (lerp 0.07) → eksen ZIPLAMAZ.
+  const rangeRef = useRef<Record<string, { lo: number; hi: number }>>({})
 
   useEffect(() => {
     const cv = canvasRef.current, wrap = wrapRef.current
@@ -110,25 +132,44 @@ export function LiveChart2D({ history = [], reading = null, metrics, theme = 'da
         ctx.fillStyle = 'rgba(255,255,255,0.025)'
         if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(px, laneTop, pw, laneH, 8); ctx.fill() } else ctx.fillRect(px, laneTop, pw, laneH)
 
-        // Per-sensör hazırla: SABİT nice eksen (0…hi) → disp normalize (yağ gibi) + ayrı alt-band
+        // Per-sensör hazırla: AUTO-RANGE (sıcaklık/nem) ya da SABİT nice eksen (flow/pressure) → disp normalize (yağ gibi) + ayrı alt-band
         const subs = group.map((m, gi) => {
-          // Mehmet abi 2026-06-19: basınç ekseni çalışma aralığını kapsayan tavan = m.max×0.75 → MPa'da 0,6 · bar'da 6 (BİRİMLE ölçeklenir).
-          //   Debi ekseni = ÜRÜN max debisi (m.max=flowMax). niceAxis ikisinde de yuvarlak adım verir (MPa 0,2 · bar 2 · debi 500).
-          const axisMax = m.key === 'pressure' ? m.max * 0.75 : m.max
-          const ax = niceAxis(axisMax), denom = Math.max(ax.hi, 1e-6) // 0-tabanlı; tepe = yuvarlak hi (Mehmet abi)
+          const auto = AUTO_RANGE_KEYS.has(m.key) // SADECE sıcaklık/nem zoom'lanır
+          let lo: number, hi: number, step: number
+          if (auto) {
+            // AUTO-RANGE (Mehmet abi 2026-06-20): pencere min..max'ı tara (anlık reading dahil) → saran yuvarlak band; yumuşak lerp ile kayar (zıplamaz).
+            let mn = Infinity, mx = -Infinity
+            for (let i = 0; i < N; i++) { const v = sampleVal(m, i / (N - 1)); if (v < mn) mn = v; if (v > mx) mx = v }
+            if (rd) { const v = m.get(rd); if (v < mn) mn = v; if (v > mx) mx = v }
+            if (!Number.isFinite(mn) || !Number.isFinite(mx)) { mn = m.min; mx = m.max }
+            const tgt = autoRange(mn, mx)
+            let rg = rangeRef.current[m.key]
+            if (!rg) { rg = { lo: tgt.lo, hi: tgt.hi }; rangeRef.current[m.key] = rg }
+            rg.lo += (tgt.lo - rg.lo) * 0.07; rg.hi += (tgt.hi - rg.hi) * 0.07 // YAĞ GİBİ: eksen yeni banda yumuşak kayar
+            lo = rg.lo; hi = rg.hi; step = tgt.step
+          } else {
+            // Mehmet abi 2026-06-19: basınç ekseni çalışma aralığını kapsayan tavan = m.max×0.75 → MPa'da 0,6 · bar'da 6 (BİRİMLE ölçeklenir).
+            //   Debi ekseni = ÜRÜN max debisi (m.max=flowMax). niceAxis ikisinde de yuvarlak adım verir (MPa 0,2 · bar 2 · debi 500). SABİT 0…hi (gauge gibi).
+            const axisMax = m.key === 'pressure' ? m.max * 0.75 : m.max
+            const ax = niceAxis(axisMax)
+            lo = 0; hi = ax.hi; step = ax.step
+          }
+          const denom = Math.max(hi - lo, 1e-6) // auto-range'de band genişliği, sabitte hi (lo=0)
           const subH = h * (1 - off), subTop = top + (group.length > 1 ? gi * (h * off) : 0)
           let disp = dispRef.current[m.key]
-          if (!disp || disp.length !== N) { disp = new Float32Array(N); for (let i = 0; i < N; i++) disp[i] = clamp01(sampleVal(m, i / (N - 1)) / denom); dispRef.current[m.key] = disp }
-          for (let i = 0; i < N; i++) { let v = sampleVal(m, i / (N - 1)); if (i === N - 1 && rd) v = m.get(rd); disp[i] += (clamp01(v / denom) - disp[i]) * 0.06 }
-          return { m, subTop, subH, hi: ax.hi, step: ax.step, disp }
+          if (!disp || disp.length !== N) { disp = new Float32Array(N); for (let i = 0; i < N; i++) disp[i] = clamp01((sampleVal(m, i / (N - 1)) - lo) / denom); dispRef.current[m.key] = disp }
+          for (let i = 0; i < N; i++) { let v = sampleVal(m, i / (N - 1)); if (i === N - 1 && rd) v = m.get(rd); disp[i] += (clamp01((v - lo) / denom) - disp[i]) * 0.06 }
+          return { m, subTop, subH, lo, hi, step, disp }
         })
 
-        // YATAY SCALA ÇİZGİLERİ — NICE TICK'lerde (Mehmet abi: "0 0,2 0,4 0,6 çizgileriyle"): 0'dan hi'ye yuvarlak adımlarla boydan boya, tüplerin ALTINDA.
+        // YATAY SCALA ÇİZGİLERİ — NICE TICK'lerde (Mehmet abi: "0 0,2 0,4 0,6 çizgileriyle"): lo'dan hi'ye yuvarlak adımlarla boydan boya, tüplerin ALTINDA.
+        //   Auto-range'de lo≠0 (band tabanı), sabitte lo=0 → ikisi de aynı formülle (v−lo)/(hi−lo) çizilir.
         for (const s of subs) {
           const [r, g, b] = hexRgb(s.m.color)
+          const span = Math.max(s.hi - s.lo, 1e-6)
           ctx.strokeStyle = `rgba(${r},${g},${b},0.15)`; ctx.lineWidth = 1
-          for (let v = 0; v <= s.hi + s.step * 0.5; v += s.step) {
-            const yy = s.subTop + (1 - v / s.hi) * s.subH
+          for (let v = Math.ceil(s.lo / s.step - 1e-9) * s.step; v <= s.hi + s.step * 0.5; v += s.step) {
+            const yy = s.subTop + (1 - (v - s.lo) / span) * s.subH
             ctx.beginPath(); ctx.moveTo(px, yy); ctx.lineTo(px + pw, yy); ctx.stroke()
           }
         }
@@ -152,12 +193,13 @@ export function LiveChart2D({ history = [], reading = null, metrics, theme = 'da
           //   çizgide TAM yerinde (middle, tek hizalama → kayma yok) + sade = karmaşa yok. Kendi renginde (kimlik bağı), sol/sağ simetrik.
           ctx.font = '400 11px ui-sans-serif, system-ui, sans-serif'; ctx.fillStyle = `rgb(${r},${g},${b})`
           ctx.textBaseline = 'middle'
-          for (let v = 0; v <= s.hi + s.step * 0.5; v += s.step) {
-            const yy = s.subTop + (1 - v / s.hi) * s.subH
+          const lblSpan = Math.max(s.hi - s.lo, 1e-6)
+          for (let v = Math.ceil(s.lo / s.step - 1e-9) * s.step; v <= s.hi + s.step * 0.5; v += s.step) {
+            const yy = s.subTop + (1 - (v - s.lo) / lblSpan) * s.subH
             for (const side of ['l', 'r'] as const) {
               const xx = side === 'l' ? px - 6 : px + pw + 6
               ctx.textAlign = side === 'l' ? 'right' : 'left'
-              ctx.fillText(axf(v), xx, yy)
+              ctx.fillText(axf(v, s.step), xx, yy)
             }
           }
         }

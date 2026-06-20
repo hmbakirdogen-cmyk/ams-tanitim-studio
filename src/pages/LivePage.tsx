@@ -116,13 +116,13 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
 
             {/* SOL-ÜST köşe (Mehmet abi 2026-06-20): Tasarruf % — KONUM OPTİMİZE: en üst köşe + KISA yatay kart (h-[78px]) → akış
                 animasyonunun ÜZERİNE BASMAZ (akış orta yükseklikte, kart üstte boş alanda kalır). Yazılar sol + % sağ (HeroKPI içinde). */}
-            <div className="absolute left-3 top-3 z-10 h-[clamp(58px,8.2vh,82px)] w-[clamp(180px,18vw,340px)]">
+            <div className="absolute left-3 top-3 z-10 h-[clamp(54px,7.6vh,82px)] w-[clamp(158px,15vw,340px)]">
               <HeroKPI percent={percent} mode={mode} />
             </div>
 
             {/* SOL-ALT köşe (Mehmet abi 2026-06-20): Hava Tüketimi + Basınç. ÜST HİZALI (items-start, 4 kart aynı top-[%]) → Hava Tüketimi
                 TOPLAM gösterdiği için DAHA UZUN (aşağı), diğerleri kısa. Genişlik responsive (dar pencerede cihaza binmez). */}
-            <div className="absolute left-3 top-[51%] z-10 flex w-[clamp(212px,23vw,460px)] items-start gap-2">
+            <div className="absolute left-[clamp(12px,3vw,48px)] top-[51%] z-10 flex w-[clamp(180px,18vw,440px)] items-start gap-2">
               {byKey.flow && visible.flow && (
                 <div className="h-[clamp(156px,21.5vh,226px)] flex-1"><MetricCard def={byKey.flow} history={history} size="sm" total={totalL} onClick={() => setDetailKey('flow')} /></div>
               )}
@@ -132,7 +132,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             </div>
 
             {/* SAĞ-ALT köşe (Mehmet abi 2026-06-20): Sıcaklık + Nem — KISA (tek değer), 4 kartla ÜST HİZALI (aynı top-[%]). Responsive. */}
-            <div className="absolute right-3 top-[51%] z-10 flex w-[clamp(200px,22vw,430px)] items-start gap-2">
+            <div className="absolute right-[clamp(12px,3vw,48px)] top-[51%] z-10 flex w-[clamp(180px,18vw,440px)] items-start gap-2">
               {cardDefs.filter((m) => m.key === 'temperature' || m.key === 'humidity').map((m) => (
                 <div key={m.key} className="h-[clamp(90px,12.5vh,132px)] flex-1"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
               ))}

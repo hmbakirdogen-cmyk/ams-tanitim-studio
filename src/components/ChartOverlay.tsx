@@ -135,8 +135,9 @@ export function ChartOverlay({ reading, history = [], metrics = METRICS, started
           const edge = i === 0 ? 'translate-x-0' : i === TICKS.length - 1 ? '-translate-x-full' : '-translate-x-1/2'
           return (
             <div key={f} className={`absolute flex flex-col items-center gap-0.5 ${edge}`} style={{ left: `${f * 100}%` }}>
-              <span className={`num whitespace-nowrap text-[8px] font-semibold ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'}`} style={shadow}>{clockAt(f)}</span>
-              <span className={`num whitespace-nowrap text-[7px] font-medium ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'} opacity-75`} style={shadow}>{relAt(f)}</span>
+              {/* Mehmet abi 2026-06-20: zaman scalası fontu ~%18 büyütüldü (8→9.5px saat, 7→8.5px göreli süre) → okunurluk arttı, çeviri/hiza aynı. */}
+              <span className={`num whitespace-nowrap text-[9.5px] font-semibold ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'}`} style={shadow}>{clockAt(f)}</span>
+              <span className={`num whitespace-nowrap text-[8.5px] font-medium ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'} opacity-75`} style={shadow}>{relAt(f)}</span>
             </div>
           )
         })}

@@ -129,7 +129,8 @@ export function MetricDetailModal({ def, series, reading, startedAt, total, onCl
         ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1
         ctx.beginPath(); ctx.moveTo(px, yy + 0.5); ctx.lineTo(px + pw, yy + 0.5); ctx.stroke()
         ctx.font = '600 10px ui-sans-serif, system-ui, sans-serif'; ctx.fillStyle = `rgba(${cr},${cg},${cb},0.92)`; ctx.textAlign = 'right'
-        ctx.fillText(nf(val, val < 10 ? (val % 1 ? 1 : 0) : 0), px - 8, yy)
+        // Y tick ondalığı STEP'e göre (Mehmet abi 2026-06-20: detay penceresi scalasında da rakamlar TEKRAR etmesin; en az 1 ondalık dar adımda)
+        ctx.fillText(nf(val, step >= 1 ? 0 : step >= 0.1 ? 1 : 2), px - 8, yy)
       }
       // BİRİM (Y ekseni başlığı, sol-üst köşe)
       ctx.font = '600 9px ui-sans-serif, system-ui, sans-serif'; ctx.fillStyle = `rgba(${cr},${cg},${cb},0.75)`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'
