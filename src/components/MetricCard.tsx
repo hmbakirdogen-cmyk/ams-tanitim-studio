@@ -123,7 +123,7 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
               AYNI BOYUT (NUM_SIZE[size]) ve sağ kenarda TAM HİZALI (ikisi de justify/self-end + aynı birim boyutu). */}
           <span className="self-start text-[9px] font-bold uppercase tracking-[0.22em]" style={{ color: TOTAL_AMBER, opacity: 0.82 }}>{t('Toplam')}</span>
           <div className="flex items-baseline gap-1.5 self-end">
-            <span className={`num ${NUM_SIZE[size]} font-bold leading-none tabular-nums`} style={{ color: TOTAL_AMBER, textShadow: `0 0 18px ${TOTAL_AMBER}88` }}>{totalText}</span>
+            <span className="num text-[clamp(1.2rem,2vw,1.8rem)] font-bold leading-none tabular-nums" style={{ color: TOTAL_AMBER, textShadow: `0 0 18px ${TOTAL_AMBER}88` }}>{totalText}</span>
             <span className="text-sm font-medium" style={{ color: TOTAL_AMBER }}>Litre</span>
           </div>
         </div>
