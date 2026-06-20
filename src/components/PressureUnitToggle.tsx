@@ -15,7 +15,7 @@ export function PressureUnitToggle({ color = '#FF453A' }: { color?: string }) {
     // PREMIUM segment (Mehmet abi 2026-06-20): pill formu + gömük (inset) cam zemin + aktif birim IŞIYAN gradient (üst-iç highlight + glow)
     //   + yumuşak geçiş. Pasif birim soluk, hover'da beyaza akar.
     <div
-      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-white/10 bg-[#050b18]/70 p-[3px] backdrop-blur-sm"
+      className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-white/10 bg-[#050b18]/70 p-0.5 backdrop-blur-sm"
       style={{ boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.05)' }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -27,8 +27,8 @@ export function PressureUnitToggle({ color = '#FF453A' }: { color?: string }) {
             type="button"
             onClick={(e) => { e.stopPropagation(); setUnit(u) }}
             aria-pressed={on}
-            className={`rounded-full px-2 py-[3px] text-[10px] font-bold uppercase leading-none tracking-wider transition-all duration-200 ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
-            style={on ? { background: `linear-gradient(135deg, ${color}, ${color}aa)`, boxShadow: `0 0 12px ${color}66, inset 0 1px 0 rgba(255,255,255,0.3)` } : undefined}
+            className={`rounded-full px-1.5 py-[2px] text-[9px] font-bold uppercase leading-none tracking-wide transition-all duration-200 ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-white'}`}
+            style={on ? { background: `linear-gradient(135deg, ${color}, ${color}aa)`, boxShadow: `0 0 9px ${color}66, inset 0 1px 0 rgba(255,255,255,0.3)` } : undefined}
           >
             {u}
           </button>

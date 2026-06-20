@@ -503,6 +503,20 @@ const EN: Record<string, string> = {
   'Canlı veri için cihazı bu bilgisayarla aynı ağa bağlayın ve yukarıdaki': 'For live data, connect the device to the same network as this computer and use the',
   '“Canlı cihaza bağlanma kılavuzu”': '“Live device connection guide”',
   'ile bağlanın — köprü uygulamayla birlikte gömülü çalışır; ayrıca kurulum veya dosya gerekmez. Cihaz yoksa Demo’ya dönebilirsiniz.': 'above to connect — the bridge runs embedded with the app; no separate install or file needed. Without a device, switch back to Demo.',
+  // NE: 2026-06-20 i18n denetimi — UI'da t() ile cagrilan ama EN sozlukte EKSIK kalan yeni etiketler (TR'ye dusuyordu).
+  // NEDEN: Mehmet abi "kusursuz, sifir hata" — DeviceCommands cihaz sinyal kutucuklari + 2026-06-19 grafik sekmesi/zaman penceresi son eklemeydi.
+  // NASIL: Anahtarlar bilesenlerden BIREBIR (DeviceCommands CMDS, LivePage CHART_TABS, ChartOverlay WINDOWS/ort). YAN ETKI: sadece ceviri.
+  // Cihaz komut kutucuklari (DeviceCommands) — GERCEK OPC UA sinyal isimleri (Force Standby teknik terim, EN'de aynen kalir)
+  'Standby Input Sinyali': 'Standby Input Signal',
+  'Force Standby': 'Force Standby',
+  'İzolasyon Sinyali': 'Isolation Signal',
+  // Canli Panel grafik sekmeleri (LivePage CHART_TABS, 2026-06-19)
+  'Hava & Basınç': 'Air & Pressure',
+  'Sıcaklık & Nem': 'Temperature & Humidity',
+  // Grafik zaman penceresi + eksen kisaltmalari (ChartOverlay / MetricDetailModal)
+  '10 dk': '10 min',
+  'dk': 'min',
+  'ort': 'avg',
 }
 
 const JA: Record<string, string> = {
@@ -995,6 +1009,20 @@ const JA: Record<string, string> = {
   'Canlı veri için cihazı bu bilgisayarla aynı ağa bağlayın ve yukarıdaki': 'ライブデータには、機器をこのPCと同じネットワークに接続し、上の',
   '“Canlı cihaza bağlanma kılavuzu”': '「ライブ機器への接続ガイド」',
   'ile bağlanın — köprü uygulamayla birlikte gömülü çalışır; ayrıca kurulum veya dosya gerekmez. Cihaz yoksa Demo’ya dönebilirsiniz.': 'で接続してください — ブリッジはアプリに組み込まれて動作し、別途インストールやファイルは不要です。機器がない場合はデモに戻せます。',
+  // NE: 2026-06-20 i18n denetimi — EN ile simetrik; UI'da t() ile cagrilan ama JA sozlukte EKSIK yeni etiketler.
+  // NEDEN: Mehmet abi "Japonya'ya gidecek, kalite kritik" — DeviceCommands sinyalleri + grafik sekmesi/zaman penceresi son eklemeydi.
+  // NASIL: Profesyonel Japonca; teknik terimler katakana (スタンバイ/アイソレーション). YAN ETKI: sadece ceviri.
+  // Cihaz komut kutucuklari (DeviceCommands) — GERCEK OPC UA sinyal isimleri
+  'Standby Input Sinyali': 'スタンバイ入力信号',
+  'Force Standby': '強制スタンバイ',
+  'İzolasyon Sinyali': 'アイソレーション信号',
+  // Canli Panel grafik sekmeleri (LivePage CHART_TABS, 2026-06-19)
+  'Hava & Basınç': 'エア＆圧力',
+  'Sıcaklık & Nem': '温度＆湿度',
+  // Grafik zaman penceresi + eksen kisaltmalari (ChartOverlay / MetricDetailModal)
+  '10 dk': '10分',
+  'dk': '分',
+  'ort': '平均',
 }
 
 const DICT: Record<Lang, Record<string, string>> = { tr: {}, en: EN, ja: JA }
