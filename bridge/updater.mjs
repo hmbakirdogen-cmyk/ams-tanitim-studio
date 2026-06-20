@@ -98,6 +98,11 @@ export function applyStagedUpdate(appDir, stageDir, log = () => {}) {
  * Tamamen best-effort: offline/hata → sessizce geç.
  */
 export async function checkForUpdate(appDir, stageDir, tmpZip, log = () => {}) {
+  // OTOMATİK GÜNCELLEME VARSAYILAN KAPALI (Mehmet abi 2026-06-20 — "zip'i açıyorum eski program açılıyor"): updater "latest" release'i
+  //   sürüm FARKLIYSA (daha YENİ olup olmadığına BAKMADAN) indirip uyguluyordu → GitHub'da "latest" eski kalınca (yeni sürüm release'lenmemişse)
+  //   YENİ paketin ÜSTÜNE ESKİYİ yazıyordu = "eski açılıyor" (downgrade). Dağıtım zaten ELLE (WeTransfer/zip) yapılıyor → otomatik güncelleme
+  //   kapalı = downgrade riski YOK, kafa karışıklığı biter. Gerçekten istenirse ortam değişkeni AMS_AUTO_UPDATE=1 ile açılır.
+  if (process.env.AMS_AUTO_UPDATE !== '1') { log('[guncelleme] otomatik guncelleme KAPALI (downgrade korumasi; AMS_AUTO_UPDATE=1 ile acilir)'); return }
   try {
     const rel = await getJson(API_LATEST)
     const remoteV = String((rel && rel.tag_name) || '').replace(/^app-/, '')
