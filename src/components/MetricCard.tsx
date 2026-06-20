@@ -22,7 +22,7 @@ const TOTAL_AMBER = '#FF761E'
 //   küçülsün") → clamp(min, vw, max): geniş ekranda iri, pencere küçülünce orantılı küçülür (kart h clamp ile uyumlu, taşma yok).
 type Size = 'lg' | 'md' | 'sm' | 'xs'
 // sm değeri cqw (container query) — Canlı Panel kartları SAHNE genişliğine göre küçülür (vw=pencere değil; sol menü/dar alan sorunu çözülür).
-const NUM_SIZE: Record<Size, string> = { lg: 'text-5xl', md: 'text-4xl', sm: 'text-[clamp(1.05rem,3.3cqw,2.1rem)]', xs: 'text-[1.45rem]' }
+const NUM_SIZE: Record<Size, string> = { lg: 'text-5xl', md: 'text-4xl', sm: 'text-[clamp(0.72rem,3.5cqw,2.1rem)]', xs: 'text-[1.45rem]' }
 
 export function MetricCard({ def, history, size = 'md', total, onClick, tight = false }: { def: MetricDef; history: Reading[]; size?: Size; total?: number; onClick?: () => void; tight?: boolean }) {
   const { t } = useLang()
@@ -101,10 +101,10 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
       {/* Başlık — RESPONSIVE (Mehmet abi 2026-06-20: "sayı/yazı büyüklükleri + kart ölçüleri OTOMATİK, üst üste binmesin"): ikon kutusu +
           ad fontu pencereyle clamp; ad truncate + min-w-0 → dar pencerede taşmaz/çakışmaz. shrink-0 (kart sıkışsa kaybolmaz). */}
       <div className="flex min-w-0 shrink-0 items-center gap-1.5" style={{ transform: 'translateZ(22px)' }}>
-        <span className={`grid shrink-0 place-items-center rounded-lg ${tight ? 'h-6 w-6' : 'h-[clamp(20px,3.2cqw,32px)] w-[clamp(20px,3.2cqw,32px)]'}`} style={{ background: `${def.color}1f`, color: def.color }}>
-          <Icon size={tight ? 14 : 16} />
+        <span className={`grid shrink-0 place-items-center rounded-lg ${tight ? 'h-6 w-6' : 'h-[clamp(14px,3.4cqw,32px)] w-[clamp(14px,3.4cqw,32px)]'}`} style={{ background: `${def.color}1f`, color: def.color }}>
+          <Icon className={tight ? 'h-3.5 w-3.5' : 'h-[58%] w-[58%]'} />
         </span>
-        <span className="whitespace-nowrap text-[clamp(8px,1.6cqw,14px)] font-semibold text-[var(--ink)]">{t(def.name)}</span>
+        <span className="whitespace-nowrap text-[clamp(6px,1.7cqw,14px)] font-semibold text-[var(--ink)]">{t(def.name)}</span>
         {def.key === 'pressure' && <PressureUnitToggle color={def.color} />}
       </div>
 
@@ -112,7 +112,7 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
           Değer + birim pencereyle clamp (otomatik) + min-w-0/tabular-nums → küçük pencerede çakışmaz. */}
       <div className="mt-2 flex min-w-0 shrink-0 items-baseline justify-end gap-1" style={{ transform: 'translateZ(14px)' }}>
         <span className={`num ${NUM_SIZE[size]} font-bold leading-none text-white tabular-nums`} style={{ textShadow: `0 0 24px ${def.color}66` }}>{text}</span>
-        <span className="shrink-0 text-[clamp(8px,1.4cqw,13px)] font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
+        <span className="shrink-0 text-[clamp(6px,1.5cqw,13px)] font-medium text-[var(--ink-soft)]">{t(def.unitShort)}</span>
       </div>
       {/* esnek boşluk → TOPLAM'ı (varsa) kartın ALTINA iter; anlık değer üstte sabit kalır */}
       <div className="min-h-0 flex-1" />
@@ -125,8 +125,8 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
               AYNI BOYUT (NUM_SIZE[size]) ve sağ kenarda TAM HİZALI (ikisi de justify/self-end + aynı birim boyutu). */}
           <span className="self-start text-[9px] font-bold uppercase tracking-[0.22em]" style={{ color: TOTAL_AMBER, opacity: 0.82 }}>{t('Toplam')}</span>
           <div className="flex items-baseline gap-1.5 self-end">
-            <span className="num text-[clamp(1.2rem,2vw,1.8rem)] font-bold leading-none tabular-nums" style={{ color: TOTAL_AMBER, textShadow: `0 0 18px ${TOTAL_AMBER}88` }}>{totalText}</span>
-            <span className="text-sm font-medium" style={{ color: TOTAL_AMBER }}>Litre</span>
+            <span className="num text-[clamp(0.62rem,2.9cqw,1.8rem)] font-bold leading-none tabular-nums" style={{ color: TOTAL_AMBER, textShadow: `0 0 18px ${TOTAL_AMBER}88` }}>{totalText}</span>
+            <span className="text-[clamp(6px,1.5cqw,13px)] font-medium" style={{ color: TOTAL_AMBER }}>Litre</span>
           </div>
         </div>
       )}
