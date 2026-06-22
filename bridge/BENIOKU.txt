@@ -1,0 +1,16 @@
+SMC HAVA YONETIM SISTEMI - AMS Tanitim Studyosu
+================================================
+
+BASLATMAK ICIN
+  "SMC-AMS-Baslat" dosyasina CIFT TIKLAYIN.
+  Uygulama tarayicida acilir + masaustune "SMC AMS Tanitim" ikonu eklenir.
+  (Bundan sonra dogrudan masaustundeki ikondan acabilirsiniz.)
+
+KAPATMAK ICIN
+  "SMC-AMS-Durdur" dosyasina cift tiklayin.
+
+NOTLAR
+  - Internet ve kurulum GEREKMEZ; tamamen offline calisir.
+  - "sistem" klasoru programin dosyalaridir; LUTFEN DOKUNMAYIN / SILMEYIN.
+  - Ilk acista Windows uyari verirse: "Daha fazla bilgi" > "Yine de calistir".
+  - Ayni Wi-Fi'daki telefon/tabletten de acabilirsiniz (acilista yazan adres).

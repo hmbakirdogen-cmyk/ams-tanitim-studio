@@ -46,14 +46,21 @@ $ver = (git -C $root rev-parse --short HEAD).Trim()
 # 4) Staging hazirla
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
-# SMC-AMS-Baslat.vbs (gizli baslatici = siyah ekran YOK) + Durdur.vbs + kisayol-olustur.ps1 + app.ico (masaustu ikonu) -> "uygulama gibi".
-$include = @('server.mjs','opcua-bridge.mjs','updater.mjs','package.json','README.md','runtime','node_modules','SMC-AMS-Baslat.vbs','SMC-AMS-Durdur.vbs','kisayol-olustur.ps1','app.ico')
-foreach ($item in $include) {
+# DUZEN (Mehmet abi: "luzumsuz fazla dosyalar kafa karistirmasin"): KOK'te sadece Efekan'in gordugu 3 sey
+#   (Baslat/Durdur/BENIOKU); TUM teknik dosyalar 'sistem' alt klasorunde. server.mjs __dirname'i kullandigi
+#   icin (app/, node_modules, runtime, opcua-bridge, updater, kisayol-olustur hepsi sistem/'de birlikte) sorunsuz calisir.
+$sistem = Join-Path $stage 'sistem'
+New-Item -ItemType Directory -Force -Path $sistem | Out-Null
+$sistemItems = @('server.mjs','opcua-bridge.mjs','updater.mjs','package.json','kisayol-olustur.ps1','app.ico','runtime','node_modules')
+foreach ($item in $sistemItems) {
   $src = Join-Path $bridge $item
-  if (Test-Path $src) { Copy-Item $src -Destination $stage -Recurse -Force }
+  if (Test-Path $src) { Copy-Item $src -Destination $sistem -Recurse -Force }
 }
-Copy-Item (Join-Path $bridge 'baslat.bat') -Destination (Join-Path $stage 'Baslat.bat') -Force
-Copy-Item $dist -Destination (Join-Path $stage 'app') -Recurse -Force
+Copy-Item $dist -Destination (Join-Path $sistem 'app') -Recurse -Force
+# KOK: Efekan'in gordugu (gizli baslatici = siyah ekran YOK)
+foreach ($item in @('SMC-AMS-Baslat.vbs','SMC-AMS-Durdur.vbs','BENIOKU.txt')) {
+  Copy-Item (Join-Path $bridge $item) -Destination $stage -Force
+}
 
 # 5) Tam dagitim zip'i
 if (Test-Path $zip) { Remove-Item -Force $zip }
@@ -61,7 +68,7 @@ Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Compression
 
 # 6) app.zip (yalniz app/ icerigi -> updater bunu indirip app-next'e acar)
 if (Test-Path $appZip) { Remove-Item -Force $appZip }
-Compress-Archive -Path (Join-Path $stage 'app\*') -DestinationPath $appZip -CompressionLevel Optimal
+Compress-Archive -Path (Join-Path $sistem 'app\*') -DestinationPath $appZip -CompressionLevel Optimal
 
 # 7) GitHub Release (tag app-<hash>) — kurulu makineler 'releases/latest' ile bunu gorup app.zip'i ceker
 $tag = "app-$ver"
