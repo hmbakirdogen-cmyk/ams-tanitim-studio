@@ -1,7 +1,16 @@
 <!doctype html>
-<html lang="tr">
+<!-- TARAYICI CEVIRISI KAPALI (translate="no"):
+     NE      : Tarayicinin (Chrome "Bu sayfayi cevir" / Google Translate / ceviri eklentisi) sayfayi otomatik cevirmesini ENGELLE.
+     NEDEN   : Ceviri, React'in yonettigi yazi dugumlerini <font> etiketine sarip TASIR -> React bir sonraki guncellemede
+               "insertBefore: node ... is not a child" hatasi firlatir -> ErrorBoundary sonsuz donguye girer, ekran coker.
+               Bu uygulamanin ZATEN kendi TR/EN/JA cevirisi var (useLang/t) -> tarayici cevirisi hem GEREKSIZ hem ZARARLI.
+               Japonya HQ demosu icin KRITIK: Japon izleyicinin Chrome'u arayuzu otomatik cevirmeye kalkar -> ayni cokme onlarda da olurdu.
+     NASIL   : html translate="no" + <meta name="google" content="notranslate"> + body class="notranslate" (3 katman, tum tarayicilar).
+     YAN ETKI: Uygulama ici dil secici (TR/EN/JA) AYNEN calisir (JS tabanli, tarayici cevirisinden bagimsiz). -->
+<html lang="tr" translate="no">
   <head>
     <meta charset="UTF-8" />
+    <meta name="google" content="notranslate" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0072CE" />
     <meta name="description" content="SMC Hava Yonetim Sistemi - canli tanitim ve enerji tasarrufu studyosu" />
@@ -22,7 +31,7 @@
 
     <title>SMC · Hava Yönetim Sistemi — Tanıtım Stüdyosu</title>
   </head>
-  <body>
+  <body class="notranslate">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

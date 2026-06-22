@@ -112,10 +112,24 @@ function openBrowser(url) {
   if (process.env.AMS_NO_OPEN) return
   // Varsayilan tarayiciyi ac (Windows: cmd 'start'; digerleri: xdg-open/open). Hata olsa da kopru calismaya devam eder.
   try {
-    if (process.platform === 'win32') exec(`start "" "${url}"`)
+    // windowsHide: gizli baslatici (.vbs) ile acildiginda tarayiciyi acan cmd penceresinin ANLIK FLASH'ini bile engelle -> sifir siyah ekran.
+    if (process.platform === 'win32') exec(`start "" "${url}"`, { windowsHide: true })
     else if (process.platform === 'darwin') exec(`open "${url}"`)
     else exec(`xdg-open "${url}"`)
   } catch { /* tarayici elle acilabilir */ }
+}
+
+// MASAUSTU KISAYOLU (Mehmet abi: "bir uygulamaymis gibi masaustune ikon atamali"): paket modunda her acilista
+//   masaustune SMC ikonlu "SMC AMS Tanitim" kisayolu olustur/guncelle (kisayol-olustur.ps1 -> hedef = gizli baslatici).
+//   Idempotent + her acilista guncel (klasor tasinirsa .lnk yolu kendini duzeltir -> zip'e gomulu .lnk'in kirik-yol derdi YOK).
+//   windowsHide -> kisayolu olustururken hicbir pencere gosterme. Best-effort: basarisiz olsa bile uygulama calisir.
+function ensureDesktopShortcut() {
+  if (process.platform !== 'win32') return
+  try {
+    const ps1 = path.join(__dirname, 'kisayol-olustur.ps1')
+    if (!fs.existsSync(ps1)) return
+    exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${ps1}"`, { windowsHide: true })
+  } catch { /* kisayol best-effort */ }
 }
 
 httpServer.on('error', (e) => {
@@ -137,6 +151,8 @@ httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
   console.log('Tarayici aciliyor... Acilmazsa yukaridaki adrese gidin.')
   console.log('Bu pencereyi KAPATMAYIN (kapatirsaniz uygulama+cihaz baglantisi durur). Durdurmak: Ctrl+C')
   openBrowser(APP_URL)
+  // Masaustune SMC ikonlu kisayol koy (paket modunda; "uygulama gibi"). Best-effort.
+  if (packaged) ensureDesktopShortcut()
   // Arka planda (internet VARSA) son surumu kontrol et + indir -> SONRAKI acilista otomatik uygulanir. Best-effort/offline guvenli.
   if (packaged) checkForUpdate(PKG_APP, UPDATE_STAGE, UPDATE_ZIP, (m) => console.log(m))
 })

@@ -46,7 +46,8 @@ $ver = (git -C $root rev-parse --short HEAD).Trim()
 # 4) Staging hazirla
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
-$include = @('server.mjs','opcua-bridge.mjs','updater.mjs','package.json','README.md','runtime','node_modules')
+# SMC-AMS-Baslat.vbs (gizli baslatici = siyah ekran YOK) + Durdur.vbs + kisayol-olustur.ps1 + app.ico (masaustu ikonu) -> "uygulama gibi".
+$include = @('server.mjs','opcua-bridge.mjs','updater.mjs','package.json','README.md','runtime','node_modules','SMC-AMS-Baslat.vbs','SMC-AMS-Durdur.vbs','kisayol-olustur.ps1','app.ico')
 foreach ($item in $include) {
   $src = Join-Path $bridge $item
   if (Test-Path $src) { Copy-Item $src -Destination $stage -Recurse -Force }
