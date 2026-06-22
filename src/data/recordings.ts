@@ -94,11 +94,22 @@ export function toCSV(rec: Recording): string {
 }
 
 export function download(filename: string, content: string, type = 'text/plain;charset=utf-8'): void {
+  /*
+   * NE      : Dosya indirme linkini gecici olarak DOM'a tak, tikla, sonra temizle.
+   * NEDEN   : Bazi tarayicilar DOM'a eklenmemis <a download> tikini yok sayabiliyor; rapor/CSV cikisi saha bilgisayarinda kesin calismali.
+   * NASIL   : Blob URL -> gizli anchor -> click -> bir sonraki turda revoke/remove.
+   * YAN ETKI: Indirme davranisi ayni; yalniz tarayici uyumlulugu ve bellek temizligi guclenir.
+   */
   const blob = new Blob([content], { type })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
   a.download = filename
+  a.style.display = 'none'
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url)
+    a.remove()
+  }, 0)
 }

@@ -11,7 +11,8 @@ export const DEMO_OPEN: boolean = true
 /*
  * MOBIL: Mehmet Abi "mobil uygulamasini da acalim." false -> telefon/tablette MOBIL WEB + PWA acik (responsive demo,
  * "Ana Ekrana Ekle" ile tam ekran). true -> eski "bilgisayardan acin" engeli (MobileBlocked) geri gelir.
- * Not: mobilde CANLI cihaz yok (connection.ts mobil=demo kilidi); telefon yalniz demo izler.
+ * Not: mobilde CANLI cihaz da acik; telefon PC'nin LAN adresinden uygulamayi acar ve connection.ts kopru host'unu
+ * sayfayi servis eden bilgisayardan turetir.
  */
 export const MOBILE_BLOCKED: boolean = false
 

@@ -28,7 +28,6 @@ import { getActiveModel } from '@/data/model'
 import { publishTotalizer } from '@/data/totalizer'   // toplam debi (totalizer) -> sag kol "Toplam Tuketim" karti AYNI degeri okur
 import { drawSevenSeg, measureSevenSeg, type RGB } from '@/lib/sevenSeg'
 import { sampleCurl } from '@/lib/flowField'   // curl-noise akış alanı (divergence-free, TAHSİSSİZ) — geri-dönüş sink + egzoz round-jet doğal salınımı
-import { getEco } from '@/data/eco'   // Sakin Mod: açıkken framerate ~12fps'e düşer (pervane/zayıf PC)
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x))
 // Hermite smoothstep — yumuşak uç-maskesi (sert doğum/ölüm çizgisi YOK). Modül kapsamı → kare-başı alloc YOK.
@@ -415,7 +414,7 @@ export function DeviceFlowChart({
     //   akış HÂLÂ akıcı (yumuşak parçacık akışında 40fps göze pürüzsüz). dt zaman-tabanlı → totalizer/akış HIZI sapmaz, yalnız daha az kare çizilir.
     const FRAME_MS = 1000 / 40
     const draw = (now: number) => {
-      const frameMs = getEco() ? 1000 / 12 : FRAME_MS // Sakin Mod: ~12fps → parçacık çizimi seyrelir, GPU/fan iyice düşer
+      const frameMs = FRAME_MS // Tek hiz: animasyonlar daima akici; hiz kisma modu bilerek kaldirildi.
       if (now - lastFrame < frameMs) { raf = requestAnimationFrame(draw); return }
       lastFrame = now
       const dt = Math.min(0.05, (now - last) / 1000); last = now
@@ -635,9 +634,9 @@ export function DeviceFlowChart({
           const bornFade = sstep((1 - fp) / 0.10)             // sağ uçta yumuşak doğum
           const nearPort = dnv / Math.max(1, exOy - axisY)    // 0 boru .. 1 egzoz ağzı
           const drainFade = 1 - sstep((nearPort - 0.72) / 0.28)  // son ~%28'de sön → egzoz jeti devralır (görünmez geçiş)
-          const a = (0.26 + 0.62 * sig.valve) * (0.5 + 0.5 * prof) * aK * bornFade * drainFade // Mehmet abi 2026-06-19: geri-akış HAVASI belirgin (yoksa "geri dönüşte sadece nem akıyor" görünüyordu)
+          const a = (0.30 + 0.66 * sig.valve) * (0.5 + 0.5 * prof) * aK * bornFade * drainFade // Mehmet abi 2026-06-22: geri-akış PC'de de BELİRGİN (geniş ekranda cihaz görece küçük kalıyor → alfa 0.26→0.30, mobildeki dolu his PC'ye yaklaşır)
           if (a <= 0.012) continue
-          const len = (7 + 12 * sig.valve) * (0.72 + 0.5 * prof) * (0.4 + 0.6 * cs)  // DİKEYde KISA iz (düşey çizgi olmasın)
+          const len = (8 + 14 * sig.valve) * (0.72 + 0.5 * prof) * (0.4 + 0.6 * cs)  // DİKEYde KISA iz (düşey çizgi olmasın); Mehmet abi 2026-06-22: iz biraz uzun → PC'nin küçük cihazında geri-akış daha okunur
           const lw = 1.0 + 1.3 * prof
           ctx.strokeStyle = cS(a * 0.4); ctx.lineWidth = lw   // soluk uzun kuyruk
           ctx.beginPath(); ctx.moveTo(dpx - txu * len, dpy - tyu * len); ctx.lineTo(dpx, dpy); ctx.stroke()

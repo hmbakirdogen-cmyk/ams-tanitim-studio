@@ -13,7 +13,7 @@ import { useEffect, useRef } from 'react'
 import type { Reading } from '@/data/types'
 import type { MetricDef, MetricKey } from '@/data/metrics'
 import { localeOf } from '@/lib/format'
-import { getEco } from '@/data/eco'
+import { useLang } from '@/i18n'
 
 const PAD_L = 60, PAD_R = 60, PAD_T = 64, PAD_B = 44 // sol+sağ Y-skala gutter'ları — FERAH (Mehmet abi: skalaları rahatlat); ChartOverlay left/right-[60px] ile EŞLİ tutulur
 const N = 220
@@ -67,10 +67,11 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
   metrics: MetricDef[]
   groups?: MetricKey[][] // Mehmet abi 2026-06-19: sekme → hangi 2 sensör (Hava&Basınç / Sıcaklık&Nem)
 }) {
+  const { t } = useLang() // Mehmet abi 2026-06-22: grafik canvas metinleri (şerit adı + birim) DİLE göre çevrilsin (EN/JA'da Türkçe kalıyordu)
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const dataRef = useRef({ history, reading, metrics, groups })
-  dataRef.current = { history, reading, metrics, groups }
+  const dataRef = useRef({ history, reading, metrics, groups, t })
+  dataRef.current = { history, reading, metrics, groups, t }
   const dispRef = useRef<Record<string, Float32Array>>({})
   // AUTO-RANGE yumuşak eksen havuzu (Mehmet abi 2026-06-20) — her auto-range sensörü için { lo, hi } yumuşak kayar (lerp 0.07) → eksen ZIPLAMAZ.
   const rangeRef = useRef<Record<string, { lo: number; hi: number }>>({})
@@ -105,12 +106,12 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
     const draw = (ts = 0) => {
       raf = requestAnimationFrame(draw)
       if (typeof document !== 'undefined' && document.hidden) return
-      const frameMs = getEco() ? 1000 / 12 : FRAME_MS // Sakin Mod: ~12fps (sürekli GPU yükü iyice düşer)
+      const frameMs = FRAME_MS // Tek hiz: grafik animasyonu daima akici; hiz kisma modu bilerek kaldirildi.
       if (ts - lastFrame < frameMs) return
       lastFrame = ts
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, W, H)
-      const { history: hist, reading: rd, metrics: mets, groups: grps } = dataRef.current
+      const { history: hist, reading: rd, metrics: mets, groups: grps, t } = dataRef.current
       const n = hist.length
       const px = PAD_L, py = PAD_T, pw = Math.max(1, W - PAD_L - PAD_R), ph = Math.max(1, H - PAD_T - PAD_B)
       if (n < 2 || !mets.length) return
@@ -227,7 +228,7 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
         for (let i = 0; i < items.length; i++) {
           const it = items[i], [r, g, b] = hexRgb(it.m.color)
           const labelY = Math.max(laneTop + bh / 2, lY[i])
-          const uTxt = it.m.unitShort
+          const uTxt = t(it.m.unitShort) // birim DİLE göre (l/dak→L/min→L/分); MPa/bar/°C/% evrenseldir, t() onları aynen döndürür
           ctx.font = '800 12px ui-sans-serif, system-ui, sans-serif'; const vW = ctx.measureText(it.vTxt).width
           ctx.font = '600 10px ui-sans-serif, system-ui, sans-serif'; const uW = ctx.measureText(uTxt).width
           const padL = 18, padR = 10, gapVU = 4
@@ -260,7 +261,7 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
         // ŞERİT BAŞLIĞI (Mehmet abi: "en anlaşılır") — sol-üstte ad + birim rozeti, kendi renginde; boru/skaladan SONRA çizilir → üstte net durur.
         {
           const tt = group[0], [tr2, tg2, tb2] = hexRgb(tt.color)
-          const label = `${tt.name} · ${tt.unitShort}`
+          const label = `${t(tt.name)} · ${t(tt.unitShort)}` // şerit başlığı: ad + birim DİLE göre (Hava Tüketimi·l/dak → Air Consumption·L/min)
           ctx.font = '700 11px ui-sans-serif, system-ui, sans-serif'
           ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
           const lw = ctx.measureText(label).width, bx2 = px + 8, by2 = laneTop + 6, bh2 = 18

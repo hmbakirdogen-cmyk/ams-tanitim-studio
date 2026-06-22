@@ -31,7 +31,6 @@ import { useLang } from './i18n'
 import { DEMO_OPEN, MOBILE_BLOCKED, SHOWCASE_MODE } from './config'
 import { DemoWelcome } from './components/DemoWelcome'
 import { FeedbackFab } from './components/FeedbackFab'
-import { PhoneConnect } from './components/PhoneConnect'
 import type { User } from './auth/users'
 
 export default function App() {
@@ -54,8 +53,11 @@ export default function App() {
     if (!next) sound.click()
   }
 
-  // MOBIL AÇIK (Mehmet Abi: "mobil uygulamasını da açalım"): telefon/tablet responsive demo'yu gösterir + PWA.
-  // Geri kapatmak: config.ts MOBILE_BLOCKED=true (mobil=demo kilidi connection.ts'te; canlı cihaz yalnız PC'de).
+  // MOBIL ACIK
+  // NE      : Telefon/tablet responsive uygulamayi gosterir; ayni Wi-Fi'da PC koprusunden canli veriye de gidebilir.
+  // NEDEN   : Mehmet Abi karari: mobil yalniz demo degil, saha aginda canli mod da kullanilabilir.
+  // NASIL   : config.ts MOBILE_BLOCKED=false; connection.ts BRIDGE_URL'i sayfayi servis eden hosttan turetir.
+  // YAN ETKI: Guvenilir saha agi varsayilir; geri kapatmak gerekirse config.ts MOBILE_BLOCKED=true.
   if (MOBILE_BLOCKED && isMobileDevice()) return <MobileBlocked />
 
   // GIRIS (DEMO_OPEN — Mehmet Abi: "Halil'e ozel olmasin; herkese tanitim"): sifre/personel girisi YOK.
@@ -153,9 +155,6 @@ export default function App() {
           )}
         </div>
       )}
-
-      {/* Telefon/tablet baglanti adresi (LAN IP) — konsol gizli oldugu icin IP'yi uygulama gosterir. LAN yoksa kendini gizler. */}
-      <PhoneConnect />
     </div>
   )
 }

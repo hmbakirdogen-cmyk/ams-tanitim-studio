@@ -33,5 +33,6 @@ _*.png
 _*.jpg
 /_arsiv/
 /_yedek/
+.shots/
 scripts/_*.mjs
 public/tip-b-montaj.html

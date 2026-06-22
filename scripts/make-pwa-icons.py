@@ -26,7 +26,7 @@ def grad(t):
     return STOPS[-1][1]
 
 
-def make(size, fname, text_ratio=0.36, rounded=True):
+def make(size, fname, text_ratio=0.44, rounded=True):
     S = size
     # capraz gradyan (sol-ust -> sag-alt) tek putdata ile (hizli)
     px = [grad((x + y) / (2 * (S - 1))) for y in range(S) for x in range(S)]
@@ -54,10 +54,10 @@ def make(size, fname, text_ratio=0.36, rounded=True):
 
 
 # Android "any" (yuvarlak kose)
-make(192, "pwa-192.png", text_ratio=0.36, rounded=True)
-make(512, "pwa-512.png", text_ratio=0.36, rounded=True)
-# Android adaptive maskable: tam kare + metin guvenli alanda (kucuk)
-make(512, "pwa-maskable-512.png", text_ratio=0.30, rounded=False)
+make(192, "pwa-192.png", text_ratio=0.44, rounded=True)
+make(512, "pwa-512.png", text_ratio=0.44, rounded=True)
+# Android adaptive maskable: tam kare + metin guvenli alanda (Mehmet abi 2026-06-22: SMC buyutuldu 0.30->0.40, daire/squircle maskede kirpilmadan BELIRGIN gorunsun)
+make(512, "pwa-maskable-512.png", text_ratio=0.40, rounded=False)
 # iOS apple-touch: tam kare (iOS kendi maskesini uygular)
-make(180, "apple-touch-icon.png", text_ratio=0.36, rounded=False)
+make(180, "apple-touch-icon.png", text_ratio=0.44, rounded=False)
 print("TAMAM")

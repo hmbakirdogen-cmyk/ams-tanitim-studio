@@ -59,13 +59,21 @@ export function ChartOverlay({ reading, history = [], startedAt = 0, windowMs, o
   return (
     <div className="force-dark-surface pointer-events-none absolute inset-0">
       {/* SOL-ÜST: CANLI süre + ZAMAN PENCERESİ seçici */}
-      <div className="absolute left-3 top-3 flex flex-wrap items-center gap-2">
-        <div className="flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-[#050b18]/75 px-3 py-1.5 backdrop-blur-md">
-          <span className="relative grid h-2.5 w-2.5 place-items-center">
-            <span className="live-ring absolute h-2.5 w-2.5 rounded-full bg-[var(--c-saving)]" />
+      <div
+        /*
+         * NE      : Mobil grafik kontrol satiri; dar ekranda iki satira nefesli akar, masaustunde eski konumunu korur.
+         * NEDEN   : iPhone'da CANLI rozeti + sekmeler + zaman pencereleri ayni hatta sikisip grafik etiketlerinin ustune biniyordu.
+         * NASIL   : Mobilde left/right siniri verilir, cip padding/fontlari kuculur; sm ve ustunde eski ferah olculere doner.
+         * YAN ETKI: Grafik fonksiyonu degismez; sadece kontrol ciplerinin mobil yerlesimi daha guvenli olur.
+         */
+        className="absolute left-2 right-2 top-2 flex flex-wrap items-center gap-1.5 sm:left-3 sm:right-auto sm:top-3 sm:gap-2"
+      >
+        <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-[#050b18]/75 px-2 py-1 backdrop-blur-md sm:gap-2 sm:px-3 sm:py-1.5">
+          <span className="relative grid h-2 w-2 place-items-center sm:h-2.5 sm:w-2.5">
+            <span className="live-ring absolute h-2 w-2 rounded-full bg-[var(--c-saving)] sm:h-2.5 sm:w-2.5" />
           </span>
-          <span className="text-[11px] font-semibold tracking-wide text-[var(--c-saving)]">{t('CANLI')}</span>
-          <span className="num text-sm font-bold text-white">{elapsed}</span>
+          <span className="text-[10px] font-semibold tracking-wide text-[var(--c-saving)] sm:text-[11px]">{t('CANLI')}</span>
+          <span className="num text-xs font-bold text-white sm:text-sm">{elapsed}</span>
         </div>
         {/* SEKME (Mehmet abi 2026-06-19): Hava&Basınç ↔ Sıcaklık&Nem — grafik içeriğini değiştirir (aynı görünüm mantığı) */}
         {tabs && tabs.length > 1 && onTabChange && (
@@ -76,7 +84,7 @@ export function ChartOverlay({ reading, history = [], startedAt = 0, windowMs, o
                 <button
                   key={tb}
                   onClick={() => onTabChange(i)}
-                  className={`rounded-full px-3.5 py-1 text-[11px] font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition sm:px-3.5 sm:text-[11px] ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                   style={on ? { background: 'linear-gradient(135deg, rgba(0,114,206,0.5), rgba(0,114,206,0.18))', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : undefined}
                 >
                   {t(tb)}
@@ -93,7 +101,7 @@ export function ChartOverlay({ reading, history = [], startedAt = 0, windowMs, o
                 <button
                   key={w.ms}
                   onClick={() => onWindowChange(w.ms)}
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold transition ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
+                  className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold transition sm:px-2 sm:text-[10px] ${on ? 'text-white' : 'text-[var(--ink-soft)] hover:text-[var(--ink)]'}`}
                   style={on ? { background: 'linear-gradient(135deg, rgba(0,114,206,0.5), rgba(0,114,206,0.18))', boxShadow: 'inset 0 0 0 1px rgba(46,155,255,0.5)' } : undefined}
                 >
                   {t(w.label)}
@@ -106,13 +114,13 @@ export function ChartOverlay({ reading, history = [], startedAt = 0, windowMs, o
 
       {/* SAĞ-ÜST: BASINÇ BİRİMİ (MPa/bar) — Mehmet abi 2026-06-19: grafikten de değiştirilebilsin. YALNIZ basınç içeren sekmede (Sıcaklık/Nem'de gizli). */}
       {showPressureToggle && (
-        <div className="pointer-events-auto absolute right-3 top-3">
+        <div className="pointer-events-auto absolute right-2 top-[4.6rem] sm:right-3 sm:top-3">
           <PressureUnitToggle />
         </div>
       )}
 
       {/* DÜŞEY zaman çizgileri (tüm şeritleri keser) — yatay ızgara + sol ölçek artık CANVAS'ta (her şerit kendi Y-ekseniyle, lane düzeni). */}
-      <div className="absolute left-[60px] right-[60px] top-16 bottom-11">
+      <div className="absolute left-[42px] right-[42px] top-24 bottom-11 sm:left-[60px] sm:right-[60px] sm:top-16">
         {TICKS.map((f) => (
           <div
             key={`v${f}`}
@@ -128,21 +136,30 @@ export function ChartOverlay({ reading, history = [], startedAt = 0, windowMs, o
 
       {/* X ekseni — GERÇEK SAAT (sık), plot ile hizalı. Uç etiketler KENARDAN TAŞMASIN (Mehmet Abi: yeşil "şimdi" saati tam görünsün):
           ilk=sola, son=sağa hizalı; ortadakiler ortalı. */}
-      <div className="absolute left-[60px] right-[60px] bottom-5 h-5">
+      <div
+        /*
+         * NE      : Mobilde seyreltilmis X-ekseni etiketleri.
+         * NEDEN   : 390px iPhone genisliginde 17 saat etiketi yan yana okunamaz ve ust uste biner.
+         * NASIL   : Tum dikey izgaralar kalir; metin etiketlerinde mobilde yalniz 0/4/8/12/16 tick'leri gorunur, sm+ eski 17 etiket.
+         * YAN ETKI: Mobil daha temiz; masaustunde ayrintili saat skalasi aynen korunur.
+         */
+        className="absolute left-[42px] right-[42px] bottom-5 h-5 sm:left-[60px] sm:right-[60px]"
+      >
         {TICKS.map((f, i) => {
           const edge = i === 0 ? 'translate-x-0' : i === TICKS.length - 1 ? '-translate-x-full' : '-translate-x-1/2'
+          const mobileTick = i === 0 || i === TICKS.length - 1 || i % 4 === 0
           return (
-            <div key={f} className={`absolute flex flex-col items-center gap-0.5 ${edge}`} style={{ left: `${f * 100}%` }}>
+            <div key={f} className={`absolute ${mobileTick ? 'flex' : 'hidden sm:flex'} flex-col items-center gap-0.5 ${edge}`} style={{ left: `${f * 100}%` }}>
               {/* Mehmet abi 2026-06-20: zaman scalası fontu ~%18 büyütüldü (8→9.5px saat, 7→8.5px göreli süre) → okunurluk arttı, çeviri/hiza aynı. */}
-              <span className={`num whitespace-nowrap text-[9.5px] font-semibold ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'}`} style={shadow}>{clockAt(f)}</span>
-              <span className={`num whitespace-nowrap text-[8.5px] font-medium ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'} opacity-75`} style={shadow}>{relAt(f)}</span>
+              <span className={`num whitespace-nowrap text-[8px] font-semibold sm:text-[9.5px] ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'}`} style={shadow}>{clockAt(f)}</span>
+              <span className={`num whitespace-nowrap text-[7px] font-medium sm:text-[8.5px] ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'} opacity-75`} style={shadow}>{relAt(f)}</span>
             </div>
           )
         })}
       </div>
 
       {/* Alt aciklama (SOL=geçmiş, SAĞ=şimdi) */}
-      <div className="absolute left-[60px] right-[60px] bottom-0.5 flex items-center justify-between text-[9px] font-medium uppercase tracking-widest text-[var(--ink-soft)]" style={shadow}>
+      <div className="absolute left-[60px] right-[60px] bottom-0.5 hidden items-center justify-between text-[9px] font-medium uppercase tracking-widest text-[var(--ink-soft)] sm:flex" style={shadow}>
         <span>← {t('geçmiş')}</span>
         <span>{t('şimdi')} →</span>
       </div>

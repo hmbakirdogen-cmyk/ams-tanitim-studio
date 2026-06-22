@@ -61,6 +61,23 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
     />
   )
 
+  /*
+   * NE      : Kartin ic yuzeyini opaklastiran okunurluk kalkani.
+   * NEDEN   : Kartlar cam oldugu icin AMS sahnesindeki zemin/arka plan cizgileri kart icinden gorunuyordu.
+   * NASIL   : Icerigin en altina koyu, neredeyse opak bir gradient yerlestirilir; metrik rengi/depth/hud katmanlari ustte kalir.
+   * YAN ETKI: Kartlar daha net okunur; alttaki cihaz/uzay cizgileri kart icine sizmaz, deger ve mini grafik davranisi degismez.
+   */
+  const readabilityLayer = (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 rounded-[inherit]"
+      style={{
+        background: 'linear-gradient(160deg, rgba(8,18,38,0.96), rgba(4,10,24,0.93))',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -16px 26px -20px rgba(0,0,0,0.65)',
+      }}
+    />
+  )
+
   // UZAY KONSOLU dokunuşu — AĞIRBAŞLI (Mehmet abi 2026-06-20: "uzay üssü hissi AMA asla şımarıklık YOK; JP SMC'ye gidiyor"):
   //   Kartın 4 köşesinde FISILTI gibi ince L işaretleri → "hassas gösterge/enstrüman" çerçevesi. Parlak/gamer HUD DEĞİL: çok sönük
   //   (opacity ~0.2), küçük, metrik renginde (kartın kimliğiyle uyumlu ama bağırmayan). Scanline vb. gösterişli doku YOK.
@@ -74,30 +91,20 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
     </span>
   )
 
-  // SPACE ÇİZGİLERİ (Mehmet abi 2026-06-20: "4 kartın arka planına hafiften space çizgileri"): kartın alt yarısında SOLUK perspektif
-  //   zemin ızgarası (uzaya/derinliğe kaçan), yukarı doğru solar → "uzay konsolu" hissi. Saf statik CSS (rAF/RAM yok); ağırbaşlı (JP SMC).
-  const spaceLayer = (
-    <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
-      <span
-        className="absolute inset-x-[-35%] bottom-0 h-[62%] origin-bottom"
-        style={{
-          transform: 'perspective(140px) rotateX(60deg)',
-          backgroundImage: 'linear-gradient(to right, rgba(138,182,246,0.5) 1px, transparent 1px), linear-gradient(to top, rgba(138,182,246,0.42) 1px, transparent 1px)',
-          backgroundSize: '16px 16px',
-          maskImage: 'linear-gradient(to top, rgba(0,0,0,0.78), transparent 85%)',
-          WebkitMaskImage: 'linear-gradient(to top, rgba(0,0,0,0.78), transparent 85%)',
-          opacity: 0.9,
-        }}
-      />
-    </span>
-  )
+  /*
+   * NE      : Kart icindeki perspektif/zemin cizgilerini kapat.
+   * NEDEN   : Mehmet Abi: kartlarin icinde AMS cihazinin arka plan cizgileri gorunmesin; veri alani temiz ve okunur kalsin.
+   * NASIL   : Eski spaceLayer render edilmez; kartin cam/renk/hud katmanlari ve mini grafikler aynen korunur.
+   * YAN ETKI: Kart ici daha sade olur; masaustu ve mobilde deger, birim, toplam ve grafik alanlari etkilenmez.
+   */
+  const spaceLayer = null
 
   // KOMPAKT (xs) — Mehmet Abi: "küçük kartlarda grafik görünmüyor." KÖK ÇÖZÜM: değer ile grafik YAN YANA → kart kısa olsa bile
   //   grafik SABİT yükseklikte, ASLA çökmez/gizlenmez. Üstte ad (ikincil), altta solda değer + sağda akan grafik. Detay = TIKLA.
   if (size === 'xs') {
     return (
       <Tilt3D onClick={onClick} className={`glass relative flex h-full flex-col justify-center overflow-hidden rounded-xl px-3 py-2 ${onClick ? 'cursor-pointer transition hover:brightness-110' : ''}`}>
-        {depthLayer}{spaceLayer}{hudLayer}
+        {readabilityLayer}{depthLayer}{spaceLayer}{hudLayer}
         <span className="absolute inset-x-0 top-0 h-0.5" style={{ background: def.color, boxShadow: `0 0 12px ${def.color}` }} />
         {onClick && <Maximize2 size={11} className="pointer-events-none absolute right-2 top-2 text-[var(--ink-soft)] opacity-50" style={{ transform: 'translateZ(20px)' }} />}
         {/* 3D DERİNLİK: köşeden metrik renginde hafif radyal vurgu + ust-ic isik / alt-ic golge → kart boşlukta yüzer */}
@@ -134,7 +141,7 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
     // NASIL   : sm/tight modda daha kompakt bosluklar, truncate baslik, deger satirinda min-w-0 + tabular hiza; toplam satiri daha guvenli.
     // YAN ETKI: Gorsel dil korunur; yalnizca ic yerlesim daha stabil hale gelir.
     <Tilt3D onClick={onClick} className={`glass relative flex h-full flex-col overflow-hidden rounded-2xl ${compact ? 'p-2.5' : 'p-4'} ${onClick ? 'cursor-pointer transition hover:brightness-110' : ''}`}>
-      {depthLayer}{spaceLayer}{hudLayer}
+      {readabilityLayer}{depthLayer}{spaceLayer}{hudLayer}
       {/* Ust renk seridi - grafikteki cizgiyle BIREBIR ayni renk */}
       <span className="absolute inset-x-0 top-0 h-1" style={{ background: def.color, boxShadow: `0 0 18px ${def.color}` }} />
       {onClick && <Maximize2 size={13} className="pointer-events-none absolute right-2.5 top-2.5 text-[var(--ink-soft)] opacity-50" style={{ transform: 'translateZ(20px)' }} />}

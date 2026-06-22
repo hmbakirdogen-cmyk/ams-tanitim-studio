@@ -6,7 +6,7 @@
  * NASIL   : SpacePlatform ortak zemin. Solda dikey 2 satır (Akış flex-[3] büyük + Klasik flex-[2]); her biri kendi cam yüzeyinde, overlay'leriyle.
  *           Sağda Tasarruf (HeroKPI) + 4 kompakt MetricCard (size="xs"). ModeStrip başlıkta kalır. Tüm veri App'ten (LiveState).
  *           NOT: Cihaz penceresi İÇİNDEKİ anlık readout'lar (PipeOverlay) Mehmet Abi isteğiyle SOL-üstte (arkalarında animasyon olmadan).
- * YAN ETKI: VIEW_KEY/anahtar kaldırıldı (artık tek düzen). Mobil zaten engelli; masaüstü hedefli ferah grid. i18n korunur.
+ * YAN ETKI: VIEW_KEY/anahtar kaldırıldı (artık tek düzen). Mobil açık; iPhone'da kartlar cihaz üstüne binmesin diye mobil kart grid'i ayrıdır. i18n korunur.
  */
 import { AnimatePresence } from 'framer-motion'
 import { LiveChart2D } from '@/components/LiveChart2D'
@@ -146,8 +146,8 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
               <HeroKPI percent={percent} mode={mode} />
             </div>
 
-            {/* SOL-ALT köşe: Hava Tüketimi + Basınç. Alt kenara sabitlenir; pencere kısalsa da dışarı taşmaz. */}
-            <div className="absolute bottom-12 left-2 z-10 flex items-end gap-[clamp(10px,2.4cqw,32px)] md:bottom-13 md:left-3">
+            {/* SOL-ALT köşe: Hava Tüketimi + Basınç. Masaüstü/tablet overlay; telefonda kartlar aşağıdaki grid'e iner ki cihazın üstüne binmesin. */}
+            <div className="absolute bottom-12 left-2 z-10 hidden items-end gap-[clamp(10px,2.4cqw,32px)] sm:flex md:bottom-13 md:left-3">
               {/* Flow kartı diğerlerinden TAM 40px uzun (TOPLAM'a yer) + 40px AŞAĞI kaydık (marginBottom -40, küme items-end) → ÜST kenar
                   diğerleriyle BİREBİR hizalı, fazla boy AŞAĞI uzar (Mehmet abi 2026-06-20: "üstü diğerleriyle hizalı, diğerleri yerinde"). */}
               {byKey.flow && visible.flow && (
@@ -158,16 +158,30 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
               )}
             </div>
 
-            {/* SAĞ-ALT köşe: Sıcaklık + Nem — alt kenara sabitlenir; pencere kısalsa da dışarı taşmaz. */}
-            <div className="absolute bottom-12 right-2 z-10 flex items-end gap-[clamp(10px,2.4cqw,32px)] md:bottom-13 md:right-3">
+            {/* SAĞ-ALT köşe: Sıcaklık + Nem — masaüstü/tablet overlay; telefonda ayrı grid. */}
+            <div className="absolute bottom-12 right-2 z-10 hidden items-end gap-[clamp(10px,2.4cqw,32px)] sm:flex md:bottom-13 md:right-3">
               {cardDefs.filter((m) => m.key === 'temperature' || m.key === 'humidity').map((m) => (
                 <div key={m.key} className="h-[clamp(58px,15.5vh,184px)] w-[clamp(58px,15.5cqw,210px)] min-w-0"><MetricCard def={m} history={history} size="sm" onClick={() => setDetailKey(m.key)} /></div>
               ))}
             </div>
           </div>
 
+          {/*
+            NE      : iPhone/cok dar ekran icin metrik kartlarini cihaz sahnesinden ayiran 2x2 mobil grid.
+            NEDEN   : Masaustu overlay kartlari telefon genisliginde AMS cihazinin ve akis yazilarinin ustune biniyordu.
+            NASIL   : sm altinda overlay'ler gizlenir; ayni metrikler sm kartlarla sahnenin altinda normal akisa girer; flow toplam satiri korunur.
+            YAN ETKI: Masaustu/tablet gorunumu aynen kalir; telefonda sayfa biraz daha uzar ama ust uste binme ve icerik kesilmesi biter.
+          */}
+          <div className="grid grid-cols-2 gap-2 sm:hidden">
+            {cardDefs.map((m) => (
+              <div key={m.key} className="h-[118px] min-w-0">
+                <MetricCard def={m} history={history} size="sm" total={m.key === 'flow' ? totalL : undefined} onClick={() => setDetailKey(m.key)} />
+              </div>
+            ))}
+          </div>
+
           {/* GRAFİK — tam genişlik (sağ kolon kalktı → boydan boya) */}
-          <div className="glass relative h-[30vh] min-h-[190px] overflow-hidden rounded-3xl lg:h-auto lg:min-h-0 lg:flex-[2.2]">
+          <div className="glass relative h-[300px] overflow-hidden rounded-3xl sm:h-[30vh] sm:min-h-[190px] lg:h-auto lg:min-h-0 lg:flex-[2.2]">
             {heavyReady && (
               <div className="ams-fade-in absolute inset-0">
                 <ErrorBoundary variant="inline" label={t('Grafik')}>
