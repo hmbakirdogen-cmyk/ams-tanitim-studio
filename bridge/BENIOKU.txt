@@ -3,14 +3,18 @@ SMC HAVA YONETIM SISTEMI - AMS Tanitim Studyosu
 
 BASLATMAK ICIN
   "SMC-AMS-Baslat" dosyasina CIFT TIKLAYIN.
-  Uygulama tarayicida acilir + masaustune "SMC AMS Tanitim" ikonu eklenir.
+  Uygulama KENDI PENCERESINDE acilir + masaustune "SMC AMS Tanitim" ikonu eklenir.
   (Bundan sonra dogrudan masaustundeki ikondan acabilirsiniz.)
 
 KAPATMAK ICIN
-  "SMC-AMS-Durdur" dosyasina cift tiklayin.
+  Uygulama penceresini sag-ustteki (X) ile kapatin. Her sey durur.
+
+TELEFON / TABLET ILE IZLEMEK (ayni Wi-Fi)
+  Uygulama acikken SOL-ALTTAKI "Telefon" dugmesine tiklayin; ciktigi adresi
+  (orn. 192.168.1.93:5180) telefonun tarayicisina yazin.
+  NOT: telefonda "localhost" YAZMAYIN - bilgisayarin IP adresini yazin.
 
 NOTLAR
   - Internet ve kurulum GEREKMEZ; tamamen offline calisir.
   - "sistem" klasoru programin dosyalaridir; LUTFEN DOKUNMAYIN / SILMEYIN.
   - Ilk acista Windows uyari verirse: "Daha fazla bilgi" > "Yine de calistir".
-  - Ayni Wi-Fi'daki telefon/tabletten de acabilirsiniz (acilista yazan adres).

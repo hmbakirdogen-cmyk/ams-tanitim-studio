@@ -31,6 +31,7 @@ import { useLang } from './i18n'
 import { DEMO_OPEN, MOBILE_BLOCKED, SHOWCASE_MODE } from './config'
 import { DemoWelcome } from './components/DemoWelcome'
 import { FeedbackFab } from './components/FeedbackFab'
+import { PhoneConnect } from './components/PhoneConnect'
 import type { User } from './auth/users'
 
 export default function App() {
@@ -152,6 +153,9 @@ export default function App() {
           )}
         </div>
       )}
+
+      {/* Telefon/tablet baglanti adresi (LAN IP) — konsol gizli oldugu icin IP'yi uygulama gosterir. LAN yoksa kendini gizler. */}
+      <PhoneConnect />
     </div>
   )
 }

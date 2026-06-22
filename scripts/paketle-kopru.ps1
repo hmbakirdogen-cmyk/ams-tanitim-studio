@@ -57,8 +57,8 @@ foreach ($item in $sistemItems) {
   if (Test-Path $src) { Copy-Item $src -Destination $sistem -Recurse -Force }
 }
 Copy-Item $dist -Destination (Join-Path $sistem 'app') -Recurse -Force
-# KOK: Efekan'in gordugu (gizli baslatici = siyah ekran YOK)
-foreach ($item in @('SMC-AMS-Baslat.vbs','SMC-AMS-Durdur.vbs','BENIOKU.txt')) {
+# KOK: Efekan'in gordugu (gizli baslatici = siyah ekran YOK; kapatma = pencere X'i, ayri Durdur YOK)
+foreach ($item in @('SMC-AMS-Baslat.vbs','BENIOKU.txt')) {
   Copy-Item (Join-Path $bridge $item) -Destination $stage -Force
 }
 

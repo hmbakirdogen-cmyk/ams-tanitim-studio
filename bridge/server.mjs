@@ -11,7 +11,7 @@ import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { exec } from 'node:child_process'
+import { exec, spawn } from 'node:child_process'
 import os from 'node:os'
 import { WebSocketServer } from 'ws'
 import { handleAppConnection, WS_HOST, WS_PORT } from './opcua-bridge.mjs'
@@ -83,6 +83,14 @@ const httpServer = http.createServer((req, res) => {
       res.writeHead(405); res.end(); return
     }
 
+    // API: ag bilgisi — telefon/tablet baglanti adresi. Siyah konsol GIZLI oldugu icin (uygulama-penceresi modu)
+    //   IP'yi artik UYGULAMA gosterir (sol-alt "Telefon" cipi). Ayni Wi-Fi'daki cihazlar bu adresi tarayiciya yazar.
+    if (urlPath === '/api/netinfo') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ port: HTTP_PORT, urls: lanIPv4s().map((ip) => `http://${ip}:${HTTP_PORT}`) }))
+      return
+    }
+
     const rel = urlPath === '/' ? 'index.html' : urlPath.replace(/^\/+/, '')
     let file = path.join(APP_DIR, rel)
     // Path traversal koruması: cozulen yol APP_DIR disina cikamaz
@@ -107,14 +115,38 @@ function lanIPv4s() {
   return out
 }
 
-function openBrowser(url) {
-  // AMS_NO_OPEN: dogrulama/headless calistirmada tarayiciyi acmasin (sevkiyatta bayrak yok -> normalde acar).
-  if (process.env.AMS_NO_OPEN) return
-  // Varsayilan tarayiciyi ac (Windows: cmd 'start'; digerleri: xdg-open/open). Hata olsa da kopru calismaya devam eder.
+// Kurulu Chrome/Edge yolunu bul (uygulama-penceresi modu icin). Edge Windows'ta hep var -> fallback.
+function findBrowser() {
+  const pf = process.env.ProgramFiles || 'C:\\Program Files'
+  const pf86 = process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)'
+  const la = process.env.LOCALAPPDATA || ''
+  return [
+    pf + '\\Google\\Chrome\\Application\\chrome.exe',
+    pf86 + '\\Google\\Chrome\\Application\\chrome.exe',
+    la + '\\Google\\Chrome\\Application\\chrome.exe',
+    pf86 + '\\Microsoft\\Edge\\Application\\msedge.exe',
+    pf + '\\Microsoft\\Edge\\Application\\msedge.exe',
+  ].find((p) => p && fs.existsSync(p))
+}
+
+// Uygulamayi UYGULAMA-PENCERESI olarak ac (Mehmet abi: "site gibi degil"): Chrome/Edge --app -> adres cubugu/sekme YOK, kendi penceresi.
+//   tie=true: pencere KAPANINCA (X) sunucu da kapanir ("x'ten kapatinca is bitsin" -> ayri Durdur dosyasina gerek yok).
+//   AYRI --user-data-dir SART: yoksa acik bir Chrome'a SEKME olarak devreder + spawn aninda exit eder -> sunucu yanlislikla kapanirdi.
+function openBrowser(url, tie) {
+  if (process.env.AMS_NO_OPEN) return // headless dogrulamada pencere acma (sunucu testi puppeteer ile)
   try {
-    // windowsHide: gizli baslatici (.vbs) ile acildiginda tarayiciyi acan cmd penceresinin ANLIK FLASH'ini bile engelle -> sifir siyah ekran.
-    if (process.platform === 'win32') exec(`start "" "${url}"`, { windowsHide: true })
-    else if (process.platform === 'darwin') exec(`open "${url}"`)
+    if (process.platform === 'win32') {
+      const br = findBrowser()
+      if (br) {
+        const profile = path.join(os.tmpdir(), 'ams-app-profile')
+        const args = [`--app=${url}`, `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check', '--start-maximized']
+        const child = spawn(br, args, { detached: !tie, stdio: 'ignore', windowsHide: false })
+        if (tie) child.on('exit', () => process.exit(0)) // pencere X -> node biter -> HTTP + WS kopru kapanir
+        else child.unref()
+        return
+      }
+      exec(`start "" "${url}"`, { windowsHide: true }) // Chrome/Edge bulunamadi -> varsayilan tarayici (sekme; nadiren)
+    } else if (process.platform === 'darwin') exec(`open "${url}"`)
     else exec(`xdg-open "${url}"`)
   } catch { /* tarayici elle acilabilir */ }
 }
@@ -135,7 +167,8 @@ function ensureDesktopShortcut() {
 httpServer.on('error', (e) => {
   if (e.code === 'EADDRINUSE') {
     console.error(`[app] Port ${HTTP_PORT} dolu - uygulama zaten acik olabilir. Tarayicida ${APP_URL} adresini deneyin.`)
-    openBrowser(APP_URL) // muhtemelen onceki surec servis ediyor -> yine de ac
+    openBrowser(APP_URL, false) // zaten calisan surec servis ediyor -> sadece yeni pencere ac, bu kopya cikar
+    process.exit(0)
   } else {
     console.error('[app] HTTP sunucu hatasi:', e.message)
   }
@@ -150,7 +183,7 @@ httpServer.listen(HTTP_PORT, HTTP_HOST, () => {
   console.log(`[kopru] WebSocket: ws://${WS_HOST}:${WS_PORT} (ayni Wi-Fi'daki cihazlar erisebilir)`)
   console.log('Tarayici aciliyor... Acilmazsa yukaridaki adrese gidin.')
   console.log('Bu pencereyi KAPATMAYIN (kapatirsaniz uygulama+cihaz baglantisi durur). Durdurmak: Ctrl+C')
-  openBrowser(APP_URL)
+  openBrowser(APP_URL, true) // uygulama-penceresi; X ile kapaninca sunucu da durur
   // Masaustune SMC ikonlu kisayol koy (paket modunda; "uygulama gibi"). Best-effort.
   if (packaged) ensureDesktopShortcut()
   // Arka planda (internet VARSA) son surumu kontrol et + indir -> SONRAKI acilista otomatik uygulanir. Best-effort/offline guvenli.
