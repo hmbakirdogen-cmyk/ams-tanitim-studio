@@ -6,6 +6,8 @@
 # KULLANIM: scripts\paketle-kopru.ps1   (gh auth + git gerekir; ExecutionPolicy engelliyse satirlari inline calistir)
 # YAN ETKI: paket\ (gitignore) olusur/guncellenir; GitHub'da "app-<hash>" Release yayinlanir.
 
+# -SkipRelease (Mehmet abi kurali): GitHub Release OTONOM yayinlanmaz (o gonderir) -> yalniz yerel paket\SMC-AMS-Tanitim.zip uretilir.
+param([switch]$SkipRelease)
 $ErrorActionPreference = 'Stop'
 $root   = Split-Path -Parent $PSScriptRoot
 $bridge = Join-Path $root 'bridge'
@@ -61,6 +63,9 @@ Copy-Item $dist -Destination (Join-Path $sistem 'app') -Recurse -Force
 foreach ($item in @('SMC-AMS-Baslat.vbs','BENIOKU.txt')) {
   Copy-Item (Join-Path $bridge $item) -Destination $stage -Force
 }
+# Telefon QR (canli siteye kisayol) — kullanici telefonuyla okutup acsin (kokte, Baslat yaninda). Mehmet abi 2026-06-23: "paketin icine de koy".
+$qrSrc = Join-Path $root 'public\SMC-AMS-QR.png'
+if (Test-Path $qrSrc) { Copy-Item $qrSrc -Destination (Join-Path $stage 'Telefondan-Ac-QR.png') -Force }
 
 # 5) Tam dagitim zip'i
 if (Test-Path $zip) { Remove-Item -Force $zip }
@@ -72,10 +77,14 @@ Compress-Archive -Path (Join-Path $sistem 'app\*') -DestinationPath $appZip -Com
 
 # 7) GitHub Release (tag app-<hash>) — kurulu makineler 'releases/latest' ile bunu gorup app.zip'i ceker
 $tag = "app-$ver"
-try {
-  gh release create $tag $appZip --repo $repo --title $tag --notes "AMS app otomatik guncelleme ($ver)" --latest
-} catch {
-  gh release upload $tag $appZip --repo $repo --clobber
+if ($SkipRelease) {
+  Write-Host ("Release ATLANDI (-SkipRelease). Yalniz yerel paket uretildi. (Release'i Mehmet abi gonderir; gerekince: gh release create {0} ...)" -f $tag)
+} else {
+  try {
+    gh release create $tag $appZip --repo $repo --title $tag --notes "AMS app otomatik guncelleme ($ver)" --latest
+  } catch {
+    gh release upload $tag $appZip --repo $repo --clobber
+  }
 }
 
-Write-Host ("PAKET + RELEASE HAZIR: {0}  ({1:N1} MB)  tag={2}" -f $zip, ((Get-Item $zip).Length / 1MB), $tag)
+Write-Host ("PAKET HAZIR: {0}  ({1:N1} MB)  surum={2}" -f $zip, ((Get-Item $zip).Length / 1MB), $ver)

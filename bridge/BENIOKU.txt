@@ -9,9 +9,13 @@ BASLATMAK ICIN
 KAPATMAK ICIN
   Uygulama penceresini sag-ustteki (X) ile kapatin. Her sey durur.
 
-TELEFON / TABLET ILE IZLEMEK (ayni Wi-Fi)
-  Uygulama acikken SOL-ALTTAKI "Telefon" dugmesine tiklayin; ciktigi adresi
-  (orn. 192.168.1.93:5180) telefonun tarayicisina yazin.
+TELEFON / TABLET ILE ACMAK
+  EN KOLAY (internet varsa): Bu klasordeki "Telefondan-Ac-QR.png" karekodunu
+    telefon kamerasiyla okutun -> uygulama acilir. Telefonda "Ana Ekrana Ekle"
+    derseniz kisayol da olusur.
+  AYNI Wi-Fi'de (gercek cihaza bagliyken / internetsiz): Uygulama acikken SOL
+    MENUDEKI "Mobil" satirinda yazan adresi (orn. 192.168.1.45:5180) telefonun
+    tarayicisina yazin.
   NOT: telefonda "localhost" YAZMAYIN - bilgisayarin IP adresini yazin.
 
 NOTLAR
