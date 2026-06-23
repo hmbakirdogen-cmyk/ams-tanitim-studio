@@ -32,6 +32,9 @@
   /* Tema yuzeyleri (Gunduz/Gece) - tek noktadan */
   --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
   --glass-shadow: 0 24px 60px -28px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.08);
+  /* Kart okunabilirlik scrim'i (AMS sahne cizgileri kart icinden sizmasin) - TEMA-DUYARLI. Gece: koyu.
+     Mehmet abi 2026-06-23: gunduze alinca kartlar KOYU kaliyordu -> scrim artik temaya gore degisir. */
+  --card-scrim: linear-gradient(160deg, rgba(8,18,38,0.96), rgba(4,10,24,0.93));
   /* Opak panel (okunabilirligi kritik modal/cekmece) - gece: koyu lacivert, neredeyse opak (glass cok seffaf kalir) */
   --panel-solid: linear-gradient(160deg, rgba(12,26,50,0.97), rgba(6,14,32,0.96));
   --scene: radial-gradient(120% 90% at 50% -10%, #08183a 0%, #050e1d 45%, #02030a 100%);
@@ -148,6 +151,7 @@ body { transition: background-color 0.45s ease, color 0.45s ease; }
   --hair: rgba(10, 60, 120, 0.24);  /* kenarlar belirgin (kart ayrimi) */
   --glass-bg: linear-gradient(160deg, rgba(255,255,255,0.96), rgba(235,243,252,0.84));
   --glass-shadow: 0 24px 58px -26px rgba(18,55,110,0.5), inset 0 1px 0 rgba(255,255,255,0.95);
+  --card-scrim: linear-gradient(160deg, rgba(255,255,255,0.97), rgba(236,244,253,0.92)); /* gunduz: ACIK scrim -> kart aydinlik (Mehmet abi 2026-06-23) */
   --panel-solid: linear-gradient(160deg, rgba(255,255,255,0.985), rgba(236,243,252,0.96));
   --scene: radial-gradient(120% 90% at 50% -10%, #ffffff 0%, #e6eefa 45%, #cfe0f4 100%);
   --scene-dark-op: 0;   /* gunduz: koyu sahne gizli */

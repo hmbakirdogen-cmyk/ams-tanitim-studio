@@ -72,8 +72,8 @@ export function MetricCard({ def, history, size = 'md', total, onClick, tight = 
       aria-hidden
       className="pointer-events-none absolute inset-0 rounded-[inherit]"
       style={{
-        background: 'linear-gradient(160deg, rgba(8,18,38,0.96), rgba(4,10,24,0.93))',
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -16px 26px -20px rgba(0,0,0,0.65)',
+        background: 'var(--card-scrim)', // TEMA-DUYARLI (Mehmet abi 2026-06-23: gündüzde kart AÇIK, gecede koyu) — eski sabit koyu kaldırıldı
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -16px 26px -20px rgba(0,0,0,0.4)',
       }}
     />
   )
