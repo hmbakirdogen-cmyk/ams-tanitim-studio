@@ -127,8 +127,10 @@ export function ChartOverlay({ reading, history = [], startedAt = 0, windowMs, o
             className="absolute top-0 bottom-0 w-px"
             style={
               f === 1
-                ? { left: '100%', background: 'rgba(65,224,138,0.55)' } // "şimdi" → belirgin yeşil
-                : { left: `${f * 100}%`, backgroundImage: 'repeating-linear-gradient(180deg, rgba(130,175,235,0.5) 0 4px, transparent 4px 9px)', opacity: 0.7 } // düşey kesik ışık çizgisi
+                ? { left: '100%', background: 'rgba(65,224,138,0.55)' } // sağ uç "şimdi" → belirgin yeşil
+                : f === 0
+                  ? { left: '0%', background: 'rgba(65,224,138,0.55)' } // sol uç "başlangıç" → sağ uç gibi belirgin YEŞİL (Mehmet abi 2026-06-23)
+                  : { left: `${f * 100}%`, backgroundImage: 'repeating-linear-gradient(180deg, rgba(130,175,235,0.5) 0 4px, transparent 4px 9px)', opacity: 0.7 } // düşey kesik ışık çizgisi
             }
           />
         ))}
@@ -146,13 +148,14 @@ export function ChartOverlay({ reading, history = [], startedAt = 0, windowMs, o
         className="absolute left-[42px] right-[42px] bottom-5 h-5 sm:left-[60px] sm:right-[60px]"
       >
         {TICKS.map((f, i) => {
-          const edge = i === 0 ? 'translate-x-0' : i === TICKS.length - 1 ? '-translate-x-full' : '-translate-x-1/2'
+          // Mehmet abi 2026-06-23: TÜM etiketler (başlangıç+bitiş dahil) düşey çizgisine TAM ORTALI (eski uç-kenar hizalama kaldırıldı; taşma container padding'inde emilir, kesilmez).
           const mobileTick = i === 0 || i === TICKS.length - 1 || i % 4 === 0
+          const ends = f === 0 || f === 1 // sol "başlangıç" + sağ "şimdi" → İKİSİ DE YEŞİL (Mehmet abi 2026-06-23: "en sol da sağdaki gibi yeşil")
           return (
-            <div key={f} className={`absolute ${mobileTick ? 'flex' : 'hidden sm:flex'} flex-col items-center gap-0.5 ${edge}`} style={{ left: `${f * 100}%` }}>
+            <div key={f} className={`absolute ${mobileTick ? 'flex' : 'hidden sm:flex'} -translate-x-1/2 flex-col items-center gap-0.5`} style={{ left: `${f * 100}%` }}>
               {/* Mehmet abi 2026-06-20: zaman scalası fontu ~%18 büyütüldü (8→9.5px saat, 7→8.5px göreli süre) → okunurluk arttı, çeviri/hiza aynı. */}
-              <span className={`num whitespace-nowrap text-[8px] font-semibold sm:text-[9.5px] ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'}`} style={shadow}>{clockAt(f)}</span>
-              <span className={`num whitespace-nowrap text-[7px] font-medium sm:text-[8.5px] ${f === 1 ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'} opacity-75`} style={shadow}>{relAt(f)}</span>
+              <span className={`num whitespace-nowrap text-[8px] font-semibold sm:text-[9.5px] ${ends ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'}`} style={shadow}>{clockAt(f)}</span>
+              <span className={`num whitespace-nowrap text-[7px] font-medium sm:text-[8.5px] ${ends ? 'text-[var(--c-saving)]' : 'text-[var(--ink-soft)]'} opacity-75`} style={shadow}>{relAt(f)}</span>
             </div>
           )
         })}

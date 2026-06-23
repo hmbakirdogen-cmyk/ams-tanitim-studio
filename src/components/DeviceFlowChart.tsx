@@ -909,7 +909,7 @@ export function DeviceFlowChart({
         const ix = rx + pad, iy = ry + pad, iw = rw - pad * 2, ih = rh - pad * 2
         const rowH = ih / 2
         const GLOW = 0.1                             // LED hâlesi ÇOK KISIK → keskin, haneler karışmaz
-        const edge = iw * 0.045                      // yan kenar payı (Mehmet Abi: "yan kenarlardan birazcık mesafe") → rakamlar kenara değmez
+        const edge = iw * 0.034                      // yan kenar payı (Mehmet abi: "yan kenarlardan birazcık mesafe") → rakamlar kenara değmez; 2026-06-23 (0.045→0.038→0.034) → sütun genişler, rakam biraz daha büyür, kenar payı yine korunur
         const leftX = ix + edge                      // SOL sütun SOLA yaslı  → basınç(üst) + sıcaklık(alt) SOL köşelerde
         const rightX = ix + iw - edge                // SAĞ sütun SAĞA yaslı → debi(üst) + toplam(alt) SAĞ köşelerde
         // GERÇEK cihaz çözünürlüğü ile değer string'leri (totalizer 5 hane ile sınırlı → en geniş sabit referansla uyumlu)
@@ -923,11 +923,11 @@ export function DeviceFlowChart({
         //   → digH artık canlı veriye bağlı DEĞİL → zamanla küçülmez/oynamaz (kararlı/sabit görünüm).
         const REF_L = measureSevenSeg('0.200', 1)    // sol sütun en geniş sabit referans
         const REF_R = measureSevenSeg('8888888', 1)    // sağ sütun (totalizer) en geniş sabit referans — 7 hane (gerçek PF3A büyük-debi; rakamlar buna göre ölçülür, taşmaz)
-        const centerCh = iw * 0.05                   // merkez kanal (sığdırma payı) DARALTILDI → sütunlar genişler → rakam BÜYÜR (ayrım köşe-yaslamadan gelir)
+        const centerCh = iw * 0.026                  // merkez kanal (sığdırma payı) DAHA DAR (Mehmet abi 2026-06-23: biraz daha büyüsün, 0.035→0.026) → sütunlar genişler → rakam BÜYÜR; digH min() ile sınırlı, taşmaz
         const colTotal = iw - edge * 2 - centerCh    // iki sütunun paylaştığı genişlik (referans oranında bölünür → eşit digH)
         const leftColW = colTotal * REF_L / (REF_L + REF_R)
         const rightColW = colTotal * REF_R / (REF_L + REF_R)
-        const hBudget = rowH * 0.50                  // dikey rakam bütçesi (Mehmet Abi: 0.50 yap)
+        const hBudget = rowH * 0.62                  // dikey rakam bütçesi (Mehmet abi 2026-06-23: "biraz daha büyüsün" 0.58→0.62; satır arası ekranla doğrulandı, taşma yok)
         const digH = Math.min(hBudget, leftColW / REF_L, rightColW / REF_R)   // tek boy; genişlik İZİN verir, yükseklik tavanı koyar
         // DİKEY KONUM (gerçek foto-oran): üst satır AYNI Y, alt satır AYNI Y. Birimler boşluklara serpiştirilir (üst-üste binmez):
         //   MPa üst-sol değerin ÜSTÜNDE; L/min üst-sağ değerin ALTINDA (satır arası sağ boşluk); °C/L alt değerlerin ALTINDA.
@@ -987,17 +987,17 @@ export function DeviceFlowChart({
           if (gRnd) { ctx.beginPath(); ctx.roundRect(gx + 0.4, gy + 0.4, gw - 0.8, gh - 0.8, gRad); ctx.stroke() }
           // FOTO-BİREBİR (Mehmet abi gerçek IO-Link E/P REGULATOR ekranı fotosu): rakamlar GERÇEK 7-SEGMENT LED —
           //   düz monospace yazı yerine drawSevenSeg → fotodaki kırmızı dijitlerin segment hissi + lider-sıfırsız ".287" stili.
-          // RENK: VİŞNE kırmızısı (Mehmet abi: "kırmızı vişne renk yap") — derin/koyu kızıl, turuncuya/parlağa kaçmaz; glow kısık.
-          const segCol: RGB = [172, 26, 50]                          // vişne (deep cherry) — yeşil/mavi düşük, kızıl baskın
+          // RENK: KOYU VİŞNE kırmızısı (Mehmet abi 2026-06-23: "biraz daha vişne gibi koyulaşsın") — derin/koyu kızıl-bordo, turuncuya/parlağa kaçmaz.
+          const segCol: RGB = [112, 12, 34]                          // DAHA koyu vişne/bordo (Mehmet abi 2026-06-23: "daha koyu kırmızı"; 138,16,42→112,12,34) — derin kızıl, parlağa kaçmaz
           // ÜRÜN-ŞEKLİ (Mehmet abi: "ürüne göre şeklini ayarla"): gerçek E/P regülatör dijiti hub'ınkinden GENİŞ/DOLGUN → ekranı
           //   daha çok doldurur. Bu metrik SADECE regülatöre geçer; debimetre LCD'si (override'sız) BİT BİT AYNI kalır.
-          const segM = { digitW: 0.54, dotW: 0.30, gap: 0.10, thick: 0.15 }
+          const segM = { digitW: 0.54, dotW: 0.30, gap: 0.10, thick: 0.15 }   // Mehmet abi 2026-06-23: "bold olsun" → thick 0.12→0.15 (dolgun 7-segment, küçülen boyla dengeli)
           const segW1 = measureSevenSeg(pv, 1, segM) || 1           // birim-yükseklikte genişlik → ölçekli sığdırma (hangi değer olursa taşmaz)
-          const segH = Math.min(gh * 0.80, (gw * 0.92) / segW1)     // hem dikey hem yatay sığar (en büyük okunur boy; ekranı dolu doldurur)
+          const segH = Math.min(gh * 0.60, (gw * 0.72) / segW1)     // Mehmet abi 2026-06-23: "birazcık daha küçük" (0.70/0.82→0.60/0.72) → ekranda ferah, dolgun ama küçük dijit
           // YÖN: Mehmet abi "ters çevir" → 180° rotation KALDIRILDI (düz/upright). Ekran camına ortalı. (gözle DOĞRULANIR — screenshot)
           ctx.save()
           ctx.translate(gx + gw / 2, gy + gh / 2)
-          drawSevenSeg(ctx, pv, -measureSevenSeg(pv, segH, segM) / 2, -segH / 2, segH, segCol, { glow: 0.38, ...segM })
+          drawSevenSeg(ctx, pv, -measureSevenSeg(pv, segH, segM) / 2, -segH / 2, segH, segCol, { glow: 0.22, ...segM })   // glow 0.28→0.22 (Mehmet abi 2026-06-23: daha koyu kırmızı — parıltı kısık, derin/mat)
           ctx.restore()
         }
       }

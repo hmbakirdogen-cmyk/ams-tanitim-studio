@@ -61,17 +61,18 @@ function autoRange(minV: number, maxV: number): { lo: number; hi: number; step: 
 }
 const AUTO_RANGE_KEYS = new Set<MetricKey>(['temperature', 'humidity']) // SADECE bunlar zoom'lanır; flow/pressure gauge gibi SABİT 0…max kalır
 
-export function LiveChart2D({ history = [], reading = null, metrics, groups = [['flow'], ['pressure']] }: {
+export function LiveChart2D({ history = [], reading = null, metrics, groups = [['flow'], ['pressure']], theme = 'dark' }: {
   history?: Reading[]
   reading?: Reading | null
   metrics: MetricDef[]
   groups?: MetricKey[][] // Mehmet abi 2026-06-19: sekme → hangi 2 sensör (Hava&Basınç / Sıcaklık&Nem)
+  theme?: 'dark' | 'light' // Mehmet abi 2026-06-23: gündüz modunda etiket/scala renkleri koyulaşsın (açık zeminde okunsun)
 }) {
   const { t } = useLang() // Mehmet abi 2026-06-22: grafik canvas metinleri (şerit adı + birim) DİLE göre çevrilsin (EN/JA'da Türkçe kalıyordu)
   const wrapRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const dataRef = useRef({ history, reading, metrics, groups, t })
-  dataRef.current = { history, reading, metrics, groups, t }
+  const dataRef = useRef({ history, reading, metrics, groups, t, theme })
+  dataRef.current = { history, reading, metrics, groups, t, theme }
   const dispRef = useRef<Record<string, Float32Array>>({})
   // AUTO-RANGE yumuşak eksen havuzu (Mehmet abi 2026-06-20) — her auto-range sensörü için { lo, hi } yumuşak kayar (lerp 0.07) → eksen ZIPLAMAZ.
   const rangeRef = useRef<Record<string, { lo: number; hi: number }>>({})
@@ -111,7 +112,10 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
       lastFrame = ts
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, W, H)
-      const { history: hist, reading: rd, metrics: mets, groups: grps, t } = dataRef.current
+      const { history: hist, reading: rd, metrics: mets, groups: grps, t, theme } = dataRef.current
+      const dark = theme !== 'light' // gündüz: etiket/scala renkleri koyulaştırılır (Mehmet abi 2026-06-23: açık zeminde soluk turuncu/açık-mavi okunmuyordu)
+      // Sensör rengini gündüz için %50 KOYULAŞTIR (açık zeminde okunur; kimlik/renk-ailesi korunur). Gece: tam parlak renk.
+      const inkOf = (cr: number, cg: number, cb: number, a = 1) => dark ? `rgba(${cr},${cg},${cb},${a})` : `rgba(${Math.round(cr * 0.5)},${Math.round(cg * 0.5)},${Math.round(cb * 0.5)},${a})`
       const n = hist.length
       const px = PAD_L, py = PAD_T, pw = Math.max(1, W - PAD_L - PAD_R), ph = Math.max(1, H - PAD_T - PAD_B)
       if (n < 2 || !mets.length) return
@@ -135,7 +139,7 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
         const top = laneTop + ip, h = Math.max(1, laneH - ip * 2)
         const off = group.length > 1 ? 0.28 : 0 // grup içi 2 boruyu AYIR (Mehmet Abi: üst grubu biraz daha ayır)
 
-        ctx.fillStyle = 'rgba(255,255,255,0.025)'
+        ctx.fillStyle = dark ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.035)' // gündüz: açık zeminde hafif KOYU şerit (Mehmet abi 2026-06-23)
         if ((ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect) { ctx.beginPath(); ctx.roundRect(px, laneTop, pw, laneH, 8); ctx.fill() } else ctx.fillRect(px, laneTop, pw, laneH)
 
         // Per-sensör hazırla: AUTO-RANGE (sıcaklık/nem) ya da SABİT nice eksen (flow/pressure) → disp normalize (yağ gibi) + ayrı alt-band
@@ -158,9 +162,9 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
             //   Debi ekseni = ÜRÜN max debisi (m.max=flowMax). niceAxis ikisinde de yuvarlak adım verir (MPa 0,2 · bar 2 · debi 500). SABİT 0…hi (gauge gibi).
             const axisMax = m.key === 'pressure' ? m.max * 0.75 : m.max
             const ax = niceAxis(axisMax)
-            // BASINÇ ekseni HASSAS tick (Mehmet abi 2026-06-20: bar'da 1'er, MPa'da da AYNI sıklık): bar → 1'er (0/1/…/6), MPa → 0,1'er (0/0,1/…/0,6).
-            //   1 bar = 0,1 MPa → iki birimde de 7 çizgi, aynı sıklık. (Sadece basınç; debi niceAxis ile yuvarlak kalır.)
-            if (m.key === 'pressure') { const isBar = m.unitShort === 'bar'; lo = 0; step = isBar ? 1 : 0.1; hi = Math.max(step, Math.ceil(axisMax / step - 1e-9) * step) }
+            // BASINÇ ekseni RAHAT tick (Mehmet abi 2026-06-23: "2'şer atlasın, scala rahatlasın"): bar → 2'şer (0/2/4/6), MPa → 0,2'şer (0/0,2/0,4/0,6).
+            //   1 bar = 0,1 MPa → iki birimde de ~4 çizgi: aynı sıklık + ferah/okunaklı (eski 7 çizgi sıkışıktı). (Sadece basınç; debi niceAxis ile yuvarlak kalır.)
+            if (m.key === 'pressure') { const isBar = m.unitShort === 'bar'; lo = 0; step = isBar ? 2 : 0.2; hi = Math.max(step, Math.ceil(axisMax / step - 1e-9) * step) }
             else { lo = 0; hi = ax.hi; step = ax.step }
           }
           const denom = Math.max(hi - lo, 1e-6) // auto-range'de band genişliği, sabitte hi (lo=0)
@@ -176,7 +180,7 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
         for (const s of subs) {
           const [r, g, b] = hexRgb(s.m.color)
           const span = Math.max(s.hi - s.lo, 1e-6)
-          ctx.strokeStyle = `rgba(${r},${g},${b},0.15)`; ctx.lineWidth = 1
+          ctx.strokeStyle = inkOf(r, g, b, dark ? 0.15 : 0.22); ctx.lineWidth = 1 // gündüz: scala çizgileri koyu (açık zeminde belirgin)
           for (let v = Math.ceil(s.lo / s.step - 1e-9) * s.step; v <= s.hi + s.step * 0.5; v += s.step) {
             const yy = s.subTop + (1 - (v - s.lo) / span) * s.subH
             ctx.beginPath(); ctx.moveTo(px, yy); ctx.lineTo(px + pw, yy); ctx.stroke()
@@ -188,6 +192,11 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
           const m = s.m, [r, g, b] = hexRgb(m.color)
           const pts = ptsBuf // PERF: kalıcı tampon; şerit sırayla doldurup hemen çizer (çizim senkron → paylaşım güvenli)
           for (let i = 0; i < N; i++) { pts[i][0] = px + (i / (N - 1)) * pw; pts[i][1] = s.subTop + (1 - s.disp[i]) * s.subH }
+          // SCALA KILAVUZU (Mehmet abi 2026-06-23, seçim 1): uç noktanın Y'sinde plot boyu ince KESİKLİ yatay çizgi (sensör renginde) →
+          //   değerin scaladaki (sağ/sol Y tick) TAM yeri tek bakışta okunur. Boru ÇİZİLMEDEN ÖNCE çizilir → üstüne boru biner, karmaşa yok.
+          ctx.save(); ctx.setLineDash([3, 4]); ctx.strokeStyle = inkOf(r, g, b, 0.30); ctx.lineWidth = 1
+          ctx.beginPath(); ctx.moveTo(px, pts[N - 1][1]); ctx.lineTo(px + pw, pts[N - 1][1]); ctx.stroke()
+          ctx.setLineDash([]); ctx.restore()
           // PERF: shadowBlur (Canvas'ın en pahalı işlemi) yalnız YÜKSEK-DPR/4K'da hafifletilir (9→5). Normal ekranda (dpr<1.75) BİREBİR 9 kalır →
           //   görünüş Mehmet abi'nin ekranında aynı; 4K TV'de fill-rate maliyeti düşer (TV mesafesinde fark hissedilmez), "kasma" riski biter.
           ctx.beginPath(); strokeSmooth(pts); ctx.strokeStyle = m.color; ctx.lineWidth = 6; ctx.shadowColor = m.color; ctx.shadowBlur = dpr >= 1.75 ? 5 : 9; ctx.stroke(); ctx.shadowBlur = 0
@@ -202,7 +211,7 @@ export function LiveChart2D({ history = [], reading = null, metrics, groups = [[
 
           // İKİ YANDA Y-SKALA — NICE TICK değerleri (Mehmet abi: "0 0,2 0,4 0,6"). Mehmet abi 2026-06-19: rakamlar BOLD DEĞİL (normal/ince) +
           //   çizgide TAM yerinde (middle, tek hizalama → kayma yok) + sade = karmaşa yok. Kendi renginde (kimlik bağı), sol/sağ simetrik.
-          ctx.font = '400 11px ui-sans-serif, system-ui, sans-serif'; ctx.fillStyle = `rgb(${r},${g},${b})`
+          ctx.font = '400 11px ui-sans-serif, system-ui, sans-serif'; ctx.fillStyle = inkOf(r, g, b) // gündüz: Y-scala rakamları KOYU (açık zeminde okunur — soluk turuncu/açık-mavi düzeldi)
           ctx.textBaseline = 'middle'
           const lblSpan = Math.max(s.hi - s.lo, 1e-6)
           for (let v = Math.ceil(s.lo / s.step - 1e-9) * s.step; v <= s.hi + s.step * 0.5; v += s.step) {

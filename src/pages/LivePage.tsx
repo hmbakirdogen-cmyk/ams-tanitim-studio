@@ -185,7 +185,7 @@ export function LivePage({ data, greetName, theme = 'dark' }: { data: LiveState;
             {heavyReady && (
               <div className="ams-fade-in absolute inset-0">
                 <ErrorBoundary variant="inline" label={t('Grafik')}>
-                  <LiveChart2D history={shownTrend} reading={reading} metrics={visibleMetrics} groups={CHART_TABS[chartTab].groups} />
+                  <LiveChart2D history={shownTrend} reading={reading} metrics={visibleMetrics} groups={CHART_TABS[chartTab].groups} theme={theme} />
                 </ErrorBoundary>
               </div>
             )}

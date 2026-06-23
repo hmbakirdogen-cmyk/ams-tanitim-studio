@@ -651,7 +651,7 @@ const JA: Record<string, string> = {
   'Yıllık Enerji': '年間エネルギー',
   'Yıllık Karbon': '年間CO₂',
   'normal çalışmaya göre': '通常運転比',
-  'l/dak': 'L/分',
+  'l/dak': 'L/min',
   'saat / yıl': '時間 / 年',
   'Hesap Ayarları': '計算設定',
   '— değerleri kendiniz girin, hesap anında güncellenir': '— 値を入力すると即座に再計算されます',
